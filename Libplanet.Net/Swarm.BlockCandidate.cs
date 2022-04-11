@@ -12,7 +12,6 @@ namespace Libplanet.Net
     public partial class Swarm<T>
     {
         private async Task ConsumeBlockCandidates(
-            TimeSpan timeout,
             CancellationToken cancellationToken)
         {
             var checkInterval = TimeSpan.FromMilliseconds(10);
@@ -21,24 +20,29 @@ namespace Libplanet.Net
                 if (BlockCandidateTable.Any())
                 {
                     BlockHeader tipHeader = BlockChain.Tip.Header;
-                    SortedList<long, Block<T>> blocks =
-                        BlockCandidateTable.GetCurrentRoundCandidate(tipHeader);
-                    if (!(blocks is null))
+                    CandidateBranch<T> branch = BlockCandidateTable.BestBranch;
+                    if (!(branch is null))
                     {
-                        var latest = blocks.Last();
                         _logger.Debug(
                             "{MethodName} has started. Excerpt: #{BlockIndex} {BlockHash} " +
                             "Count of {BlockCandidateTable}: {Count}",
                             nameof(ConsumeBlockCandidates),
-                            latest.Value.Index,
-                            latest.Value.Header,
+                            branch.Tip.Index,
+                            branch.Tip.Hash,
                             nameof(BlockCandidateTable),
                             BlockCandidateTable.Count);
-                        _ = BlockCandidateProcess(
-                            blocks,
-                            timeout,
-                            cancellationToken);
-                        BlockAppended.Set();
+                        try
+                        {
+                            UpdatePath<T> path = BlockCandidateProcess(
+                                branch,
+                                cancellationToken);
+                            BlockAppended.Set();
+                            BlockCandidateTable.Update(path, IsBlockNeeded);
+                        }
+                        catch (Exception)
+                        {
+                            FillBlocksAsyncFailed.Set();
+                        }
                     }
                 }
                 else
@@ -46,44 +50,32 @@ namespace Libplanet.Net
                     await Task.Delay(checkInterval, cancellationToken);
                     continue;
                 }
-
-                BlockCandidateTable.Cleanup(IsBlockNeeded);
             }
         }
 
-        private bool BlockCandidateProcess(
-            SortedList<long, Block<T>> candidate,
-            TimeSpan timeout,
+        private UpdatePath<T> BlockCandidateProcess(
+            CandidateBranch<T> branch,
             CancellationToken cancellationToken)
         {
             BlockChain<T> synced = null;
+            UpdatePath<T> path = null;
             System.Action renderSwap = () => { };
             const string methodName =
                 nameof(Swarm<T>) + "<T>." + nameof(BlockCandidateProcess) + "()";
-            try
-            {
-                FillBlocksAsyncStarted.Set();
-                _logger.Debug(
-                    methodName + " starts to append. Current tip: #{BlockIndex}.",
-                    BlockChain.Tip.Index
-                );
-                synced = AppendPreviousBlocks(
-                    blockChain: BlockChain,
-                    candidate: candidate,
-                    timeout: timeout,
-                    evaluateActions: true);
-                ProcessFillBlocksFinished.Set();
-                _logger.Debug(
-                    methodName + " finished appending blocks. Synced tip: #{BlockIndex}.",
-                    synced.Tip.Index
-                );
-            }
-            catch (Exception e)
-            {
-                _logger.Error(e, methodName + " failed to append blocks.");
-                FillBlocksAsyncFailed.Set();
-                return false;
-            }
+            FillBlocksAsyncStarted.Set();
+            _logger.Debug(
+                methodName + " starts to append. Current tip: #{BlockIndex}.",
+                BlockChain.Tip.Index
+            );
+            (synced, path) = AppendPreviousBlocks(
+                blockChain: BlockChain,
+                branch: branch,
+                evaluateActions: true);
+            ProcessFillBlocksFinished.Set();
+            _logger.Debug(
+                methodName + " finished appending blocks. Synced tip: #{BlockIndex}.",
+                synced.Tip.Index
+            );
 
             var canonComparer = BlockChain.Policy.CanonicalChainComparer;
 
@@ -113,13 +105,12 @@ namespace Libplanet.Net
 
             renderSwap();
             BroadcastBlock(BlockChain.Tip);
-            return true;
+            return path;
         }
 
-        private BlockChain<T> AppendPreviousBlocks(
+        private (BlockChain<T>, UpdatePath<T>) AppendPreviousBlocks(
             BlockChain<T> blockChain,
-            SortedList<long, Block<T>> candidate,
-            TimeSpan timeout,
+            CandidateBranch<T> branch,
             bool evaluateActions)
         {
              BlockChain<T> workspace = blockChain;
@@ -128,9 +119,10 @@ namespace Libplanet.Net
              bool renderBlocks = true;
 
              Block<T> oldTip = workspace.Tip;
-             Block<T> newTip = candidate.Last().Value;
-             List<Block<T>> blocks = candidate.Values.ToList();
+             Block<T> newTip = branch.Tip;
+             List<Block<T>> blocks = branch.Blocks;
              Block<T> branchpoint = FindBranchpoint(oldTip, newTip, blocks);
+             UpdatePath<T> path = null;
 
              if (oldTip is null || branchpoint.Equals(oldTip))
              {
@@ -138,6 +130,10 @@ namespace Libplanet.Net
                      "No need to fork. at {MethodName}",
                      nameof(AppendPreviousBlocks)
                  );
+                 if (oldTip is { })
+                 {
+                     path = new UpdatePath<T>(blocks, oldTip, oldTip, newTip);
+                 }
              }
              else if (!workspace.ContainsBlock(branchpoint.Hash))
              {
@@ -170,6 +166,7 @@ namespace Libplanet.Net
                      "Fork finished. at {MethodName}",
                      nameof(AppendPreviousBlocks)
                  );
+                 path = new UpdatePath<T>(blocks, oldTip, branchpoint, newTip);
              }
 
              if (!(workspace.Tip is null) &&
@@ -219,7 +216,7 @@ namespace Libplanet.Net
                  );
              }
 
-             return workspace;
+             return (workspace, path);
         }
 
         private Block<T> FindBranchpoint(Block<T> oldTip, Block<T> newTip, List<Block<T>> newBlocks)
@@ -285,7 +282,6 @@ namespace Libplanet.Net
 
         private async Task<bool> ProcessBlockDemandAsync(
             BlockDemand demand,
-            TimeSpan timeout,
             CancellationToken cancellationToken)
         {
             var sessionRandom = new Random();
@@ -320,7 +316,6 @@ namespace Libplanet.Net
                     peer: peer,
                     blockChain: BlockChain,
                     stop: demand.Header,
-                    timeout: timeout,
                     logSessionId: sessionId,
                     cancellationToken: cancellationToken);
 
@@ -370,7 +365,6 @@ namespace Libplanet.Net
             BoundPeer peer,
             BlockChain<T> blockChain,
             BlockHeader stop,
-            TimeSpan timeout,
             int logSessionId,
             CancellationToken cancellationToken)
         {
@@ -383,7 +377,7 @@ namespace Libplanet.Net
                 peer: peer,
                 locator: locator,
                 stop: stop.Hash,
-                timeout: timeout,
+                timeout: null,
                 logSessionIds: (logSessionId, subSessionId),
                 cancellationToken: cancellationToken);
             IEnumerable<Tuple<long, BlockHash>> hashes = await hashesAsync.ToArrayAsync();
@@ -399,7 +393,8 @@ namespace Libplanet.Net
                 hashes.Select(pair => pair.Item2),
                 cancellationToken);
             var blocks = await blocksAsync.ToArrayAsync(cancellationToken);
-            BlockCandidateTable.Add(tip.Header, blocks);
+            var branch = new CandidateBranch<T>(blocks.ToList(), blocks.First(), blocks.Last());
+            BlockCandidateTable.Add(branch);
             return true;
         }
     }
