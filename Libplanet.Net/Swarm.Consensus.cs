@@ -10,6 +10,7 @@ namespace Libplanet.Net
 {
     public partial class Swarm<T>
     {
+        // FIXME: This is arbitrary chosen number for testing
         private const int ProposeRecvTimeoutSecond = 10;
 
         public static async Task ConsensusStateTransitionTick(
@@ -70,8 +71,8 @@ namespace Libplanet.Net
         {
             if (message.Round != ConsensusState.Round)
             {
-                Log.Debug($"ConsensusState expected round #{ConsensusState.Round}" +
-                          $"However, got round #{message.Round} from ConsensusPropose");
+                Log.Debug($"ConsensusState expected round #{ConsensusState.Round}." +
+                          $" However, got round #{message.Round} from ConsensusPropose");
                 return;
             }
 
@@ -106,14 +107,14 @@ namespace Libplanet.Net
         {
             if (message.Round != ConsensusState.Round)
             {
-                Log.Debug($"ConsensusVote expected round #{ConsensusState.Round}" +
-                          $"However, got round #{message.Round} from ConsensusVote");
+                Log.Debug($"ConsensusVote expected round #{ConsensusState.Round}." +
+                          $" However, got round #{message.Round} from ConsensusVote");
                 return;
             }
 
             if (ConsensusState.IsVotePossible())
             {
-                Log.Debug($"In step {ConsensusState.Step}, can't proceed the vote message");
+                Log.Debug($"In step {ConsensusState.Step}, can't proceed the vote message.");
                 return;
             }
 
@@ -121,16 +122,19 @@ namespace Libplanet.Net
 
             if (ConsensusState.CountVote >= ConsensusState.Threshold)
             {
-                Log.Debug("State Transition [PreVoteWait]=>[PreCommitWait]");
+                Log.Debug("State Transition [PreVoteWait] => [PreCommit]");
+                Log.Debug($"Reset CountVote23 {ConsensusState.CountVote} to 0...");
                 ConsensusState.ResetVote();
                 ConsensusState.GoStep(RoundStep.RoundStepPreCommit);
 
                 var voteMsg = new ConsensusVote23(ConsensusState);
 
+                Log.Debug($"Broadcasting ConsensusVote23...");
                 Transport.BroadcastMessage(
                     RoutingTable.PeersToBroadcast(null),
                     voteMsg);
 
+                Log.Debug("State Transition [PreCommit] => [PreCommitWait]");
                 ConsensusState.GoStep(RoundStep.RoundStepPreCommitWait);
                 ProcessConsensusMessage(voteMsg);
             }
@@ -140,13 +144,14 @@ namespace Libplanet.Net
         {
             if (msg.Round != ConsensusState.Round)
             {
-                Log.Debug($"ConsensusVote23 Expecting round : {ConsensusState.Round} but got round : {msg.Round}");
+                Log.Debug($"ConsensusVote23 Expecting round #{ConsensusState.Round}." +
+                          $" However, got round #{msg.Round}...");
                 return;
             }
 
             if (!ConsensusState.IsVote23Possible())
             {
-                Log.Debug($" In step {ConsensusState.Step}, can't proceed the vote23 message");
+                Log.Debug($" In step {ConsensusState.Step}, can't proceed the vote23 message.");
                 return;
             }
 
@@ -154,10 +159,12 @@ namespace Libplanet.Net
 
             if (ConsensusState.CountVote23 >= ConsensusState.Threshold)
             {
-                Log.Debug("State Transition [PreCommitWait]=>[NewRound]");
+                Log.Debug("State Transition [PreCommitWait] => [RoundStepCommit]");
+                Log.Debug($"Reset CountVote23 {ConsensusState.CountVote23} to 0...");
                 ConsensusState.ResetVote23();
                 ConsensusState.GoStep(RoundStep.RoundStepCommit);
 
+                Log.Debug("State Transition [RoundStepCommit] => [NewRound]");
                 ConsensusState.AddRound();
                 ConsensusState.GoStep(RoundStep.RoundStepNewRound);
             }

@@ -6,6 +6,9 @@ namespace Libplanet.Net.Consensus
 {
     public class ConsensusState
     {
+        // TODO: If I have understood correctly, Threshold
+        // should be the 2/3 of peer counts?
+
         public const long Threshold = 3;
 
         public readonly object StateLock = new object();
