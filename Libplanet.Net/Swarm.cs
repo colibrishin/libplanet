@@ -14,6 +14,7 @@ using Libplanet.Blockchain;
 using Libplanet.Blockchain.Policies;
 using Libplanet.Blocks;
 using Libplanet.Crypto;
+using Libplanet.Net.Consensus;
 using Libplanet.Net.Messages;
 using Libplanet.Net.Protocols;
 using Libplanet.Net.Transports;
@@ -188,6 +189,8 @@ namespace Libplanet.Net
         /// synchronizes with.
         /// </summary>
         public BlockChain<T> BlockChain { get; private set; }
+
+        public ConsensusState ConsensusState { get; private set; }
 
         public IImmutableSet<PublicKey> TrustedAppProtocolVersionSigners { get; }
 
