@@ -57,8 +57,10 @@ namespace Libplanet.Net
                         HandleConsensusVote23(consensusVote23);
                         break;
                     default:
-                        // UNKNWON
-                        break;
+                        throw new InvalidMessageException(
+                            $"Failed to handle message: {message}",
+                            message
+                        );
                 }
             }
         }
