@@ -2,6 +2,7 @@ namespace Libplanet.Net.Consensus
 {
     public enum RoundStep : byte
     {
+        // TODO: Comments are needed for each steps
         RoundStepNewRound = 0x00,
 
         RoundStepPropose = 0x01,
@@ -14,7 +15,6 @@ namespace Libplanet.Net.Consensus
 
         RoundStepPreCommitWait = 0x05,
 
-        RoundStepCommit = 0x06
+        RoundStepCommit = 0x06,
     }
 }
-
