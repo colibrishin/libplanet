@@ -128,6 +128,11 @@ namespace Libplanet.Net
                         }
                     }
 
+                    if (newBlocks.First().PreviousHash.Equals(path.OldTip.Hash))
+                    {
+                        newBlocks.Insert(0, path.BranchPoint);
+                    }
+
                     var newBranch = new CandidateBranch<T>(
                         newBlocks,
                         newBlocks.First(),
