@@ -22,13 +22,14 @@ namespace Libplanet.Tests
             {
                 tx.Validate();
             }
-            catch (InvalidTxSignatureException)
+            catch (InvalidTxSignatureException e)
             {
                 if (!privateKey.ToAddress().Equals(tx.PublicKey.ToAddress()))
                 {
                     throw new InvalidTxPublicKeyException(
                         tx.Id,
-                        "The given private key does not correspond to the transaction's public key."
+                        "The given private key does not correspond to the transaction's public key.",
+                        e
                     );
                 }
 
@@ -39,7 +40,8 @@ namespace Libplanet.Tests
                     "The transaction's signature is invalid.  " +
                     "Suggest you to change it to the valid one instead.\n" +
                     $"Actual invalid signature:  {ByteUtil.Hex(tx.Signature)}\n" +
-                    $"Suggested valid signature: {ByteUtil.Hex(validSignature)}"
+                    $"Suggested valid signature: {ByteUtil.Hex(validSignature)}",
+                    e
                 );
             }
         }
