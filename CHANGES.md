@@ -1,11 +1,11 @@
 Libplanet changelog
 ===================
 
-Version 0.29.0
+
+Version 0.33.0
 --------------
 
 To be released.
-
 
 ### Deprecated APIs
 
@@ -17,20 +17,212 @@ To be released.
 
 ### Added APIs
 
+ -  (Libplanet.Net) `InvalidCredentialException` class added.
+    [[#1904], [#1905]]
+
 ### Behavioral changes
+
+ -  Inner logic of `ByteUtil.CalculateHashCode(byte[] bytes)` has modified.
+    [[#1866], [#1891]]
+ -  (Libplanet.Net) `IMessageCodec.Encode()` now requires a *matching*
+    `PrivateKey` to be provided for `Peer`.  [[#1904], [#1905]]
 
 ### Bug fixes
 
 ### Dependencies
 
+ -  No longer depend on *Fody*.  [[#1866], [#1891]]
+ -  No longer depend on *Equals.Fody*.  [[#1866], [#1891]]
+
 ### CLI tools
+
+[#1866]: https://github.com/planetarium/libplanet/issues/1866
+[#1891]: https://github.com/planetarium/libplanet/pull/1891
+[#1904]: https://github.com/planetarium/libplanet/issues/1904
+[#1905]: https://github.com/planetarium/libplanet/pull/1905
+
+
+Version 0.32.1
+--------------
+
+Released on April 8th, 2022.
+
+### Behavioral changes
+
+ -  (Libplanet.Net) `ITransport`'s behavior rolled back to send replies
+    with `DifferentVersion` type `Message` to a `Peer` with a different
+    `AppProtocolVersion` regardless of whether the `APV` from `Peer` is
+    signed by a trusted source or not.  [[#1900]]
+
+[#1900]: https://github.com/planetarium/libplanet/pull/1900
+
+
+Version 0.32.0
+--------------
+
+Released on April 8th, 2022.
+
+### Backward-incompatible API changes
+
+ -  Added `IStore.PruneOutdatedChains(bool noopWithoutCanon)` method.
+    [[#1874], [#1878]]
+ -  `IMessageCodec` interface and its implementations overhauled.  [[#1890]]
+     -  Removed `AppProtocolVersion version` parameter from
+        `IMessageCodec.Encode()`.
+     -  Removed `Action appProtocolVersionValidator` parameter from
+        `IMessageCodec.Decode()`.
+     -  Both `TcpMessageCodec()` and `NetMQMessageCodec()` now takes
+        additional parameters for setting up its `MessageValidator` instance
+        for running context.
+ -  `DifferentAppProtocolVersionEncountered` delegate now returns `void`.
+    [[#1885], [#1890]]
+
+### Added APIs
+
+ -  (Libplanet.Net) `DifferentAppProtocolVersionException` is made `public`.
+    [[#1889]]
+ -  (Libplanet.Net) `InvalidMessageSignatureException` and
+    `InvalidMessageTimestampException` gained additional properties.
+    [[#1889]]
+ -  (Libplanet.Net) `MessageValidator` helper class introduced.  [[#1890]]
+
+### Behavioral changes
+
+ -  (Libplanet.Net) Internal cache size of a `KBucket` is now capped.
+    [[#1879]]
+ -  (Libplanet.Net) `IMessageCodec` now never decodes a `Message` with
+    a different `AppProtocolVersion` from the local version.  [[#1885], [#1890]]
+ -  (Libplanet.Net) `ITransport` no longer replies with `DifferentVersion` type
+    `Message` to a `Peer` with a different `AppProtocolVersion` that is not
+    signed by a trusted source.  [[#1890]]
+
+### Bug fixes
+
+ -  (Libplanet.Net) Internal dictionaries of a `KBucket` are made to be
+    concurrent.  [[#1872], [#1879]]
+ -  (Libplanet.Net) `DifferentAppProtocolVersionException` and
+    `InvalidMessageSignatureException` can now be serialized and deserialized.
+    [[#1889]]
+
+[#1872]: https://github.com/planetarium/libplanet/issues/1872
+[#1874]: https://github.com/planetarium/libplanet/issues/1874
+[#1878]: https://github.com/planetarium/libplanet/pull/1878
+[#1879]: https://github.com/planetarium/libplanet/pull/1879
+[#1885]: https://github.com/planetarium/libplanet/issues/1885
+[#1889]: https://github.com/planetarium/libplanet/pull/1889
+[#1890]: https://github.com/planetarium/libplanet/pull/1890
+
+
+Version 0.31.0
+--------------
+
+Released on March 31, 2022.
+
+### Backward-incompatible API changes
+
+ -  (Libplanet.Net) Existing method name `Kademlia.CalculateDistance()`
+    changed to `Kademlia.CalculateDifference()` to better indicate its behavior.
+    [[#1877]]
+ -  (Libplanet.Net) `Kademlia.CalculateDistance()` method reimplemented with
+    return type `int`.  [[#1877]]
+
+### Bug fixes
+
+ -  (Libplanet.Stun) Increased the number of internal proxies to increase
+    the inbound network traffic throughput of a node when using a `TurnClient`.
+    [[#1864], [#1876]]
+
+[#1864]: https://github.com/planetarium/libplanet/issues/1864
+[#1876]: https://github.com/planetarium/libplanet/pull/1876
+[#1877]: https://github.com/planetarium/libplanet/pull/1877
+
+
+Version 0.30.0
+--------------
+
+Released on March 24, 2022.
+
+### Backward-incompatible storage format changes
+
+ -  (Libplanet.RocksDBStore) `RocksDBStore` became not to use [column families]
+    to manage chain ids. Instead, chain id is concatenated into key prefix.
+    [[#1862]]
+
+### CLI tools
+
+  - Added `planet store migrate-index` for index database migration
+    (from column families based to key-prefix).  [[#1862]]
+
+[#1862]: https://github.com/planetarium/libplanet/pull/1862
+[column families]: https://github.com/facebook/rocksdb/wiki/Column-Families
+
+
+Version 0.29.0
+--------------
+
+Released on March 17, 2022.
+
+### Backward-incompatible API changes
+
+ -  (Libplanet.Net) `SwarmOptions.MessageLifespan` property changed to
+    `SwarmOptions.MessageTimestampBuffer`.  [[#1828], [#1831]]
+ -  (Libplanet.Net) Unused parameter `dealerSocketLifetime` removed from
+    `NetMQTransport()`.  [[#1832]]
+ -  (Libplanet.Net) Old `ITransport.SendMessageAsync()` method is deprecated.
+    `ITransport.SendMessageWithReplyAsync()` methods are renamed as
+    `ITransport.SendMessageAsync()`.  [[#1849]]
+
+### Behavioral changes
+
+ -  (Libplanet.Net) Default value of `SwarmOptions.MessageTimestampBuffer` is
+    set to 60 seconds instead of `null`.  [[#1828], [#1831]]
+ -  (Libplanet.Net) Acceptable timestamp range for `Message`s, when non-null
+    `SwarmOptions.MessageTimestampBuffer` is provided, has changed to allow
+    `Message`s with future timestamps.
+    [[#1828], [#1831]]
+ -  (Libplanet.Net) `Swarm<T>` now replies `Pong`s to received `TxIds`
+    and `BlockHeaderMessage` messages.  [[#1845]]
+
+[#1828]: https://github.com/planetarium/libplanet/issues/1828
+[#1831]: https://github.com/planetarium/libplanet/pull/1831
+[#1832]: https://github.com/planetarium/libplanet/pull/1832
+[#1845]: https://github.com/planetarium/libplanet/pull/1845
+[#1849]: https://github.com/planetarium/libplanet/pull/1849
+
+
+Version 0.28.2
+--------------
+
+Released on March 15, 2022.
+
+ -  (Libplanet.RocksDBStore) `RocksDBStore.GetBlockDigest()` became to silently
+    return `null` with no misleading error log when it's asked a non-existent
+    block hash.  [[#1500], [#1852]]
+
+[#1852]: https://github.com/planetarium/libplanet/pull/1852
+
+
+Version 0.28.1
+--------------
+
+Released on March 3, 2022.
+
+ -  Fixed an evaluation log to output `IPreEvaluationBlock<T>.PreEvaluationHash`
+    as a hex formatted string.  [[#1835], [#1837]]
+ -  (Libplanet.Net) Fixed a bug where some messages could not be sent using
+    `NetMQTransport` due to premature `DealerSocket` disposal.
+    [[#1836], [#1839]]
+
+[#1835]: https://github.com/planetarium/libplanet/issues/1835
+[#1836]: https://github.com/planetarium/libplanet/issues/1836
+[#1837]: https://github.com/planetarium/libplanet/pull/1837
+[#1839]: https://github.com/planetarium/libplanet/pull/1839
 
 
 Version 0.28.0
 --------------
 
 Released on February 23, 2022.
-
 
 ### Deprecated APIs
 

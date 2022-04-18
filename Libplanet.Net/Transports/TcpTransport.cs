@@ -31,11 +31,7 @@ namespace Libplanet.Net.Transports
         private static readonly TimeSpan TurnPermissionLifetime = TimeSpan.FromMinutes(5);
 
         private readonly PrivateKey _privateKey;
-        private readonly AppProtocolVersion _appProtocolVersion;
-        private readonly IImmutableSet<PublicKey>? _trustedAppProtocolVersionSigners;
         private readonly string? _host;
-        private readonly DifferentAppProtocolVersionEncountered?
-            _differentAppProtocolVersionEncountered;
 
         private readonly IList<IceServer>? _iceServers;
         private readonly ILogger _logger;
@@ -62,7 +58,7 @@ namespace Libplanet.Net.Transports
             int? listenPort,
             IEnumerable<IceServer> iceServers,
             DifferentAppProtocolVersionEncountered? differentAppProtocolVersionEncountered,
-            TimeSpan? messageLifespan = null)
+            TimeSpan? messageTimestampBuffer = null)
         {
             _logger = Log
                 .ForContext<TcpTransport>()
@@ -78,12 +74,13 @@ namespace Libplanet.Net.Transports
             Running = false;
 
             _privateKey = privateKey;
-            _appProtocolVersion = appProtocolVersion;
-            _trustedAppProtocolVersionSigners = trustedAppProtocolVersionSigners;
             _host = host;
             _iceServers = iceServers.ToList();
-            _differentAppProtocolVersionEncountered = differentAppProtocolVersionEncountered;
-            _messageCodec = new TcpMessageCodec(messageLifespan);
+            _messageCodec = new TcpMessageCodec(
+                appProtocolVersion,
+                trustedAppProtocolVersionSigners,
+                differentAppProtocolVersionEncountered,
+                messageTimestampBuffer);
             _streams = new ConcurrentDictionary<Guid, ReplyStream>();
             _runtimeCancellationTokenSource = new CancellationTokenSource();
             _turnCancellationTokenSource = new CancellationTokenSource();
@@ -193,26 +190,15 @@ namespace Libplanet.Net.Transports
         /// <inheritdoc cref="ITransport.WaitForRunningAsync"/>
         public Task WaitForRunningAsync() => _runningEvent.Task;
 
-        public Task SendMessageAsync(
-            BoundPeer peer,
-            Message message,
-            CancellationToken cancellationToken)
-            => SendMessageWithReplyAsync(
-                peer,
-                message,
-                TimeSpan.FromSeconds(3),
-                0,
-                false,
-                cancellationToken);
-
-        public async Task<Message> SendMessageWithReplyAsync(
+        /// <inheritdoc/>
+        public async Task<Message> SendMessageAsync(
             BoundPeer peer,
             Message message,
             TimeSpan? timeout,
             CancellationToken cancellationToken)
         {
             IEnumerable<Message> replies =
-                await SendMessageWithReplyAsync(
+                await SendMessageAsync(
                     peer,
                     message,
                     timeout,
@@ -224,7 +210,8 @@ namespace Libplanet.Net.Transports
             return reply;
         }
 
-        public async Task<IEnumerable<Message>> SendMessageWithReplyAsync(
+        /// <inheritdoc/>
+        public async Task<IEnumerable<Message>> SendMessageAsync(
             BoundPeer peer,
             Message message,
             TimeSpan? timeout,
@@ -312,7 +299,7 @@ namespace Libplanet.Net.Transports
                         if (timeoutCts.IsCancellationRequested)
                         {
                             var msg =
-                                $"{nameof(SendMessageWithReplyAsync)}() timed out after " +
+                                $"{nameof(SendMessageAsync)}() timed out after " +
                                 "{Timeout} of waiting a reply to {MessageType} ({RequestId}) " +
                                 "from {PeerAddress}.";
                             _logger.Debug(
@@ -345,11 +332,11 @@ namespace Libplanet.Net.Transports
             }
             catch (DifferentAppProtocolVersionException e)
             {
-                const string logMsg =
-                    "{PeerAddress} sent a reply to {RequestId} with " +
-                    "a different app protocol version; " +
-                    "expected: {ExpectedVersion}; actual: {ActualVersion}.";
-                _logger.Error(e, logMsg, peer.Address, reqId, e.ExpectedVersion, e.ActualVersion);
+                _logger.Error(
+                    e,
+                    "{Peer} sent a reply to {RequestId} with a different app protocol version.",
+                    peer,
+                    reqId);
                 throw;
             }
             catch (ArgumentException e)
@@ -358,7 +345,7 @@ namespace Libplanet.Net.Transports
                 _logger.Error(
                     e,
                     "ArgumentException occurred during {FName} to {RequestId}.",
-                    nameof(SendMessageWithReplyAsync),
+                    nameof(SendMessageAsync),
                     reqId);
 
                 // To match with previous implementation, throws TimeoutException when it failed to
@@ -371,7 +358,7 @@ namespace Libplanet.Net.Transports
                 _logger.Error(
                     e,
                     "SocketException occurred during {FName} to {Peer}.",
-                    nameof(SendMessageWithReplyAsync),
+                    nameof(SendMessageAsync),
                     peer);
 
                 // To match with previous implementation, throws TimeoutException when it failed to
@@ -412,10 +399,12 @@ namespace Libplanet.Net.Transports
                 throw new ObjectDisposedException(nameof(TcpTransport));
             }
 
-            foreach (var peer in peers)
-            {
-                _ = SendMessageAsync(peer, message, _runtimeCancellationTokenSource.Token);
-            }
+            peers.AsParallel().ForAll(
+                peer => Task.Run(() => SendMessageAsync(
+                    peer,
+                    message,
+                    TimeSpan.FromSeconds(1),
+                    _runtimeCancellationTokenSource.Token)));
         }
 
         public async Task ReplyMessageAsync(Message message, CancellationToken cancellationToken)
@@ -502,8 +491,7 @@ namespace Libplanet.Net.Transports
                 message,
                 _privateKey,
                 AsPeer,
-                DateTimeOffset.UtcNow,
-                _appProtocolVersion);
+                DateTimeOffset.UtcNow);
             int length = serialized.Length;
             var buffer = new byte[MagicCookie.Length + sizeof(int) + length];
             MagicCookie.CopyTo(buffer, 0);
@@ -598,52 +586,12 @@ namespace Libplanet.Net.Transports
 
             _logger.Verbose("Received {Bytes} bytes from network stream.", content.Count);
 
-            Message message = _messageCodec.Decode(
-                content.ToArray(),
-                false,
-                AppProtocolVersionValidator);
+            Message message = _messageCodec.Decode(content.ToArray(), false);
 
             _logger.Verbose(
                 "ReadMessageAsync success. Received message {Message} from network stream.",
                 message);
             return message;
-        }
-
-        private void AppProtocolVersionValidator(
-            byte[] identity,
-            Peer remotePeer,
-            AppProtocolVersion remoteVersion)
-        {
-            bool valid;
-            if (remoteVersion.Equals(_appProtocolVersion))
-            {
-                valid = true;
-            }
-            else if (!(_trustedAppProtocolVersionSigners is null) &&
-                     !_trustedAppProtocolVersionSigners.Any(remoteVersion.Verify))
-            {
-                valid = false;
-            }
-            else if (_differentAppProtocolVersionEncountered is null)
-            {
-                valid = false;
-            }
-            else
-            {
-                valid = _differentAppProtocolVersionEncountered(
-                    remotePeer,
-                    remoteVersion,
-                    _appProtocolVersion);
-            }
-
-            if (!valid)
-            {
-                throw new DifferentAppProtocolVersionException(
-                    "The version of the received message is not valid.",
-                    identity,
-                    _appProtocolVersion,
-                    remoteVersion);
-            }
         }
 
         private async Task ReceiveMessageAsync(CancellationToken cancellationToken)
@@ -720,7 +668,6 @@ namespace Libplanet.Net.Transports
                 {
                     Identity = dapve.Identity,
                 };
-
                 await WriteMessageAsync(differentVersion, client, cancellationToken);
             }
             catch (IOException)

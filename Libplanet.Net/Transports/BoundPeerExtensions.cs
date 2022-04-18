@@ -30,16 +30,14 @@ namespace Libplanet.Net.Transports
         )
         {
             using var dealerSocket = new DealerSocket(ToNetMQAddress(peer));
-            var key = new PrivateKey();
+            var privateKey = new PrivateKey();
             var ping = new Ping();
             var netMQMessageCodec = new NetMQMessageCodec();
             NetMQMessage request = netMQMessageCodec.Encode(
                 ping,
-                key,
-                new Peer(key.PublicKey),
-                DateTimeOffset.UtcNow,
-                default
-            );
+                privateKey,
+                new Peer(privateKey.PublicKey),
+                DateTimeOffset.UtcNow);
 
             TimeSpan timeoutNotNull = timeout ?? TimeSpan.FromSeconds(5);
             try
@@ -92,7 +90,7 @@ namespace Libplanet.Net.Transports
 
             client.ReceiveTimeout = timeout?.Milliseconds ?? 0;
             using var stream = client.GetStream();
-            var key = new PrivateKey();
+            var privateKey = new PrivateKey();
             var ping = new Ping
             {
                 Identity = Guid.NewGuid().ToByteArray(),
@@ -101,10 +99,9 @@ namespace Libplanet.Net.Transports
 
             byte[] serialized = messageCodec.Encode(
                 ping,
-                key,
-                peer,
-                DateTimeOffset.UtcNow,
-                default);
+                privateKey,
+                new Peer(privateKey.PublicKey),
+                DateTimeOffset.UtcNow);
             int length = serialized.Length;
             var buffer = new byte[TcpTransport.MagicCookie.Length + sizeof(int) + length];
             TcpTransport.MagicCookie.CopyTo(buffer, 0);

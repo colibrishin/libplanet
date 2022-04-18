@@ -71,9 +71,10 @@ namespace Libplanet.Action
             StateCompleterSet<T> stateCompleterSet)
         {
             _logger.Debug(
-                "Evaluating actions in the block #{BlockIndex} preEvaluationHash: {BlockHash}...",
+                "Evaluating actions in the block #{BlockIndex} " +
+                "pre-evaluation hash: {PreEvaluationHash}...",
                 block.Index,
-                block.PreEvaluationHash
+                ByteUtil.Hex(block.PreEvaluationHash)
             );
             DateTimeOffset evaluateActionStarted = DateTimeOffset.Now;
             try
@@ -113,12 +114,13 @@ namespace Libplanet.Action
                 TimeSpan evalDuration = DateTimeOffset.Now - evaluateActionStarted;
                 _logger
                     .ForContext("Tag", "Metric")
+                    .ForContext("Subtag", "BlockEvaluationDuration")
                     .Debug(
                         "Actions in {TxCount} transactions for block #{BlockIndex} " +
-                        "preEvaluationHash: {BlockHash} evaluated in {DurationMs:F0}ms.",
+                        "pre-evaluation hash: {PreEvaluationHash} evaluated in {DurationMs:F0}ms.",
                         block.Transactions.Count,
                         block.Index,
-                        block.PreEvaluationHash,
+                        ByteUtil.Hex(block.PreEvaluationHash),
                         evalDuration.TotalMilliseconds
                     );
             }
@@ -479,10 +481,13 @@ namespace Libplanet.Action
                 const string TimestampFormat = "yyyy-MM-ddTHH:mm:ss.ffffffZ";
                 _logger
                     .ForContext("Tag", "Metric")
+                    .ForContext("Subtag", "TxEvaluationDuration")
                     .Debug(
-                        "{ActionCount} actions in transaction {TxId} by {Signer} " +
+                        "{ActionCount} actions {ActionTypes} in transaction {TxId} by {Signer} " +
                         "with timestamp {TxTimestamp} evaluated in {DurationMs:F0}ms.",
                         tx.Actions.Count,
+                        tx.Actions.Select(action => action.ToString()!.Split('.')
+                            .LastOrDefault()?.Replace(">", string.Empty)),
                         tx.Id,
                         tx.Signer,
                         tx.Timestamp.ToString(

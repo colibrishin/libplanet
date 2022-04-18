@@ -24,20 +24,15 @@ namespace Libplanet.Net.Transports
     public class NetMQTransport : ITransport
     {
         private readonly PrivateKey _privateKey;
-        private readonly AppProtocolVersion _appProtocolVersion;
-        private readonly IImmutableSet<PublicKey> _trustedAppProtocolVersionSigners;
         private readonly string _host;
         private readonly IList<IceServer> _iceServers;
         private readonly ILogger _logger;
         private readonly NetMQMessageCodec _messageCodec;
-        private readonly TimeSpan _dealerSocketLifetime;
 
         private NetMQQueue<Message> _replyQueue;
-        private NetMQQueue<(IEnumerable<BoundPeer>, Message)> _broadcastQueue;
 
         private RouterSocket _router;
         private NetMQPoller _routerPoller;
-        private NetMQPoller _broadcastPoller;
         private int _listenPort;
         private TurnClient _turnClient;
         private DnsEndPoint _hostEndPoint;
@@ -54,12 +49,6 @@ namespace Libplanet.Net.Transports
         // Used only for logging.
         private long _requestCount;
         private long _socketCount;
-
-        /// <summary>
-        /// The <see cref="EventHandler"/> triggered when the different version of
-        /// <see cref="Peer"/> is discovered.
-        /// </summary>
-        private DifferentAppProtocolVersionEncountered _differentAppProtocolVersionEncountered;
 
         private bool _disposed;
 
@@ -94,12 +83,11 @@ namespace Libplanet.Net.Transports
         /// If this callback returns <c>false</c>, an encountered peer is ignored.  If this callback
         /// is omitted, all peers with different <see cref="AppProtocolVersion"/>s are ignored.
         /// </param>
-        /// <param name="messageLifespan">
-        /// The lifespan of a message.
-        /// Messages generated before this value from the current time are ignored.
-        /// If <c>null</c> is given, messages will not be ignored by its timestamp.</param>
-        /// <param name="dealerSocketLifetime">
-        /// The lifespan of a <see cref="DealerSocket"/> used for broadcasting messages.</param>
+        /// <param name="messageTimestampBuffer">The amount in <see cref="TimeSpan"/>
+        /// that is allowed for the timestamp of a <see cref="Message"/> to differ from
+        /// the current time of a local node.  Every <see cref="Message"/> with its timestamp
+        /// differing greater than <paramref name="messageTimestampBuffer"/> will be ignored.
+        /// If <c>null</c>, any timestamp is accepted.</param>
         /// <exception cref="ArgumentException">Thrown when both <paramref name="host"/> and
         /// <paramref name="iceServers"/> are <c>null</c>.</exception>
         public NetMQTransport(
@@ -111,8 +99,7 @@ namespace Libplanet.Net.Transports
             int? listenPort,
             IEnumerable<IceServer> iceServers,
             DifferentAppProtocolVersionEncountered differentAppProtocolVersionEncountered,
-            TimeSpan? messageLifespan = null,
-            TimeSpan? dealerSocketLifetime = null)
+            TimeSpan? messageTimestampBuffer = null)
         {
             _logger = Log
                 .ForContext<NetMQTransport>()
@@ -128,13 +115,14 @@ namespace Libplanet.Net.Transports
 
             _socketCount = 0;
             _privateKey = privateKey;
-            _appProtocolVersion = appProtocolVersion;
-            _trustedAppProtocolVersionSigners = trustedAppProtocolVersionSigners;
             _host = host;
             _iceServers = iceServers?.ToList();
             _listenPort = listenPort ?? 0;
-            _differentAppProtocolVersionEncountered = differentAppProtocolVersionEncountered;
-            _messageCodec = new NetMQMessageCodec(messageLifespan);
+            _messageCodec = new NetMQMessageCodec(
+                appProtocolVersion,
+                trustedAppProtocolVersionSigners,
+                differentAppProtocolVersionEncountered,
+                messageTimestampBuffer);
 
             _requests = Channel.CreateUnbounded<MessageRequest>();
             _runtimeProcessorCancellationTokenSource = new CancellationTokenSource();
@@ -173,7 +161,6 @@ namespace Libplanet.Net.Transports
             ProcessMessageHandler = new AsyncDelegate<Message>();
             _replyCompletionSources =
                 new ConcurrentDictionary<string, TaskCompletionSource<object>>();
-            _dealerSocketLifetime = dealerSocketLifetime ?? TimeSpan.FromMinutes(10);
         }
 
         /// <inheritdoc/>
@@ -230,18 +217,14 @@ namespace Libplanet.Net.Transports
                 CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
             _replyQueue = new NetMQQueue<Message>();
-            _broadcastQueue = new NetMQQueue<(IEnumerable<BoundPeer>, Message)>();
             _routerPoller = new NetMQPoller { _router, _replyQueue };
-            _broadcastPoller = new NetMQPoller { _broadcastQueue };
 
             _router.ReceiveReady += ReceiveMessage;
             _replyQueue.ReceiveReady += DoReply;
-            _broadcastQueue.ReceiveReady += DoBroadcast;
 
             List<Task> tasks = new List<Task>();
 
             tasks.Add(RunPoller(_routerPoller));
-            tasks.Add(RunPoller(_broadcastPoller));
 
             Running = true;
 
@@ -263,7 +246,6 @@ namespace Libplanet.Net.Transports
             {
                 await Task.Delay(waitFor, cancellationToken);
 
-                _broadcastQueue.ReceiveReady -= DoBroadcast;
                 _replyQueue.ReceiveReady -= DoReply;
                 _router.ReceiveReady -= ReceiveMessage;
                 _router.Unbind($"tcp://*:{_listenPort}");
@@ -273,12 +255,6 @@ namespace Libplanet.Net.Transports
                     _routerPoller.Dispose();
                 }
 
-                if (_broadcastPoller.IsRunning)
-                {
-                    _broadcastPoller.Dispose();
-                }
-
-                _broadcastQueue.Dispose();
                 _replyQueue.Dispose();
                 _router.Dispose();
                 _turnClient?.Dispose();
@@ -310,27 +286,14 @@ namespace Libplanet.Net.Transports
         public Task WaitForRunningAsync() => _runningEvent.Task;
 
         /// <inheritdoc/>
-        public Task SendMessageAsync(
-            BoundPeer peer,
-            Message message,
-            CancellationToken cancellationToken)
-            => SendMessageWithReplyAsync(
-                peer,
-                message,
-                TimeSpan.FromSeconds(3),
-                0,
-                false,
-                cancellationToken);
-
-        /// <inheritdoc/>
-        public async Task<Message> SendMessageWithReplyAsync(
+        public async Task<Message> SendMessageAsync(
             BoundPeer peer,
             Message message,
             TimeSpan? timeout,
             CancellationToken cancellationToken)
         {
             IEnumerable<Message> replies =
-                await SendMessageWithReplyAsync(
+                await SendMessageAsync(
                     peer,
                     message,
                     timeout,
@@ -343,7 +306,7 @@ namespace Libplanet.Net.Transports
         }
 
         /// <inheritdoc/>
-        public async Task<IEnumerable<Message>> SendMessageWithReplyAsync(
+        public async Task<IEnumerable<Message>> SendMessageAsync(
             BoundPeer peer,
             Message message,
             TimeSpan? timeout,
@@ -435,7 +398,7 @@ namespace Libplanet.Net.Transports
                     "{FName}() timed out after {Timeout} while waiting for a reply to " +
                     "{Message} {RequestId} from {Peer}.";
                 _logger.Debug(
-                    toe, dbgMsg, nameof(SendMessageWithReplyAsync), timeout, message, reqId, peer);
+                    toe, dbgMsg, nameof(SendMessageAsync), timeout, message, reqId, peer);
                 throw;
             }
             catch (TaskCanceledException tce)
@@ -444,7 +407,7 @@ namespace Libplanet.Net.Transports
                     "{FName}() was cancelled while waiting for a reply to " +
                     "{Message} {RequestId} from {Peer}.";
                 _logger.Debug(
-                    tce, dbgMsg, nameof(SendMessageWithReplyAsync), message, reqId, peer);
+                    tce, dbgMsg, nameof(SendMessageAsync), message, reqId, peer);
                 throw;
             }
             catch (Exception e)
@@ -453,7 +416,7 @@ namespace Libplanet.Net.Transports
                     "{FName}() encountered an unexpected exception while waiting for a reply to " +
                     "{Message} {RequestId} from {Peer}.";
                 _logger.Error(
-                    e, errMsg, nameof(SendMessageWithReplyAsync), message, reqId, peer.Address);
+                    e, errMsg, nameof(SendMessageAsync), message, reqId, peer.Address);
                 throw;
             }
         }
@@ -466,7 +429,18 @@ namespace Libplanet.Net.Transports
                 throw new ObjectDisposedException(nameof(NetMQTransport));
             }
 
-            _broadcastQueue.Enqueue((peers, message));
+            IReadOnlyList<BoundPeer> peersList = peers.ToList();
+            _logger.Debug(
+                "Broadcasting message {Message} as {AsPeer} to {PeerCount} peers",
+                message,
+                AsPeer,
+                peersList.Count);
+            peersList.AsParallel().ForAll(
+                peer => Task.Run(() => SendMessageAsync(
+                    peer,
+                    message,
+                    TimeSpan.FromSeconds(1),
+                    _runtimeCancellationTokenSource.Token)));
         }
 
         /// <inheritdoc/>
@@ -521,43 +495,6 @@ namespace Libplanet.Net.Transports
             }
         }
 
-        private void AppProtocolVersionValidator(
-            byte[] identity,
-            Peer remotePeer,
-            AppProtocolVersion remoteVersion)
-        {
-            bool valid;
-            if (remoteVersion.Equals(_appProtocolVersion))
-            {
-                valid = true;
-            }
-            else if (!(_trustedAppProtocolVersionSigners is null) &&
-                     !_trustedAppProtocolVersionSigners.Any(remoteVersion.Verify))
-            {
-                valid = false;
-            }
-            else if (_differentAppProtocolVersionEncountered is null)
-            {
-                valid = false;
-            }
-            else
-            {
-                valid = _differentAppProtocolVersionEncountered(
-                    remotePeer,
-                    remoteVersion,
-                    _appProtocolVersion);
-            }
-
-            if (!valid)
-            {
-                throw new DifferentAppProtocolVersionException(
-                    "The version of the received message is not valid.",
-                    identity,
-                    _appProtocolVersion,
-                    remoteVersion);
-            }
-        }
-
         private void ReceiveMessage(object sender, NetMQSocketEventArgs e)
         {
             try
@@ -573,12 +510,14 @@ namespace Libplanet.Net.Transports
                     return;
                 }
 
-                Message message = _messageCodec.Decode(
-                    raw,
-                    false,
-                    AppProtocolVersionValidator);
-                _logger.Debug(
-                    "A message from {Peer} has parsed: {Message}", message.Remote, message);
+                Message message = _messageCodec.Decode(raw, false);
+                _logger
+                    .ForContext("Tag", "Metric")
+                    .ForContext("Subtag", "InboundMessageReport")
+                    .Debug(
+                        "Received message {Message} from {Peer}.",
+                        message,
+                        message.Remote);
                 _logger.Debug("Received peer is boundpeer? {0}", message.Remote is BoundPeer);
 
                 LastMessageTimestamp = DateTimeOffset.UtcNow;
@@ -600,19 +539,19 @@ namespace Libplanet.Net.Transports
             }
             catch (DifferentAppProtocolVersionException dapve)
             {
+                _logger.Debug("Message from peer with a different version received.");
                 var differentVersion = new DifferentVersion()
                 {
                     Identity = dapve.Identity,
                 };
                 _ = ReplyMessageAsync(differentVersion, _runtimeCancellationTokenSource.Token);
-                _logger.Debug("Message from peer with a different version received.");
             }
             catch (InvalidMessageTimestampException imte)
             {
                 const string logMsg =
-                    "Received message has a stale timestamp: " +
-                    "(timestamp: {Timestamp}, lifespan: {Lifespan}, current: {Current})";
-                _logger.Debug(logMsg, imte.CreatedOffset, imte.Lifespan, imte.CurrentOffset);
+                    "Received message has an invalid timestamp: " +
+                    "(timestamp: {Timestamp}, buffer: {Buffer}, current: {Current})";
+                _logger.Debug(logMsg, imte.CreatedOffset, imte.Buffer, imte.CurrentOffset);
             }
             catch (InvalidMessageException ex)
             {
@@ -623,30 +562,6 @@ namespace Libplanet.Net.Transports
                 _logger.Error(
                     ex,
                     $"An unexpected exception occurred during " + nameof(ReceiveMessage) + "().");
-            }
-        }
-
-        private void DoBroadcast(
-            object sender,
-            NetMQQueueEventArgs<(IEnumerable<BoundPeer>, Message)> e)
-        {
-            try
-            {
-                (IEnumerable<BoundPeer> peers, Message message) = e.Queue.Dequeue();
-
-                // FIXME Should replace with PUB/SUB model.
-                IReadOnlyList<BoundPeer> peersList = peers.ToList();
-                _logger.Debug("Broadcasting message: {Message} as {AsPeer}", message, AsPeer);
-                _logger.Debug("Peers to broadcast: {PeersCount}", peersList.Count);
-
-                peersList.AsParallel().ForAll(peer => SendMessageAsync(peer, message, default));
-            }
-            catch (Exception exc)
-            {
-                _logger.Error(
-                    exc,
-                    "Unexpected error occurred during {FName}().",
-                    nameof(DoBroadcast));
             }
         }
 
@@ -662,8 +577,7 @@ namespace Libplanet.Net.Transports
                             message,
                             _privateKey,
                             AsPeer,
-                            DateTimeOffset.UtcNow,
-                            _appProtocolVersion);
+                            DateTimeOffset.UtcNow);
 
             // FIXME The current timeout value(1 sec) is arbitrary.
             // We should make this configurable or fix it to an unneeded structure.
@@ -733,6 +647,7 @@ namespace Libplanet.Net.Transports
                 long incrementedSocketCount = Interlocked.Increment(ref _socketCount);
                 _logger
                     .ForContext("Tag", "Metric")
+                    .ForContext("Subtag", "SocketCount")
                     .Debug(
                     "{SocketCount} sockets open for processing request {Message} {RequestId}.",
                     incrementedSocketCount,
@@ -747,6 +662,7 @@ namespace Libplanet.Net.Transports
                     "failed to create an additional socket for request {Message} {RequestId}.";
                 _logger
                     .ForContext("Tag", "Metric")
+                    .ForContext("Subtag", "SocketCount")
                     .Debug(
                     nme,
                     logMsg,
@@ -785,8 +701,7 @@ namespace Libplanet.Net.Transports
                 req.Message,
                 _privateKey,
                 AsPeer,
-                DateTimeOffset.UtcNow,
-                _appProtocolVersion);
+                DateTimeOffset.UtcNow);
             var result = new List<Message>();
 
             // Normal OperationCanceledException initiated from outside should bubble up.
@@ -827,10 +742,7 @@ namespace Libplanet.Net.Transports
                             req.Id,
                             req.Peer
                         );
-                        Message reply = _messageCodec.Decode(
-                            raw,
-                            true,
-                            AppProtocolVersionValidator);
+                        Message reply = _messageCodec.Decode(raw, true);
                         _logger.Debug(
                             "A reply to request {Message} {RequestId} from {Peer} " +
                             "has parsed: {Reply}.",
@@ -864,17 +776,6 @@ namespace Libplanet.Net.Transports
                 }
 
                 tcs.TrySetResult(result);
-                const string logMsg =
-                    "Request {Message} {RequestId} with timeout {TimeoutMs:F0}ms " +
-                    "processed in {DurationMs:F0}ms.";
-                _logger
-                    .ForContext("Tag", "Metric")
-                    .Debug(
-                        logMsg,
-                        req.Message,
-                        req.Id,
-                        req.Timeout is TimeSpan t ? t.TotalMilliseconds : 0.0,
-                        (DateTimeOffset.UtcNow - startedTime).TotalMilliseconds);
             }
             catch (Exception e) when (
                 e is DifferentAppProtocolVersionException ||
@@ -884,26 +785,31 @@ namespace Libplanet.Net.Transports
                 e is TimeoutException)
             {
                 tcs.TrySetException(e);
-                const string logMsg =
-                    "Request {Message} {RequestId} with timeout {TimeoutMs:F0}ms " +
-                    "processing failed in {DurationMs:F0}ms.";
-                _logger
-                    .ForContext("Tag", "Metric")
-                    .Debug(
-                        e,
-                        logMsg,
-                        req.Message,
-                        req.Id,
-                        req.Timeout is TimeSpan t ? t.TotalMilliseconds : 0.0,
-                        (DateTimeOffset.UtcNow - startedTime).TotalMilliseconds);
             }
             finally
             {
-                // FIXME: Immediate disposal of DealerSocket results in a crash in
-                // a Windows environment.
-                await Task.Delay(1);
+                if (req.ExpectedResponses == 0)
+                {
+                    // FIXME: Temporary fix to wait for a message to be sent.
+                    await Task.Delay(1000);
+                }
+
                 Interlocked.Decrement(ref _socketCount);
                 timerCts.Dispose();
+
+                _logger
+                    .ForContext("Tag", "Metric")
+                    .ForContext("Subtag", "OutboundMessageReport")
+                    .Debug(
+                        "Request {Message} {RequestId} with timeout {TimeoutMs:F0}ms " +
+                        "processed in {DurationMs:F0}ms with {ReceivedCount} replies received " +
+                        "out of {ExpectedCount} expected replies.",
+                        req.Message,
+                        req.Id,
+                        req.Timeout is TimeSpan t ? t.TotalMilliseconds : 0.0,
+                        (DateTimeOffset.UtcNow - startedTime).TotalMilliseconds,
+                        result.Count,
+                        req.ExpectedResponses);
             }
         }
 

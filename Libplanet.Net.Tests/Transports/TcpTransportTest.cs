@@ -103,14 +103,17 @@ namespace Libplanet.Net.Tests.Transports
             byte[] invalidCookie = { 0x01, 0x02 };
             Assert.False(TcpTransport.MagicCookie.SequenceEqual(invalidCookie));
 
+            var privateKey = new PrivateKey();
             var listener = new TcpListener(IPAddress.Any, 0);
             listener.Start();
             var client = new TcpClient();
             await client.ConnectAsync("127.0.0.1", ((IPEndPoint)listener.LocalEndpoint).Port);
             TcpClient listenerSocket = await listener.AcceptTcpClientAsync();
 
-            AppProtocolVersion version = AppProtocolVersion.Sign(new PrivateKey(), 1);
-            TcpTransport transport = CreateTcpTransport(appProtocolVersion: version);
+            AppProtocolVersion apv = AppProtocolVersion.Sign(new PrivateKey(), 1);
+            TcpTransport transport = CreateTcpTransport(
+                privateKey: privateKey,
+                appProtocolVersion: apv);
             try
             {
                 var message = new Ping
@@ -121,10 +124,9 @@ namespace Libplanet.Net.Tests.Transports
                 var codec = new TcpMessageCodec();
                 byte[] serialized = codec.Encode(
                     message,
-                    new PrivateKey(),
+                    privateKey,
                     transport.AsPeer,
-                    DateTimeOffset.UtcNow,
-                    version);
+                    DateTimeOffset.UtcNow);
                 int length = serialized.Length;
                 var buffer = new byte[invalidCookie.Length + sizeof(int) + length];
                 invalidCookie.CopyTo(buffer, 0);
@@ -155,7 +157,7 @@ namespace Libplanet.Net.Tests.Transports
             int? listenPort = null,
             IEnumerable<IceServer> iceServers = null,
             DifferentAppProtocolVersionEncountered differentAppProtocolVersionEncountered = null,
-            TimeSpan? messageLifespan = null
+            TimeSpan? messageTimestampBuffer = null
         )
         {
             privateKey = privateKey ?? new PrivateKey();
@@ -170,7 +172,7 @@ namespace Libplanet.Net.Tests.Transports
                 listenPort,
                 iceServers,
                 differentAppProtocolVersionEncountered,
-                messageLifespan);
+                messageTimestampBuffer);
         }
     }
 }

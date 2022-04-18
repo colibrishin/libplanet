@@ -150,22 +150,10 @@ namespace Libplanet.Net.Protocols
             }
             catch (DifferentAppProtocolVersionException e)
             {
-                AppProtocolVersion expected = e.ExpectedVersion, actual = e.ActualVersion;
                 _logger.Debug(
-                    $"Different version encountered during {nameof(AddPeersAsync)}().\n" +
-                    "Expected version: {ExpectedVersion} ({ExpectedVersionExtra}) " +
-                    "[{ExpectedSignature}; {ExpectedSigner}]\n" +
-                    "Actual version: {ActualVersion} ({ActualVersionExtra}) [{ActualSignature};" +
-                    "{ActualSigner}]",
-                    expected.Version,
-                    expected.Extra,
-                    ByteUtil.Hex(expected.Signature),
-                    expected.Signer.ToString(),
-                    actual.Version,
-                    actual.Extra,
-                    ByteUtil.Hex(actual.Signature),
-                    actual.Signer
-                );
+                    e,
+                    "Different version encountered during {FName}().",
+                    nameof(AddPeersAsync));
             }
             catch (TimeoutException e)
             {
@@ -430,7 +418,7 @@ namespace Libplanet.Net.Protocols
             try
             {
                 _logger.Verbose("Trying to ping async to {Peer}.", peer);
-                Message reply = await _transport.SendMessageWithReplyAsync(
+                Message reply = await _transport.SendMessageAsync(
                     peer,
                     new Ping(),
                     timeout,
@@ -631,7 +619,7 @@ namespace Libplanet.Net.Protocols
             var findPeer = new Messages.FindNeighbors(target);
             try
             {
-                Message reply = await _transport.SendMessageWithReplyAsync(
+                Message reply = await _transport.SendMessageAsync(
                     peer,
                     findPeer,
                     timeout,
@@ -757,8 +745,8 @@ namespace Libplanet.Net.Protocols
             {
                 if (closestKnownPeer is { } ckp &&
                    string.CompareOrdinal(
-                       Kademlia.CalculateDistance(peer.Address, target).ToHex(),
-                       Kademlia.CalculateDistance(ckp.Address, target).ToHex()
+                       Kademlia.CalculateDifference(peer.Address, target).ToHex(),
+                       Kademlia.CalculateDifference(ckp.Address, target).ToHex()
                    ) >= 1)
                 {
                     break;

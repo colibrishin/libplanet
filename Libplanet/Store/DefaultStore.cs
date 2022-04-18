@@ -415,15 +415,7 @@ namespace Libplanet.Store
             BlockDigest blockDigest;
             try
             {
-                IValue value = Codec.Decode(_blocks.ReadAllBytes(path));
-                if (!(value is Bencodex.Types.Dictionary dict))
-                {
-                    throw new DecodingException(
-                        $"Expected {typeof(Bencodex.Types.Dictionary)} but " +
-                        $"{value.GetType()}");
-                }
-
-                blockDigest = new BlockDigest(dict);
+                blockDigest = BlockDigest.Deserialize(_blocks.ReadAllBytes(path));
             }
             catch (FileNotFoundException)
             {
@@ -650,6 +642,26 @@ namespace Libplanet.Store
 
             LiteCollection<BsonDocument> destColl = TxNonceCollection(destinationChainId);
             destColl.InsertBulk(srcColl.FindAll());
+        }
+
+        /// <inheritdoc/>
+        public override void PruneOutdatedChains(bool noopWithoutCanon = false)
+        {
+            if (!(GetCanonicalChainId() is { } ccid))
+            {
+                if (noopWithoutCanon)
+                {
+                    return;
+                }
+
+                throw new InvalidOperationException("Canonical chain ID is not assigned.");
+            }
+
+            Guid[] chainIds = ListChainIds().ToArray();
+            foreach (Guid id in chainIds.Where(id => !id.Equals(ccid)))
+            {
+                DeleteChainId(id);
+            }
         }
 
         /// <inheritdoc/>

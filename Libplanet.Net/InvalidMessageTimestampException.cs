@@ -14,44 +14,34 @@ namespace Libplanet.Net
     {
         internal InvalidMessageTimestampException(
             string message,
+            Peer peer,
             DateTimeOffset createdOffset,
-            TimeSpan? lifespan,
-            DateTimeOffset currentOffset,
-            Exception innerException
-        )
-            : base(message, innerException)
-        {
-            CreatedOffset = createdOffset;
-            Lifespan = lifespan;
-            CurrentOffset = currentOffset;
-        }
-
-        internal InvalidMessageTimestampException(
-            string message,
-            DateTimeOffset createdOffset,
-            TimeSpan? lifespan,
+            TimeSpan? buffer,
             DateTimeOffset currentOffset)
             : base(message)
         {
+            Peer = peer;
             CreatedOffset = createdOffset;
-            Lifespan = lifespan;
+            Buffer = buffer;
             CurrentOffset = currentOffset;
         }
 
         protected InvalidMessageTimestampException(
             SerializationInfo info,
-            StreamingContext context
-        )
+            StreamingContext context)
             : base(info, context)
         {
+            Peer = info.GetValue<Peer>(nameof(Peer));
             CreatedOffset = info.GetValue<DateTimeOffset>(nameof(CreatedOffset));
-            Lifespan = info.GetValue<TimeSpan?>(nameof(Lifespan));
+            Buffer = info.GetValue<TimeSpan?>(nameof(Buffer));
             CurrentOffset = info.GetValue<DateTimeOffset>(nameof(CurrentOffset));
         }
 
+        internal Peer Peer { get; private set; }
+
         internal DateTimeOffset CreatedOffset { get; private set; }
 
-        internal TimeSpan? Lifespan { get; private set; }
+        internal TimeSpan? Buffer { get; private set; }
 
         internal DateTimeOffset CurrentOffset { get; private set; }
 
@@ -59,8 +49,9 @@ namespace Libplanet.Net
             SerializationInfo info, StreamingContext context)
         {
             base.GetObjectData(info, context);
+            info.AddValue(nameof(Peer), Peer);
             info.AddValue(nameof(CreatedOffset), CreatedOffset);
-            info.AddValue(nameof(Lifespan), Lifespan);
+            info.AddValue(nameof(Buffer), Buffer);
             info.AddValue(nameof(CurrentOffset), CurrentOffset);
         }
     }

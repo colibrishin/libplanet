@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
+using System.Collections.Immutable;
 using System.Linq;
 using Bencodex;
 using Libplanet.Crypto;
@@ -13,16 +13,32 @@ namespace Libplanet.Net.Messages
         private const string TimestampFormat = "yyyy-MM-ddTHH:mm:ss.ffffffZ";
 
         private readonly Codec _codec;
-        private readonly TimeSpan? _messageLifespan;
+        private readonly MessageValidator _messageValidator;
 
         /// <summary>
         /// Creates a <see cref="NetMQMessageCodec"/> instance.
         /// </summary>
-        /// <param name="messageLifespan">Lifespan to use for messages when decoding.</param>
-        public NetMQMessageCodec(TimeSpan? messageLifespan = null)
+        /// <param name="appProtocolVersion">The <see cref="AppProtocolVersion"/> to use
+        /// when encoding and decoding.</param>
+        /// <param name="trustedAppProtocolVersionSigners">The set of signers to trust when
+        /// decoding a message.</param>
+        /// <param name="differentAppProtocolVersionEncountered">A callback method that gets
+        /// invoked when an <see cref="AppProtocolVersion"/> by a <em>trusted</em> signer that is
+        /// different from <paramref name="appProtocolVersion"/> is encountered.</param>
+        /// <param name="messageTimestampBuffer">A <see cref="TimeSpan"/> to use as a buffer
+        /// when decoding <see cref="Message"/>s.</param>
+        public NetMQMessageCodec(
+            AppProtocolVersion appProtocolVersion = default,
+            IImmutableSet<PublicKey>? trustedAppProtocolVersionSigners = null,
+            DifferentAppProtocolVersionEncountered? differentAppProtocolVersionEncountered = null,
+            TimeSpan? messageTimestampBuffer = null)
         {
             _codec = new Codec();
-            _messageLifespan = messageLifespan;
+            _messageValidator = new MessageValidator(
+                appProtocolVersion,
+                trustedAppProtocolVersionSigners,
+                differentAppProtocolVersionEncountered,
+                messageTimestampBuffer);
         }
 
         /// <inheritdoc/>
@@ -30,9 +46,18 @@ namespace Libplanet.Net.Messages
             Message message,
             PrivateKey privateKey,
             Peer peer,
-            DateTimeOffset timestamp,
-            AppProtocolVersion version)
+            DateTimeOffset timestamp)
         {
+            if (!privateKey.PublicKey.Equals(peer.PublicKey))
+            {
+                throw new InvalidCredentialException(
+                    $"An invalid private key was provided: " +
+                    $"the provided private key's expected public key is {peer.PublicKey} " +
+                    $"but its actual public key is {privateKey.PublicKey}.",
+                    peer.PublicKey,
+                    privateKey.PublicKey);
+            }
+
             var netMqMessage = new NetMQMessage();
 
             // Write body (by concrete class)
@@ -45,7 +70,7 @@ namespace Libplanet.Net.Messages
             netMqMessage.Push(timestamp.Ticks);
             netMqMessage.Push(_codec.Encode(peer.ToBencodex()));
             netMqMessage.Push((int)message.Type);
-            netMqMessage.Push(version.Token);
+            netMqMessage.Push(_messageValidator.Apv.Token);
 
             // Make and insert signature
             byte[] signature = privateKey.Sign(netMqMessage.ToByteArray());
@@ -64,8 +89,7 @@ namespace Libplanet.Net.Messages
         /// <inheritdoc/>
         public Message Decode(
             NetMQMessage encoded,
-            bool reply,
-            Action<byte[], Peer, AppProtocolVersion> appProtocolVersionValidator)
+            bool reply)
         {
             if (encoded.FrameCount == 0)
             {
@@ -92,28 +116,17 @@ namespace Libplanet.Net.Messages
                 remotePeer = new Peer(dictionary);
             }
 
-            appProtocolVersionValidator(
-                reply ? new byte[] { } : encoded[0].ToByteArray(),
+            _messageValidator.ValidateAppProtocolVersion(
                 remotePeer,
+                reply ? new byte[] { } : encoded[0].ToByteArray(),
                 remoteVersion);
 
             var type =
                 (Message.MessageType)remains[(int)Message.MessageFrame.Type].ConvertToInt32();
             var ticks = remains[(int)Message.MessageFrame.Timestamp].ConvertToInt64();
             var timestamp = new DateTimeOffset(ticks, TimeSpan.Zero);
-
             var currentTime = DateTimeOffset.UtcNow;
-            if (_messageLifespan is TimeSpan lifespan &&
-                (currentTime < timestamp || timestamp + lifespan < currentTime))
-            {
-                var msg = $"Received message is invalid, created at " +
-                          $"{timestamp.ToString(TimestampFormat, CultureInfo.InvariantCulture)} " +
-                          $"but designated lifetime is {lifespan} and " +
-                          $"the current datetime offset is " +
-                          $"{currentTime.ToString(TimestampFormat, CultureInfo.InvariantCulture)}.";
-                throw new InvalidMessageTimestampException(
-                    msg, timestamp, _messageLifespan, currentTime);
-            }
+            _messageValidator.ValidateTimestamp(remotePeer, currentTime, timestamp);
 
             byte[] signature = remains[(int)Message.MessageFrame.Sign].ToByteArray();
 
@@ -135,12 +148,15 @@ namespace Libplanet.Net.Messages
                 remains[(int)Message.MessageFrame.Timestamp],
             };
 
-            var messageForVerify = headerWithoutSign.Concat(body).ToArray();
-
-            if (!remotePeer.PublicKey.Verify(messageForVerify.ToByteArray(), signature))
+            var messageToVerify = headerWithoutSign.Concat(body).ToByteArray();
+            if (!remotePeer.PublicKey.Verify(messageToVerify, signature))
             {
                 throw new InvalidMessageSignatureException(
-                    "The message signature is invalid", message);
+                    "The signature of an encoded message is invalid.",
+                    remotePeer,
+                    remotePeer.PublicKey,
+                    messageToVerify,
+                    signature);
             }
 
             if (!reply)
