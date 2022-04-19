@@ -29,8 +29,8 @@ namespace Libplanet.Tx
         /// <see cref="Transaction{T}"/> violating a <see cref="IBlockPolicy{T}"/>.
         /// Gets prepended to <paramref name="message"/>.</param>
         /// <param name="message">A description for the reason of violation
-        /// given by an implementation of <see cref="IBlockPolicy{T}"/>.
-        /// </param> <param name="innerException">The <see cref="Exception"/> for
+        /// given by an implementation of <see cref="IBlockPolicy{T}"/>. </param>
+        /// <param name="innerException">The <see cref="Exception"/> for
         /// <see cref="Exception.InnerException"/>.</param>
         public TxPolicyViolationException(
             TxId txid,

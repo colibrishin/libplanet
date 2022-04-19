@@ -31,7 +31,8 @@ namespace Libplanet.Tx
         /// <see cref="Transaction{T}.Id"/>.  It is automatically included to
         /// the <see cref="Exception.Message"/> string.</param>
         /// <param name="message">A descriptive error message for programmers.
-        /// </param> <param name="innerException">The <see cref="Exception"/> for
+        /// </param>
+        /// <param name="innerException">The <see cref="Exception"/> for
         /// <see cref="Exception.InnerException"/>.</param>
         protected InvalidTxException(
             TxId txid,
