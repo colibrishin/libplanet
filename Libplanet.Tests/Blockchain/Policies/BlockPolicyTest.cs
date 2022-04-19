@@ -157,6 +157,30 @@ namespace Libplanet.Tests.Blockchain.Policies
         }
 
         [Fact]
+        public void ValidateNextBlockTxNoInnerException()
+        {
+            var validKey = new PrivateKey();
+
+            TxPolicyViolationException IsSignerValid(
+                BlockChain<DumbAction> chain, Transaction<DumbAction> tx)
+            {
+                var validAddress = validKey.PublicKey.ToAddress();
+                return tx.Signer.Equals(validAddress)
+                    ? null
+                    : new TxPolicyViolationException(tx.Id, "invalid signer");
+            }
+
+            var policy = new BlockPolicy<DumbAction>(validateNextBlockTx: IsSignerValid);
+
+            // Invalid Transaction
+            var invalidKey = new PrivateKey();
+            var invalidTx = _chain.MakeTransaction(invalidKey, new DumbAction[] { });
+            var expected = policy.ValidateNextBlockTx(_chain, invalidTx);
+            Assert.NotNull(expected);
+            Assert.Null(expected.InnerException);
+        }
+
+        [Fact]
         public async Task GetNextBlockDifficulty()
         {
             var store = new MemoryStore();
