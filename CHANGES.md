@@ -73,6 +73,9 @@ Released on April 19th, 2022.
     [[#1866], [#1891]]
  -  (Libplanet.Net) `IMessageCodec.Encode()` now requires a *matching*
     `PrivateKey` to be provided for `Peer`.  [[#1904], [#1905]]
+ -  `TxPolicyViolationException` and `InvalidTxException` now have a new
+    constructor that takes an `Exception` as their `Exception.InnerException`.
+    [[#1830], [#1912], [#1916]]
 
 ### Dependencies
 
