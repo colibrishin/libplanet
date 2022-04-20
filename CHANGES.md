@@ -90,6 +90,9 @@ Released on April 19th, 2022.
 [#1905]: https://github.com/planetarium/libplanet/pull/1905
 [#1906]: https://github.com/planetarium/libplanet/pull/1906
 [#1911]: https://github.com/planetarium/libplanet/pull/1911
+[#1830]: https://github.com/planetarium/libplanet/issues/1830
+[#1912]: https://github.com/planetarium/libplanet/pull/1912
+[#1916]: https://github.com/planetarium/libplanet/pull/1916
 
 
 Version 0.32.1
