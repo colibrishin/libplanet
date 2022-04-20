@@ -2051,8 +2051,8 @@ namespace Libplanet.Tests.Blockchain
                 // This is visual representation of the test.
                 // In actual use-case, this debugging lines do
                 // not show.
-                _logger.Debug(e.ToString());
-                _logger.Debug(e.InnerException.ToString());
+                _logger.Debug("Exception: {0}", e.ToString());
+                _logger.Debug("InnerException: {0}", e.InnerException.ToString());
             }
         }
 
