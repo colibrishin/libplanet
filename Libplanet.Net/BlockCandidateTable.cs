@@ -28,10 +28,7 @@ namespace Libplanet.Net
         /// </summary>
         public CandidateBranch<T>? BestBranch { get; private set; }
 
-        public long Count
-        {
-            get => Branches.Count;
-        }
+        public long Count => Branches.Count;
 
         /// <summary>
         /// An <see cref="IEnumerable{T}"/> of
@@ -119,7 +116,8 @@ namespace Libplanet.Net
                     {
                         try
                         {
-                            index = path.Blocks.Single(x => x.Hash.Equals(index.PreviousHash));
+                            index = path.Blocks.Single(
+                                x => x.Hash.Equals(index.PreviousHash.Value));
                             newBlocks.Insert(0, index);
                         }
                         catch (ArgumentNullException)
