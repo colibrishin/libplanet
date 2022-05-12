@@ -60,7 +60,7 @@ namespace Libplanet.Net.Tests.Consensus
             const int proposeProcessWaitTime = 100;
             const int yieldTime = 200;
 
-            var reactor = CreateReactor(key, port: 11001, validators: validators);
+            var reactor = CreateReactor(key, port: 35123, validators: validators);
 
             try
             {
@@ -126,8 +126,8 @@ namespace Libplanet.Net.Tests.Consensus
         public async void Propose()
         {
             const int count = 4;
-            // INFO : This test uses local ports 6000 to 6003.
-            const int startPort = 6000;
+            // INFO : This test uses local ports 8123 to 8127.
+            const int startPort = 8123;
 
             const int propagationDelay = 4000;
             var keys = new PrivateKey[count];
