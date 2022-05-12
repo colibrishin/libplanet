@@ -35,7 +35,6 @@ namespace Libplanet.Net
                         {
                             UpdatePath<T> path = BlockCandidateProcess(
                                 branch,
-                                timeout,
                                 cancellationToken);
                             BlockAppended.Set();
                             BlockCandidateTable.Update(path, IsBlockNeeded);
@@ -56,7 +55,6 @@ namespace Libplanet.Net
 
         private UpdatePath<T> BlockCandidateProcess(
             CandidateBranch<T> branch,
-            TimeSpan timeout,
             CancellationToken cancellationToken)
         {
             BlockChain<T> synced = null;
@@ -72,7 +70,6 @@ namespace Libplanet.Net
             (synced, path) = AppendPreviousBlocks(
                 blockChain: BlockChain,
                 branch: branch,
-                timeout: timeout,
                 evaluateActions: true);
             ProcessFillBlocksFinished.Set();
             _logger.Debug(
@@ -114,7 +111,6 @@ namespace Libplanet.Net
         private (BlockChain<T>, UpdatePath<T>) AppendPreviousBlocks(
             BlockChain<T> blockChain,
             CandidateBranch<T> branch,
-            TimeSpan timeout,
             bool evaluateActions)
         {
              BlockChain<T> workspace = blockChain;
@@ -124,7 +120,7 @@ namespace Libplanet.Net
 
              Block<T> oldTip = workspace.Tip;
              Block<T> newTip = branch.Tip;
-             List<Block<T>> blocks = branch.Blocks;
+             List<Block<T>> blocks = branch.Blocks.ToList();
              Block<T> branchpoint = FindBranchpoint(oldTip, newTip, blocks);
              UpdatePath<T> path = null;
 
@@ -136,7 +132,7 @@ namespace Libplanet.Net
                  );
                  if (oldTip is { })
                  {
-                     path = new UpdatePath<T>(blocks, oldTip, oldTip, newTip);
+                     path = new UpdatePath<T>(blocks, oldTip);
                  }
              }
              else if (!workspace.ContainsBlock(branchpoint.Hash))
@@ -170,7 +166,7 @@ namespace Libplanet.Net
                      "Fork finished. at {MethodName}",
                      nameof(AppendPreviousBlocks)
                  );
-                 path = new UpdatePath<T>(blocks, oldTip, branchpoint, newTip);
+                 path = new UpdatePath<T>(blocks, oldTip);
              }
 
              if (!(workspace.Tip is null) &&
@@ -397,7 +393,7 @@ namespace Libplanet.Net
                 hashes.Select(pair => pair.Item2),
                 cancellationToken);
             var blocks = await blocksAsync.ToArrayAsync(cancellationToken);
-            var branch = new CandidateBranch<T>(blocks.ToList(), blocks.First(), blocks.Last());
+            var branch = new CandidateBranch<T>(blocks.ToList());
             BlockCandidateTable.Add(branch);
             return true;
         }
