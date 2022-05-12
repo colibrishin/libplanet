@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Libplanet.Net.Consensus;
+#if NETFRAMEWORK && (NET47 || NET471)
+using static Libplanet.Tests.HashSetExtensions;
+#endif
 using Xunit;
 
 namespace Libplanet.Net.Tests.Consensus
