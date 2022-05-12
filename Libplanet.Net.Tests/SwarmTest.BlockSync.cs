@@ -173,7 +173,6 @@ namespace Libplanet.Net.Tests
             var policy = new NullBlockPolicy<DumbAction>();
             var fx = new MemoryStoreFixture(policy.BlockAction);
             var miner = MakeBlockChain(policy, fx.Store, fx.StateStore);
-            var branchBlocksBetweenA = new List<Block<DumbAction>>();
             var branchBlocksBetweenB = new List<Block<DumbAction>>();
             var blocksForPath = new List<Block<DumbAction>>();
             var table = new BlockCandidateTable<DumbAction>();
@@ -205,7 +204,20 @@ namespace Libplanet.Net.Tests
                 branchBlocksBetweenB.Add(block);
             }
 
-            Block<DumbAction> index = miner.Tip;
+            // Finding branchpoint without branchpoint
+            Block<DumbAction> index = chainB[branchBlocksBetweenB.First().PreviousHash.Value];
+            while (index.PreviousHash != null &&
+                   !index.Hash.Equals(branchpoint.Hash))
+            {
+                branchBlocksBetweenB.Insert(0, index);
+                if (index.PreviousHash != null)
+                {
+                    index = chainB[index.PreviousHash.Value];
+                }
+            }
+
+            // Path building for chainA
+            index = miner.Tip;
             while (branchpoint.PreviousHash != null &&
                    !index.Hash.Equals(branchpoint.PreviousHash.Value))
             {
