@@ -120,7 +120,9 @@ namespace Libplanet.Net
                             index = path.Blocks.Single(x => x.Hash.Equals(index.PreviousHash));
                             newBlocks.Insert(0, index);
                         }
-                        catch (ArgumentNullException)
+                        catch (Exception e) when (
+                            e is ArgumentException ||
+                            e is InvalidOperationException)
                         {
                             break;
                         }
