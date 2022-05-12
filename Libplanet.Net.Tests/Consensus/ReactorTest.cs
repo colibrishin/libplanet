@@ -49,6 +49,7 @@ namespace Libplanet.Net.Tests.Consensus
         [Fact(Timeout = (TimerTestTimeout * 2) + TimerTestMargin)]
         public async void VoteCommitTimeout()
         {
+            // FIXME: This test sometimes starts with 6 peers with voting?
             // For preventing one man Vote-Commit-newHeight.
             var fakeKey = new PrivateKey();
             var key = new PrivateKey();
