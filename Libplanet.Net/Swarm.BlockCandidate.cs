@@ -37,7 +37,7 @@ namespace Libplanet.Net
                                 branch,
                                 cancellationToken);
                             BlockAppended.Set();
-                            BlockCandidateTable.Update(path, IsBlockNeeded);
+                            BlockCandidateTable.Update(path, BlockChain);
                         }
                         catch (Exception)
                         {
@@ -394,7 +394,7 @@ namespace Libplanet.Net
                 cancellationToken);
             var blocks = await blocksAsync.ToArrayAsync(cancellationToken);
             var branch = new CandidateBranch<T>(blocks.ToList());
-            BlockCandidateTable.Add(branch);
+            BlockCandidateTable.Add(branch, blockChain);
             return true;
         }
     }

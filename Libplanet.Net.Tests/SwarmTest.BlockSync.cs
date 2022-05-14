@@ -51,8 +51,8 @@ namespace Libplanet.Net.Tests
             var branchBetweenB = new CandidateBranch<DumbAction>(branchBlocksBetweenB);
 
             var table = new BlockCandidateTable<DumbAction>();
-            table.Add(branchBetweenA);
-            table.Add(branchBetweenB);
+            table.Add(branchBetweenA, chainB);
+            table.Add(branchBetweenB, chainB);
             CandidateBranch<DumbAction> bestBranch = table.BestBranch;
             Assert.Equal(branchBetweenA, bestBranch);
         }
@@ -91,16 +91,14 @@ namespace Libplanet.Net.Tests
             var branch = new CandidateBranch<DumbAction>(blocksForBranch);
 
             var table = new BlockCandidateTable<DumbAction>();
-            table.Add(branch);
+            table.Add(branch, chainB);
 
             CandidateBranch<DumbAction> bestBranch = table.BestBranch;
             Assert.Equal(branch.Root.Hash, bestBranch?.Root.Hash);
             Assert.Equal(branch.Tip.Hash, bestBranch?.Tip.Hash);
             Assert.NotEqual(chainB.Tip.Hash, bestBranch?.Root.PreviousHash);
 
-            table.Update(
-                path,
-                block => block.TotalDifficulty > path.NewTip.TotalDifficulty);
+            table.Update(path, chainB);
             bestBranch = table.BestBranch;
 
             Assert.NotEqual(branch.Root.Hash, bestBranch?.Root.Hash);
@@ -132,8 +130,12 @@ namespace Libplanet.Net.Tests
                 Block<DumbAction> block = await miner.MineBlock(minerKey);
                 if (i < 5)
                 {
-                    blocksForPath.Add(block);
-                    chainB.Append(block);
+                    if (i < 4)
+                    {
+                        blocksForPath.Add(block);
+                        chainB.Append(block);
+                    }
+
                     branchBlocksBetweenB.Add(block);
                 }
 
@@ -148,17 +150,15 @@ namespace Libplanet.Net.Tests
             var branchB = new CandidateBranch<DumbAction>(branchBlocksBetweenB);
 
             var table = new BlockCandidateTable<DumbAction>();
-            table.Add(branchA);
-            table.Add(branchB);
+            table.Add(branchA, chainB);
+            table.Add(branchB, chainB);
 
             CandidateBranch<DumbAction> bestBranch = table.BestBranch;
             Assert.Equal(branchA.Root.Hash, bestBranch?.Root.Hash);
             Assert.Equal(branchA.Tip.Hash, bestBranch?.Tip.Hash);
             Assert.Equal(2, table.Count);
 
-            table.Update(
-                path,
-                block => block.TotalDifficulty > path.NewTip.TotalDifficulty);
+            table.Update(path, chainB);
             bestBranch = table.BestBranch;
 
             Assert.Equal(chainB.Tip.Hash, bestBranch?.Root.PreviousHash);
@@ -236,10 +236,8 @@ namespace Libplanet.Net.Tests
 
             var branchBtoA = new CandidateBranch<DumbAction>(branchBlocksBetweenB);
 
-            table.Add(branchBtoA);
-            table.Update(
-                mergedAPath,
-                block => block.TotalDifficulty > chainA.Tip.TotalDifficulty);
+            table.Add(branchBtoA, chainA);
+            table.Update(mergedAPath, chainA);
             CandidateBranch<DumbAction> bestBranch = table.BestBranch;
 
             Assert.Equal(chainB.Tip.Hash, bestBranch.Tip.Hash);
