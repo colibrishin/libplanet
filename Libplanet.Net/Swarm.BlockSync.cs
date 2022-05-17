@@ -220,7 +220,7 @@ namespace Libplanet.Net
                 {
                     var branch = new CandidateBranch<T>(blocks);
 
-                    BlockCandidateTable.Add(branch);
+                    BlockCandidateTable.Add(branch, BlockChain.Tip);
                     BlockReceived.Set();
                 }
 
