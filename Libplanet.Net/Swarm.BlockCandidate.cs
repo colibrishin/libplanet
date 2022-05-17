@@ -20,7 +20,6 @@ namespace Libplanet.Net
             {
                 if (BlockCandidateTable.Any())
                 {
-                    BlockHeader tipHeader = BlockChain.Tip.Header;
                     CandidateBranch<T> branch = BlockCandidateTable.BestBranch;
                     if (!(branch is null))
                     {
