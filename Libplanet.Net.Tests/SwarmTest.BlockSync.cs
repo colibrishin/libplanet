@@ -30,6 +30,7 @@ namespace Libplanet.Net.Tests
                 await chainA.MineBlock(minerA);
             }
 
+            BlockChain<DumbAction> frozenChainA = chainA.Fork(chainA.Tip.Hash);
             BlockChain<DumbAction> chainB = chainA.Fork(chainA.Tip.Hash);
 
             foreach (int i in Enumerable.Range(0, 10))
@@ -51,8 +52,8 @@ namespace Libplanet.Net.Tests
             var branchBetweenB = new CandidateBranch<DumbAction>(branchBlocksBetweenB);
 
             var table = new BlockCandidateTable<DumbAction>();
-            table.Add(branchBetweenA, chainB);
-            table.Add(branchBetweenB, chainB);
+            table.Add(branchBetweenA, frozenChainA);
+            table.Add(branchBetweenB, frozenChainA);
             CandidateBranch<DumbAction> bestBranch = table.BestBranch;
             Assert.Equal(branchBetweenA, bestBranch);
         }
@@ -119,11 +120,13 @@ namespace Libplanet.Net.Tests
 
             foreach (int i in Enumerable.Range(0, 10))
             {
-                await miner.MineBlock(minerKey);
+                var block = await miner.MineBlock(minerKey);
+                blocksForPath.Add(block);
             }
 
             BlockChain<DumbAction> chainA = miner.Fork(miner.Tip.Hash);
             BlockChain<DumbAction> chainB = miner.Fork(miner.Tip.Hash);
+            BlockChain<DumbAction> frozenChain = miner.Fork(miner.Tip.Hash);
 
             foreach (int i in Enumerable.Range(0, 10))
             {
@@ -132,7 +135,6 @@ namespace Libplanet.Net.Tests
                 {
                     if (i < 4)
                     {
-                        blocksForPath.Add(block);
                         chainB.Append(block);
                     }
 
@@ -150,19 +152,137 @@ namespace Libplanet.Net.Tests
             var branchB = new CandidateBranch<DumbAction>(branchBlocksBetweenB);
 
             var table = new BlockCandidateTable<DumbAction>();
-            table.Add(branchA, chainB);
-            table.Add(branchB, chainB);
+            table.Add(branchA, frozenChain);
+            table.Add(branchB, frozenChain);
 
             CandidateBranch<DumbAction> bestBranch = table.BestBranch;
             Assert.Equal(branchA.Root.Hash, bestBranch?.Root.Hash);
             Assert.Equal(branchA.Tip.Hash, bestBranch?.Tip.Hash);
             Assert.Equal(2, table.Count);
 
-            table.Update(path, chainB);
+            table.Update(path, frozenChain);
             bestBranch = table.BestBranch;
 
-            Assert.Equal(chainB.Tip.Hash, bestBranch?.Root.PreviousHash);
+            Assert.Equal(frozenChain.Tip.Hash, bestBranch?.Root.PreviousHash);
             Assert.Equal(branchA.Tip.Hash, bestBranch?.Tip.Hash);
+            Assert.Equal(1, table.Count);
+        }
+
+        [Fact(Timeout = Timeout)]
+        public async Task IgnoreSameComparerValueCandidateBranch()
+        {
+            var minerKey = new PrivateKey();
+            var policy = new NullBlockPolicy<DumbAction>();
+            var fx = new MemoryStoreFixture(policy.BlockAction);
+            var miner = MakeBlockChain(policy, fx.Store, fx.StateStore);
+            var branchBlocksBetweenA = new List<Block<DumbAction>>();
+            var blocksForPath = new List<Block<DumbAction>>();
+
+            foreach (int i in Enumerable.Range(0, 10))
+            {
+                await miner.MineBlock(minerKey);
+            }
+
+            BlockChain<DumbAction> chainA = miner.Fork(miner.Tip.Hash);
+
+            foreach (int i in Enumerable.Range(0, 10))
+            {
+                Block<DumbAction> block = await miner.MineBlock(minerKey);
+
+                blocksForPath.Add(block);
+                chainA.Append(block);
+                branchBlocksBetweenA.Add(block);
+            }
+
+            var branchA = new CandidateBranch<DumbAction>(
+                branchBlocksBetweenA);
+
+            var table = new BlockCandidateTable<DumbAction>();
+            table.Add(branchA, chainA);
+
+            CandidateBranch<DumbAction> bestBranch = table.BestBranch;
+            Assert.Null(bestBranch);
+            Assert.Equal(0, table.Count);
+        }
+
+        [Fact(Timeout = Timeout)]
+        public async Task IgnoreLowComparerValueCandidateBranch()
+        {
+            var minerKey = new PrivateKey();
+            var policy = new NullBlockPolicy<DumbAction>();
+            var fx = new MemoryStoreFixture(policy.BlockAction);
+            var miner = MakeBlockChain(policy, fx.Store, fx.StateStore);
+            var branchBlocksBetweenA = new List<Block<DumbAction>>();
+            var blocksForPath = new List<Block<DumbAction>>();
+
+            foreach (int i in Enumerable.Range(0, 10))
+            {
+                await miner.MineBlock(minerKey);
+            }
+
+            BlockChain<DumbAction> chainA = miner.Fork(miner.Tip.Hash);
+
+            foreach (int i in Enumerable.Range(0, 10))
+            {
+                Block<DumbAction> block = await miner.MineBlock(minerKey);
+
+                blocksForPath.Add(block);
+                chainA.Append(block);
+                if (i < 9)
+                {
+                    branchBlocksBetweenA.Add(block);
+                }
+            }
+
+            var branchA = new CandidateBranch<DumbAction>(
+                branchBlocksBetweenA);
+
+            var table = new BlockCandidateTable<DumbAction>();
+            table.Add(branchA, chainA);
+
+            CandidateBranch<DumbAction> bestBranch = table.BestBranch;
+            Assert.Null(bestBranch);
+            Assert.Equal(0, table.Count);
+        }
+
+        [Fact(Timeout = Timeout)]
+        public async Task TakeHighComparerValueCandidateBranch()
+        {
+            var minerKey = new PrivateKey();
+            var policy = new NullBlockPolicy<DumbAction>();
+            var fx = new MemoryStoreFixture(policy.BlockAction);
+            var miner = MakeBlockChain(policy, fx.Store, fx.StateStore);
+            var branchBlocksBetweenA = new List<Block<DumbAction>>();
+            var blocksForPath = new List<Block<DumbAction>>();
+
+            foreach (int i in Enumerable.Range(0, 10))
+            {
+                await miner.MineBlock(minerKey);
+            }
+
+            BlockChain<DumbAction> chainA = miner.Fork(miner.Tip.Hash);
+
+            foreach (int i in Enumerable.Range(0, 10))
+            {
+                Block<DumbAction> block = await miner.MineBlock(minerKey);
+
+                if (i < 9)
+                {
+                    blocksForPath.Add(block);
+                    chainA.Append(block);
+                }
+
+                branchBlocksBetweenA.Add(block);
+            }
+
+            var branchA = new CandidateBranch<DumbAction>(branchBlocksBetweenA);
+
+            var table = new BlockCandidateTable<DumbAction>();
+            table.Add(branchA, chainA);
+
+            CandidateBranch<DumbAction> bestBranch = table.BestBranch;
+            Assert.NotNull(bestBranch);
+            Assert.Equal(branchA, bestBranch);
             Assert.Equal(1, table.Count);
         }
 
