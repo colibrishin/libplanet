@@ -25,12 +25,19 @@ To be released.
 
 ### Behavioral changes
 
+ -  (Libplanet.Net) Added `CandidateBranch<T>` to reduce the chance of
+    `BlockCandidateTable<T>` dropping the possible longest chain while the
+    `ProcessBlockDemandAsync()` and `ConsumeBlockCandidates()` are in progress.
+    [[#1892], [#1917]]
+
 ### Bug fixes
 
 ### Dependencies
 
 ### CLI tools
 
+[#1892]: https://github.com/planetarium/libplanet/issues/1892
+[#1917]: https://github.com/planetarium/libplanet/pull/1917
 [#1961]: https://github.com/planetarium/libplanet/pull/1961
 [#1966]: https://github.com/planetarium/libplanet/pull/1966
 
