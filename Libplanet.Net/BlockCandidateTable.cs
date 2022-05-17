@@ -33,10 +33,7 @@ namespace Libplanet.Net
         /// </summary>
         public CandidateBranch<T>? BestBranch { get; private set; }
 
-        public long Count
-        {
-            get => Branches.Count;
-        }
+        public long Count => Branches.Count;
 
         /// <summary>
         /// An <see cref="IEnumerable{T}"/> of
