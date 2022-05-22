@@ -12,6 +12,7 @@ namespace Libplanet.Net
     public partial class Swarm<T>
     {
         private async Task ConsumeBlockCandidates(
+            TimeSpan timeout,
             CancellationToken cancellationToken)
         {
             var checkInterval = TimeSpan.FromMilliseconds(10);
@@ -35,6 +36,7 @@ namespace Libplanet.Net
                         {
                             UpdatePath<T> path = BlockCandidateProcess(
                                 branch,
+                                timeout,
                                 cancellationToken);
                             BlockAppended.Set();
                             BlockCandidateTable.Update(path);
@@ -64,6 +66,7 @@ namespace Libplanet.Net
 
         private UpdatePath<T> BlockCandidateProcess(
             CandidateBranch<T> branch,
+            TimeSpan timeout,
             CancellationToken cancellationToken)
         {
             BlockChain<T> synced = null;
@@ -79,6 +82,7 @@ namespace Libplanet.Net
             (synced, path) = AppendPreviousBlocks(
                 blockChain: BlockChain,
                 branch: branch,
+                timeout: timeout,
                 evaluateActions: true);
             ProcessFillBlocksFinished.Set();
             _logger.Debug(
@@ -119,6 +123,7 @@ namespace Libplanet.Net
 
         private (BlockChain<T>, UpdatePath<T>) AppendPreviousBlocks(
             BlockChain<T> blockChain,
+            TimeSpan timeout,
             CandidateBranch<T> branch,
             bool evaluateActions)
         {
@@ -293,6 +298,7 @@ namespace Libplanet.Net
 
         private async Task<bool> ProcessBlockDemandAsync(
             BlockDemand demand,
+            TimeSpan timeout,
             CancellationToken cancellationToken)
         {
             var sessionRandom = new Random();
@@ -327,6 +333,7 @@ namespace Libplanet.Net
                     peer: peer,
                     blockChain: BlockChain,
                     stop: demand.Header,
+                    timeout: timeout,
                     logSessionId: sessionId,
                     cancellationToken: cancellationToken);
 
@@ -376,6 +383,7 @@ namespace Libplanet.Net
             BoundPeer peer,
             BlockChain<T> blockChain,
             BlockHeader stop,
+            TimeSpan timeout,
             int logSessionId,
             CancellationToken cancellationToken)
         {
