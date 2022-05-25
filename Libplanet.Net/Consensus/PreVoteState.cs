@@ -36,6 +36,14 @@ namespace Libplanet.Net.Consensus
             }
 
             RoundContext<T> roundContext = context.CurrentRoundContext;
+
+            if (context.NodeId == vote.NodeId &&
+                vote.BlockHash.Equals(roundContext.BlockHash) &&
+                !context.ContainsBlock(vote.BlockHash))
+            {
+                throw new VoteBlockNotExistsException(vote);
+            }
+
             roundContext.Vote(vote.ProposeVote);
 
             if (!roundContext.HasTwoThirdsAny())
