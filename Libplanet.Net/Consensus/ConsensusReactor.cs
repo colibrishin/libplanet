@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Bencodex;
 using Libplanet.Action;
 using Libplanet.Blockchain;
 using Libplanet.Blocks;
@@ -17,6 +18,8 @@ namespace Libplanet.Net.Consensus
     public class ConsensusReactor<T> : IReactor
         where T : IAction, new()
     {
+        private readonly Codec _codec = new Codec();
+
         private RoutingTable _routingTable;
         private ITransport _transport;
         private ConsensusContext<T> _context;
@@ -127,12 +130,85 @@ namespace Libplanet.Net.Consensus
         {
             switch (message)
             {
-                case ConsensusMessage consensusMessage:
+                case Messages.Blocks block:
                     var pong = new Pong { Identity = message.Identity };
                     await _transport.ReplyMessageAsync(pong, CancellationToken.None);
+                    PutReceivedBlockToStore(block);
+                    break;
+                case GetBlocks hashes:
+                    await ResponseBlockAsync(hashes);
+                    break;
+                case ConsensusMessage consensusMessage:
+                    pong = new Pong { Identity = message.Identity };
+                    await _transport.ReplyMessageAsync(pong, CancellationToken.None);
+                    if (consensusMessage is ConsensusPropose consensusPropose &&
+                        !_context.ContainsBlock(consensusPropose.BlockHash))
+                    {
+                        await RequestBlockAsync(consensusMessage);
+                    }
+
                     await ReceivedMessage(consensusMessage);
                     break;
             }
+        }
+
+        private void PutReceivedBlockToStore(Messages.Blocks message)
+        {
+            var block = BlockMarshaler.UnmarshalBlock<T>(
+                _context.HashAlgorithm,
+                (Bencodex.Types.Dictionary)_codec.Decode(message.DataFrames.Last())
+            );
+
+            _context.PutBlockToStore(block);
+
+            _logger.Debug(
+                "{MethodName}: Received Block {BlockHash} from {Remote}",
+                nameof(PutReceivedBlockToStore),
+                block.Hash,
+                message.Remote);
+        }
+
+        private async Task RequestBlockAsync(ConsensusMessage consensusMessage)
+        {
+            var message = new GetBlocks(new[] { consensusMessage.BlockHash })
+            {
+                Identity = consensusMessage.Identity,
+                Remote = _transport.AsPeer,
+            };
+
+            _logger.Debug(
+                "{MethodName}: Requesting Block {BlockHash} derived from {@Message}",
+                nameof(RequestBlockAsync),
+                consensusMessage.BlockHash,
+                consensusMessage);
+
+            await _transport.SendMessageAsync(
+                _routingTable.GetPeer(consensusMessage.Remote!.Address),
+                message,
+                TimeSpan.FromSeconds(1),
+                CancellationToken.None);
+        }
+
+        private async Task ResponseBlockAsync(GetBlocks message)
+        {
+            var listBlock = new List<byte[]>()
+            {
+                _codec.Encode(
+                    _context.GetBlockFromStore(message.BlockHashes.First()).MarshalBlock()),
+            };
+            var sending = new Messages.Blocks(listBlock)
+            {
+                Identity = message.Identity,
+                Remote = _transport.AsPeer,
+            };
+
+            _logger.Debug(
+                "{MethodName}: Received Block request {BlockHash} from {Remote}",
+                nameof(RequestBlockAsync),
+                message.BlockHashes.First(),
+                message.Remote);
+
+            await _transport.ReplyMessageAsync(sending, CancellationToken.None);
         }
     }
 }
