@@ -7,6 +7,7 @@ using Bencodex;
 using Libplanet.Action;
 using Libplanet.Blockchain;
 using Libplanet.Blocks;
+using Libplanet.Consensus;
 using Libplanet.Crypto;
 using Libplanet.Net.Messages;
 using Libplanet.Net.Protocols;
@@ -131,16 +132,15 @@ namespace Libplanet.Net.Consensus
             switch (message)
             {
                 case Messages.Blocks block:
-                    var pong = new Pong { Identity = message.Identity };
-                    await _transport.ReplyMessageAsync(pong, CancellationToken.None);
+                    await ReplyPongAsync(message);
                     PutReceivedBlockToStore(block);
                     break;
                 case GetBlocks hashes:
+                    await ReplyPongAsync(message);
                     await ResponseBlockAsync(hashes);
                     break;
                 case ConsensusMessage consensusMessage:
-                    pong = new Pong { Identity = message.Identity };
-                    await _transport.ReplyMessageAsync(pong, CancellationToken.None);
+                    await ReplyPongAsync(message);
                     if (consensusMessage is ConsensusPropose consensusPropose &&
                         !_context.ContainsBlock(consensusPropose.BlockHash))
                     {
@@ -159,20 +159,30 @@ namespace Libplanet.Net.Consensus
                 (Bencodex.Types.Dictionary)_codec.Decode(message.DataFrames.Last())
             );
 
-            _context.PutBlockToStore(block);
+            if (!_context.ContainsBlock(block.Hash))
+            {
+                _context.PutBlockToStore(block);
 
-            _logger.Debug(
-                "{MethodName}: Received Block {BlockHash} from {Remote}",
-                nameof(PutReceivedBlockToStore),
-                block.Hash,
-                message.Remote);
+                _logger.Debug(
+                    "{MethodName}: Received Block {BlockHash} from {Remote}",
+                    nameof(PutReceivedBlockToStore),
+                    block.Hash,
+                    message.Remote);
+
+                HandleMessage(
+                    new ConsensusVote(_context.CurrentRoundContext.Voting(VoteFlag.Absent)));
+            }
         }
 
         private async Task RequestBlockAsync(ConsensusMessage consensusMessage)
         {
-            var message = new GetBlocks(new[] { consensusMessage.BlockHash })
+            var hashList = new List<BlockHash>()
             {
-                Identity = consensusMessage.Identity,
+                consensusMessage.BlockHash,
+            };
+            var message = new GetBlocks(hashList)
+            {
+                Version = consensusMessage.Version,
                 Remote = _transport.AsPeer,
             };
 
@@ -194,11 +204,11 @@ namespace Libplanet.Net.Consensus
             var listBlock = new List<byte[]>()
             {
                 _codec.Encode(
-                    _context.GetBlockFromStore(message.BlockHashes.First()).MarshalBlock()),
+                    _context.GetBlockFromStore(message.BlockHashes.Last()).MarshalBlock()),
             };
             var sending = new Messages.Blocks(listBlock)
             {
-                Identity = message.Identity,
+                Version = message.Version,
                 Remote = _transport.AsPeer,
             };
 
@@ -208,7 +218,17 @@ namespace Libplanet.Net.Consensus
                 message.BlockHashes.First(),
                 message.Remote);
 
-            await _transport.ReplyMessageAsync(sending, CancellationToken.None);
+            await _transport.SendMessageAsync(
+                _routingTable.GetPeer(message.Remote!.Address),
+                sending,
+                TimeSpan.FromSeconds(1),
+                CancellationToken.None);
+        }
+
+        private async Task ReplyPongAsync(Message message)
+        {
+            var pong = new Pong { Identity = message.Identity };
+            await _transport.ReplyMessageAsync(pong, CancellationToken.None);
         }
     }
 }

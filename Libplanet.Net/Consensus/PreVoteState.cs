@@ -35,6 +35,12 @@ namespace Libplanet.Net.Consensus
                 throw new UnexpectedBlockHashException(vote);
             }
 
+            if (vote.NodeId == context.NodeId &&
+                !context.ContainsBlock(vote.BlockHash))
+            {
+                throw new VoteBlockNotExistsException(vote);
+            }
+
             RoundContext<T> roundContext = context.CurrentRoundContext;
             roundContext.Vote(vote.ProposeVote);
 
