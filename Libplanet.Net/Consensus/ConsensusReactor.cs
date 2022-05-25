@@ -131,98 +131,64 @@ namespace Libplanet.Net.Consensus
         {
             switch (message)
             {
-                case Messages.Blocks block:
-                    await ReplyPongAsync(message);
-                    PutReceivedBlockToStore(block);
-                    break;
-                case GetBlocks hashes:
-                    await ReplyPongAsync(message);
-                    await ResponseBlockAsync(hashes);
+                case GetBlocks blockhashes:
+                    await SendBlockAsync(blockhashes);
                     break;
                 case ConsensusMessage consensusMessage:
                     await ReplyPongAsync(message);
-                    if (consensusMessage is ConsensusPropose consensusPropose &&
-                        !_context.ContainsBlock(consensusPropose.BlockHash))
-                    {
-                        await RequestBlockAsync(consensusMessage);
-                    }
-
+                    await RequestBlockAsync(consensusMessage);
                     await ReceivedMessage(consensusMessage);
                     break;
             }
         }
 
-        private void PutReceivedBlockToStore(Messages.Blocks message)
+        private async Task RequestBlockAsync(ConsensusMessage message)
         {
-            var block = BlockMarshaler.UnmarshalBlock<T>(
-                _context.HashAlgorithm,
-                (Bencodex.Types.Dictionary)_codec.Decode(message.DataFrames.Last())
-            );
-
-            if (!_context.ContainsBlock(block.Hash))
+            if (message is ConsensusPropose)
             {
-                _context.PutBlockToStore(block);
+                var hashMessage = new GetBlocks(new List<BlockHash>() { message.BlockHash });
+                var blockMessage = await _transport.SendMessageAsync(
+                    _routingTable.GetPeer(message.Remote!.Address),
+                    hashMessage,
+                    TimeSpan.FromSeconds(1),
+                    CancellationToken.None);
 
-                _logger.Debug(
-                    "{MethodName}: Received Block {BlockHash} from {Remote}",
-                    nameof(PutReceivedBlockToStore),
-                    block.Hash,
-                    message.Remote);
+                if (blockMessage is Messages.Blocks receivedMessage)
+                {
+                    var block = BlockMarshaler.UnmarshalBlock<T>(
+                        _context.HashAlgorithm,
+                        (Bencodex.Types.Dictionary)_codec.Decode(receivedMessage.DataFrames.Last())
+                        );
 
+                    if (!_context.ContainsBlock(block.Hash))
+                    {
+                        _context.PutBlockToStore(block);
+                        UnlockVote();
+                    }
+                }
+            }
+        }
+
+        private void UnlockVote()
+        {
+            if (_context.CurrentRoundContext.CurrentNodeVoteFlag is VoteFlag.Null &&
+                _context.CurrentRoundContext.State is PreVoteState<T>)
+            {
                 HandleMessage(
                     new ConsensusVote(_context.CurrentRoundContext.Voting(VoteFlag.Absent)));
             }
         }
 
-        private async Task RequestBlockAsync(ConsensusMessage consensusMessage)
+        private async Task SendBlockAsync(GetBlocks hashes)
         {
-            var hashList = new List<BlockHash>()
+            var block = _context.GetBlockFromStore(hashes.BlockHashes.First());
+            var message = new Messages.Blocks(new[] { _codec.Encode(block.MarshalBlock()) })
             {
-                consensusMessage.BlockHash,
-            };
-            var message = new GetBlocks(hashList)
-            {
-                Version = consensusMessage.Version,
+                Identity = hashes.Identity,
                 Remote = _transport.AsPeer,
             };
 
-            _logger.Debug(
-                "{MethodName}: Requesting Block {BlockHash} derived from {@Message}",
-                nameof(RequestBlockAsync),
-                consensusMessage.BlockHash,
-                consensusMessage);
-
-            await _transport.SendMessageAsync(
-                _routingTable.GetPeer(consensusMessage.Remote!.Address),
-                message,
-                TimeSpan.FromSeconds(1),
-                CancellationToken.None);
-        }
-
-        private async Task ResponseBlockAsync(GetBlocks message)
-        {
-            var listBlock = new List<byte[]>()
-            {
-                _codec.Encode(
-                    _context.GetBlockFromStore(message.BlockHashes.Last()).MarshalBlock()),
-            };
-            var sending = new Messages.Blocks(listBlock)
-            {
-                Version = message.Version,
-                Remote = _transport.AsPeer,
-            };
-
-            _logger.Debug(
-                "{MethodName}: Received Block request {BlockHash} from {Remote}",
-                nameof(RequestBlockAsync),
-                message.BlockHashes.First(),
-                message.Remote);
-
-            await _transport.SendMessageAsync(
-                _routingTable.GetPeer(message.Remote!.Address),
-                sending,
-                TimeSpan.FromSeconds(1),
-                CancellationToken.None);
+            await _transport.ReplyMessageAsync(message, CancellationToken.None);
         }
 
         private async Task ReplyPongAsync(Message message)

@@ -59,6 +59,8 @@ namespace Libplanet.Net.Consensus
 
         public PublicKey CurrentNodePublicKey => _validators[(int)NodeId];
 
+        public VoteFlag CurrentNodeVoteFlag => _voteSet.Votes[(int)NodeId].Flag;
+
         public long VoteCount
         {
             get
