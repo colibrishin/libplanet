@@ -28,7 +28,7 @@ namespace Libplanet.Net.Consensus
         private readonly object _commitLock;
         private readonly PrivateKey _privateKey;
 
-        private ConcurrentDictionary<long, RoundContext<T>> _roundContexts;
+        private ConcurrentDictionary<(long, long), RoundContext<T>> _roundContexts;
 
         public ConsensusContext(
             long nodeId,
@@ -48,9 +48,9 @@ namespace Libplanet.Net.Consensus
             _validators = validators;
             _privateKey = privateKey;
             _commitLock = new object();
-            _roundContexts = new ConcurrentDictionary<long, RoundContext<T>>
+            _roundContexts = new ConcurrentDictionary<(long, long), RoundContext<T>>
             {
-                [0] = new RoundContext<T>(NodeId, validators, Height, Round),
+                [(0, 0)] = new RoundContext<T>(NodeId, validators, Height, Round),
             };
 
             _timoutTicker = new TimeoutTicker(TimeoutMillisecond, TimerTimeoutCallback);
@@ -86,7 +86,7 @@ namespace Libplanet.Net.Consensus
         /// </summary>
         public HashAlgorithmGetter HashAlgorithm => _blockChain.Policy.GetHashAlgorithm;
 
-        public RoundContext<T> CurrentRoundContext => RoundContextOf(Round);
+        public RoundContext<T> CurrentRoundContext => RoundContextOf(Height, Round);
 
         /// <summary>
         /// A <see cref="AsyncManualResetEvent"/> whether A vote is in hold for waiting
@@ -155,7 +155,7 @@ namespace Libplanet.Net.Consensus
                 VoteSets.Add(Height, CurrentRoundContext.VoteSet);
                 Height++;
                 Round = 0;
-                _roundContexts = new ConcurrentDictionary<long, RoundContext<T>>();
+                _roundContexts = new ConcurrentDictionary<(long, long), RoundContext<T>>();
             }
         }
 
@@ -188,9 +188,9 @@ namespace Libplanet.Net.Consensus
 
             // NOTE: Reusing existing round context is valid?
             // FIXME: Should not re-create RoundContext. Instead, use new vote set.
-            if (!_roundContexts.ContainsKey(Round))
+            if (!_roundContexts.ContainsKey((Height, Round)))
             {
-                _roundContexts[Round] = new RoundContext<T>(
+                _roundContexts[(Height, Round)] = new RoundContext<T>(
                     NodeId,
                     _validators,
                     Height,
@@ -202,18 +202,18 @@ namespace Libplanet.Net.Consensus
             return Round;
         }
 
-        public RoundContext<T> RoundContextOf(long round)
+        public RoundContext<T> RoundContextOf(long height, long round)
         {
-            if (!_roundContexts.ContainsKey(round))
+            if (!_roundContexts.ContainsKey((height, round)))
             {
-                _roundContexts[round] = new RoundContext<T>(
+                _roundContexts[(height, round)] = new RoundContext<T>(
                     NodeId,
                     _validators,
-                    Height,
+                    height,
                     round);
             }
 
-            return _roundContexts[round];
+            return _roundContexts[(height, round)];
         }
 
         public Vote SignVote(Vote vote)
