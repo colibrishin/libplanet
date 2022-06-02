@@ -1,20 +1,24 @@
 using Libplanet.Action;
-using Libplanet.Consensus;
 using Libplanet.Net.Messages;
 
 namespace Libplanet.Net.Consensus
 {
-    public class PreCommitState<T> : IState<T>
+    public class PreCommitState<T> : CommonState<T>, IState<T>
         where T : IAction, new()
     {
-        public string Name { get; } = "PreCommitState";
+        public new string Name { get; } = "PreCommitState";
 
-        public ConsensusMessage? Handle(ConsensusContext<T> context, ConsensusMessage message)
+        public new ConsensusMessage? Handle(ConsensusContext<T> context, ConsensusMessage message)
         {
+            var commonExit = base.Handle(context, message);
+            if (!(commonExit is null))
+            {
+                return commonExit;
+            }
+
             return message switch
             {
                 ConsensusCommit commit => HandleCommit(context, commit),
-                ConsensusVote vote => HandleResetRound(context, vote),
                 _ => throw new TryUnexpectedMessageHandleException(message),
             };
         }
@@ -48,31 +52,6 @@ namespace Libplanet.Net.Consensus
             context.CommitBlock(roundContext.Height, roundContext.BlockHash);
 
             return null;
-        }
-
-        private ConsensusMessage? HandleResetRound(ConsensusContext<T> context, ConsensusVote vote)
-        {
-            if (context.Height != vote.Height)
-            {
-                return null;
-            }
-
-            if (context.Round >= vote.Round)
-            {
-                return null;
-            }
-
-            RoundContext<T> targetContext = context.RoundContextOf(vote.Round);
-            targetContext.Vote(vote.ProposeVote);
-
-            if (!targetContext.VoteSet.HasTwoThirdPrevote())
-            {
-                return null;
-            }
-
-            context.Round = vote.Round;
-            targetContext.BlockHash = vote.BlockHash;
-            return new ConsensusCommit(context.SignVote(targetContext.Voting(VoteFlag.Commit)));
         }
     }
 }

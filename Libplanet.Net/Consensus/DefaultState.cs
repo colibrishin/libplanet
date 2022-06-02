@@ -4,13 +4,19 @@ using Libplanet.Net.Messages;
 
 namespace Libplanet.Net.Consensus
 {
-    public class DefaultState<T> : IState<T>
+    public class DefaultState<T> : CommonState<T>, IState<T>
         where T : IAction, new()
     {
-        public string Name { get; } = "DefaultState";
+        public new string Name { get; } = "DefaultState";
 
-        public ConsensusMessage? Handle(ConsensusContext<T> context, ConsensusMessage message)
+        public new ConsensusMessage? Handle(ConsensusContext<T> context, ConsensusMessage message)
         {
+            var commonExit = base.Handle(context, message);
+            if (!(commonExit is null))
+            {
+                return commonExit;
+            }
+
             return message switch
             {
                 ConsensusPropose propose => HandlePropose(context, propose),
