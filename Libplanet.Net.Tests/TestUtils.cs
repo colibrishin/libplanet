@@ -7,6 +7,7 @@ using Libplanet.Blocks;
 using Libplanet.Consensus;
 using Libplanet.Crypto;
 using Libplanet.Net.Consensus;
+using Libplanet.Net.Messages;
 using Libplanet.Net.Protocols;
 using Libplanet.Tests.Common.Action;
 
@@ -19,10 +20,20 @@ namespace Libplanet.Net.Tests
                 ByteUtil.ParseHex(
                     "b17c919b07320edfb3e6da2f1cfed75910322de2e49377d6d4d226505afca550"));
 
+        public static readonly PrivateKey Peer1Priv =
+            new PrivateKey(
+                ByteUtil.ParseHex(
+                    "0e2cefc3fc7cdc6bfba798f48f1bf63e8ec01fc2cad5c157b2a2effaa7daf847"));
+
         public static readonly Peer Peer0 = new Peer(
             new PrivateKey(
                 ByteUtil.ParseHex(
                     "b17c919b07320edfb3e6da2f1cfed75910322de2e49377d6d4d226505afca550")).PublicKey);
+
+        public static readonly Peer Peer1 = new Peer(
+            new PrivateKey(
+                ByteUtil.ParseHex(
+                    "0e2cefc3fc7cdc6bfba798f48f1bf63e8ec01fc2cad5c157b2a2effaa7daf847")).PublicKey);
 
         public static readonly BlockHash BlockHash0 =
             BlockHash.FromString(
@@ -31,6 +42,7 @@ namespace Libplanet.Net.Tests
         public static readonly List<PublicKey> Validators = new List<PublicKey>
         {
             Peer0.PublicKey,
+            Peer1.PublicKey,
         };
 
         public static AppProtocolVersion AppProtocolVersion = AppProtocolVersion.FromToken(
@@ -70,6 +82,16 @@ namespace Libplanet.Net.Tests
             long height = 0,
             long round = 0) =>
             new RoundContext<DumbAction>(id, validators, height, round);
+
+        public static ConsensusPropose CreateConsensusPropose(
+            Peer peer,
+            BlockHash blockHash,
+            long id = 0,
+            long height = 0,
+            long round = 0) => new ConsensusPropose(id, height, round, blockHash)
+        {
+            Remote = peer,
+        };
 
         public static Vote CreateVote(
             PublicKey publicKey,
