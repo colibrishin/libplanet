@@ -25,16 +25,6 @@ namespace Libplanet.Net.Consensus
 
         private ConsensusMessage? HandleCommit(ConsensusContext<T> context, ConsensusCommit commit)
         {
-            if (context.Height != commit.Height)
-            {
-                throw new UnexpectedHeightProposeException(commit);
-            }
-
-            if (context.Round != commit.Round)
-            {
-                throw new UnexpectedRoundProposeException(commit);
-            }
-
             if (!context.CurrentRoundContext.BlockHash.Equals(commit.BlockHash))
             {
                 throw new UnexpectedBlockHashException(commit);

@@ -66,18 +66,6 @@ namespace Libplanet.Net.Tests.Consensus.States
             }
 
             var state = new PreCommitState<DumbAction>();
-            Assert.Throws<UnexpectedRoundProposeException>(
-                () => state.Handle(
-                    context,
-                    new ConsensusCommit(
-                            TestUtils.CreateVote(validBlockHash, VoteFlag.Commit, 0, 0, 1))
-                        { Remote = TestUtils.Peer0 }));
-            Assert.Throws<UnexpectedHeightProposeException>(
-                () => state.Handle(
-                    context,
-                    new ConsensusCommit(
-                            TestUtils.CreateVote(validBlockHash, VoteFlag.Commit, 0, 1, 0))
-                        { Remote = TestUtils.Peer0 }));
             Assert.Throws<UnexpectedBlockHashException>(
                 () => state.Handle(
                     context,
@@ -114,44 +102,6 @@ namespace Libplanet.Net.Tests.Consensus.States
             Assert.Equal(1, contextAlreadyVoted.Height);
             Assert.Equal(default, contextAlreadyVoted.CurrentRoundContext.BlockHash);
             Assert.IsType<DefaultState<DumbAction>>(contextAlreadyVoted.CurrentRoundContext.State);
-        }
-
-        [Fact]
-        public void HandleResetRound()
-        {
-            BlockHash blockHash = _fx.Block1.Hash;
-            ConsensusContext<DumbAction> context = TestUtils.CreateConsensusContext(_blockChain);
-            context.Round = 1;
-            var state = new PreCommitState<DumbAction>();
-            Assert.Null(
-                state.Handle(
-                    context,
-                    new ConsensusVote(
-                            context.SignVote(
-                                TestUtils.CreateVote(
-                                    blockHash,
-                                    VoteFlag.Absent,
-                                    0,
-                                    0,
-                                    0)))
-                        { Remote = TestUtils.Peer0 }));
-            ConsensusMessage? res = state.Handle(
-                context,
-                new ConsensusVote(
-                    context.SignVote(
-                        TestUtils.CreateVote(blockHash, VoteFlag.Absent, 0, 0, 2)))
-                    { Remote = TestUtils.Peer0 });
-            Assert.NotNull(res);
-            Assert.IsType<ConsensusCommit>(res);
-            Assert.Equal(2, context.Round);
-            Assert.Equal(blockHash, context.CurrentRoundContext.BlockHash);
-            res = state.Handle(
-                context,
-                new ConsensusVote(
-                        context.SignVote(
-                        TestUtils.CreateVote(blockHash, VoteFlag.Absent, 0, 1, 3)))
-                    { Remote = TestUtils.Peer0 });
-            Assert.Null(res);
         }
     }
 }

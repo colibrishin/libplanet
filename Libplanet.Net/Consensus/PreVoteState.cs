@@ -26,16 +26,6 @@ namespace Libplanet.Net.Consensus
 
         private ConsensusMessage? HandleVote(ConsensusContext<T> context, ConsensusVote vote)
         {
-            if (context.Height != vote.Height)
-            {
-                throw new UnexpectedHeightProposeException(vote);
-            }
-
-            if (context.Round != vote.Round)
-            {
-                throw new UnexpectedRoundProposeException(vote);
-            }
-
             if (!context.CurrentRoundContext.BlockHash.Equals(vote.BlockHash))
             {
                 throw new UnexpectedBlockHashException(vote);

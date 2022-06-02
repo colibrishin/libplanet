@@ -37,18 +37,10 @@ namespace Libplanet.Net.Tests.Consensus.States
                     context,
                     new ConsensusCommit(TestUtils.CreateVote(blockHash, VoteFlag.Commit, 0, 0, 0))
                         { Remote = TestUtils.Peer0 }));
-            Assert.Throws<UnexpectedRoundProposeException>(
-                () => state.Handle(
-                    context,
-                    new ConsensusPropose(0, 0, 1, blockHash) { Remote = TestUtils.Peer0 }));
             Assert.Throws<UnexpectedLeaderProposeException>(
                 () => state.Handle(
                     context,
                     new ConsensusPropose(1, 0, 0, blockHash) { Remote = TestUtils.Peer0 }));
-            Assert.Throws<UnexpectedHeightProposeException>(
-                () => state.Handle(
-                    context,
-                    new ConsensusPropose(1, 1, 0, blockHash) { Remote = TestUtils.Peer0 }));
             ConsensusMessage? res = state.Handle(
                 context,
                 new ConsensusPropose(0, 0, 0, blockHash) { Remote = TestUtils.Peer0 });

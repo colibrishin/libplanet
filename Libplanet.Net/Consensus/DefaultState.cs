@@ -28,16 +28,6 @@ namespace Libplanet.Net.Consensus
             ConsensusContext<T> context,
             ConsensusPropose propose)
         {
-            if (context.Height != propose.Height)
-            {
-                throw new UnexpectedHeightProposeException(propose);
-            }
-
-            if (context.Round != propose.Round)
-            {
-                throw new UnexpectedRoundProposeException(propose);
-            }
-
             RoundContext<T> roundContext = context.CurrentRoundContext;
             if (roundContext.LeaderElection() != propose.NodeId ||
                 roundContext.Proposer() != propose.Remote?.Address)

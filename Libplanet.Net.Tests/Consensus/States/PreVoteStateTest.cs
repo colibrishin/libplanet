@@ -56,18 +56,6 @@ namespace Libplanet.Net.Tests.Consensus.States
                 () => state.Handle(
                     context,
                     new ConsensusPropose(0, 0, 0, validBlockHash) { Remote = TestUtils.Peer0 }));
-            Assert.Throws<UnexpectedRoundProposeException>(
-                () => state.Handle(
-                    context,
-                    new ConsensusVote(
-                            TestUtils.CreateVote(validBlockHash, VoteFlag.Absent, 0, 0, 1))
-                        { Remote = TestUtils.Peer0 }));
-            Assert.Throws<UnexpectedHeightProposeException>(
-                () => state.Handle(
-                    context,
-                    new ConsensusVote(
-                            TestUtils.CreateVote(validBlockHash, VoteFlag.Absent, 0, 1, 0))
-                        { Remote = TestUtils.Peer0 }));
             Assert.Throws<UnexpectedBlockHashException>(
                 () => state.Handle(
                     context,
