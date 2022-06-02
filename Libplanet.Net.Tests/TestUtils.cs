@@ -19,10 +19,40 @@ namespace Libplanet.Net.Tests
                 ByteUtil.ParseHex(
                     "b17c919b07320edfb3e6da2f1cfed75910322de2e49377d6d4d226505afca550"));
 
+        public static readonly PrivateKey Peer1Priv =
+            new PrivateKey(
+                ByteUtil.ParseHex(
+                    "0e2cefc3fc7cdc6bfba798f48f1bf63e8ec01fc2cad5c157b2a2effaa7daf847"));
+
+        public static readonly PrivateKey Peer2Priv =
+            new PrivateKey(
+                ByteUtil.ParseHex(
+                    "160af1235ebcee7d5b2796de52010a025328f93a6f55bf70e298fb5f51f9c6e2"));
+
+        public static readonly PrivateKey Peer3Priv =
+            new PrivateKey(
+                ByteUtil.ParseHex(
+                    "2c9afa2a656d8535d4e338e73f61e30f34ee52affb6a96f9eed525b199e96253"));
+
         public static readonly Peer Peer0 = new Peer(
             new PrivateKey(
                 ByteUtil.ParseHex(
                     "b17c919b07320edfb3e6da2f1cfed75910322de2e49377d6d4d226505afca550")).PublicKey);
+
+        public static readonly Peer Peer1 = new Peer(
+            new PrivateKey(
+                ByteUtil.ParseHex(
+                    "0e2cefc3fc7cdc6bfba798f48f1bf63e8ec01fc2cad5c157b2a2effaa7daf847")).PublicKey);
+
+        public static readonly Peer Peer2 = new Peer(
+            new PrivateKey(
+                ByteUtil.ParseHex(
+                    "160af1235ebcee7d5b2796de52010a025328f93a6f55bf70e298fb5f51f9c6e2")).PublicKey);
+
+        public static readonly Peer Peer3 = new Peer(
+            new PrivateKey(
+                ByteUtil.ParseHex(
+                    "2c9afa2a656d8535d4e338e73f61e30f34ee52affb6a96f9eed525b199e96253")).PublicKey);
 
         public static readonly BlockHash BlockHash0 =
             BlockHash.FromString(
@@ -31,6 +61,9 @@ namespace Libplanet.Net.Tests
         public static readonly List<PublicKey> Validators = new List<PublicKey>
         {
             Peer0.PublicKey,
+            Peer1.PublicKey,
+            Peer2.PublicKey,
+            Peer3.PublicKey,
         };
 
         public static AppProtocolVersion AppProtocolVersion = AppProtocolVersion.FromToken(
