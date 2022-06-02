@@ -33,12 +33,8 @@ namespace Libplanet.Net.Consensus
             }
 
             RoundContext<T> roundContext = context.CurrentRoundContext;
-            if (roundContext.LeaderElection() != propose.NodeId)
-            {
-                throw new UnexpectedLeaderProposeException(propose);
-            }
-
-            if (roundContext.Proposer() != propose.Remote?.Address)
+            if (roundContext.LeaderElection() != propose.NodeId ||
+                roundContext.Proposer() != propose.Remote?.Address)
             {
                 throw new UnexpectedLeaderProposeException(propose);
             }
