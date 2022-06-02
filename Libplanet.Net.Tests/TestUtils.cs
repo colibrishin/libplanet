@@ -25,6 +25,16 @@ namespace Libplanet.Net.Tests
                 ByteUtil.ParseHex(
                     "0e2cefc3fc7cdc6bfba798f48f1bf63e8ec01fc2cad5c157b2a2effaa7daf847"));
 
+        public static readonly PrivateKey Peer2Priv =
+            new PrivateKey(
+                ByteUtil.ParseHex(
+                    "160af1235ebcee7d5b2796de52010a025328f93a6f55bf70e298fb5f51f9c6e2"));
+
+        public static readonly PrivateKey Peer3Priv =
+            new PrivateKey(
+                ByteUtil.ParseHex(
+                    "2c9afa2a656d8535d4e338e73f61e30f34ee52affb6a96f9eed525b199e96253"));
+
         public static readonly Peer Peer0 = new Peer(
             new PrivateKey(
                 ByteUtil.ParseHex(
@@ -35,6 +45,16 @@ namespace Libplanet.Net.Tests
                 ByteUtil.ParseHex(
                     "0e2cefc3fc7cdc6bfba798f48f1bf63e8ec01fc2cad5c157b2a2effaa7daf847")).PublicKey);
 
+        public static readonly Peer Peer2 = new Peer(
+            new PrivateKey(
+                ByteUtil.ParseHex(
+                    "160af1235ebcee7d5b2796de52010a025328f93a6f55bf70e298fb5f51f9c6e2")).PublicKey);
+
+        public static readonly Peer Peer3 = new Peer(
+            new PrivateKey(
+                ByteUtil.ParseHex(
+                    "2c9afa2a656d8535d4e338e73f61e30f34ee52affb6a96f9eed525b199e96253")).PublicKey);
+
         public static readonly BlockHash BlockHash0 =
             BlockHash.FromString(
                 "042b81bef7d4bca6e01f5975ce9ac7ed9f75248903d08836bed6566488c8089d");
@@ -43,6 +63,8 @@ namespace Libplanet.Net.Tests
         {
             Peer0.PublicKey,
             Peer1.PublicKey,
+            Peer2.PublicKey,
+            Peer3.PublicKey,
         };
 
         public static AppProtocolVersion AppProtocolVersion = AppProtocolVersion.FromToken(
