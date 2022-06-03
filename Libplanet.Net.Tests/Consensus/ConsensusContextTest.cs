@@ -66,8 +66,8 @@ namespace Libplanet.Net.Tests.Consensus
         {
             ConsensusContext<DumbAction> context = TestUtils.CreateConsensusContext(_blockChain);
             context.NextRound(0);
-            Assert.Equal(0, context.RoundContextOf(0).Round);
-            Assert.Equal(1, context.RoundContextOf(1).Round);
+            Assert.Equal(0, context.RoundContextOf(0, 0).Round);
+            Assert.Equal(1, context.RoundContextOf(0, 1).Round);
             Assert.Equal(1, context.CurrentRoundContext.Round);
         }
 

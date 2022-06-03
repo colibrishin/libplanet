@@ -28,7 +28,7 @@ namespace Libplanet.Net.Consensus
         private readonly object _commitLock;
         private readonly PrivateKey _privateKey;
 
-        private ConcurrentDictionary<long, RoundContext<T>> _roundContexts;
+        private ConcurrentDictionary<(long, long), RoundContext<T>> _roundContexts;
 
         public ConsensusContext(
             long nodeId,
@@ -48,14 +48,14 @@ namespace Libplanet.Net.Consensus
             _validators = validators;
             _privateKey = privateKey;
             _commitLock = new object();
-            _roundContexts = new ConcurrentDictionary<long, RoundContext<T>>
+            Height = blockChain.Tip.Index;
+            _roundContexts = new ConcurrentDictionary<(long, long), RoundContext<T>>
             {
-                [0] = new RoundContext<T>(NodeId, validators, Height, Round),
+                [(Height, Round)] = new RoundContext<T>(NodeId, validators, Height, Round),
             };
 
             _timoutTicker = new TimeoutTicker(TimeoutMillisecond, TimerTimeoutCallback);
             VoteSets = new Dictionary<long, VoteSet?>();
-            Height = blockChain.Tip.Index;
             _logger = Log
                 .ForContext("Tag", "Consensus")
                 .ForContext("SubTag", "Context")
@@ -86,7 +86,7 @@ namespace Libplanet.Net.Consensus
         /// </summary>
         public HashAlgorithmGetter HashAlgorithm => _blockChain.Policy.GetHashAlgorithm;
 
-        public RoundContext<T> CurrentRoundContext => RoundContextOf(Round);
+        public RoundContext<T> CurrentRoundContext => RoundContextOf(Height, Round);
 
         /// <summary>
         /// A <see cref="AsyncManualResetEvent"/> whether A vote is in hold for waiting
@@ -155,21 +155,8 @@ namespace Libplanet.Net.Consensus
                 VoteSets.Add(Height, CurrentRoundContext.VoteSet);
                 Height++;
                 Round = 0;
-                _roundContexts = new ConcurrentDictionary<long, RoundContext<T>>();
             }
         }
-
-        /// <inheritdoc cref="IStore.ContainsBlock"/>
-        public bool ContainsBlock(BlockHash blockHash) =>
-            _blockChain.Store.ContainsBlock(blockHash);
-
-        /// <inheritdoc cref="IStore.GetBlock{T}"/>
-        public Block<T>? GetBlockFromStore(BlockHash blockHash) =>
-            _blockChain.Store.GetBlock<T>(HashAlgorithm, blockHash);
-
-        /// <inheritdoc cref="IStore.PutBlock{T}"/>
-        public void PutBlockToStore(Block<T> block) =>
-            _blockChain.Store.PutBlock(block);
 
         public long NextRound(long round)
         {
@@ -188,9 +175,9 @@ namespace Libplanet.Net.Consensus
 
             // NOTE: Reusing existing round context is valid?
             // FIXME: Should not re-create RoundContext. Instead, use new vote set.
-            if (!_roundContexts.ContainsKey(Round))
+            if (!_roundContexts.ContainsKey((Height, Round)))
             {
-                _roundContexts[Round] = new RoundContext<T>(
+                _roundContexts[(Height, Round)] = new RoundContext<T>(
                     NodeId,
                     _validators,
                     Height,
@@ -202,18 +189,18 @@ namespace Libplanet.Net.Consensus
             return Round;
         }
 
-        public RoundContext<T> RoundContextOf(long round)
+        public RoundContext<T> RoundContextOf(long height, long round)
         {
-            if (!_roundContexts.ContainsKey(round))
+            if (!_roundContexts.ContainsKey((height, round)))
             {
-                _roundContexts[round] = new RoundContext<T>(
+                _roundContexts[(height, round)] = new RoundContext<T>(
                     NodeId,
                     _validators,
-                    Height,
+                    height,
                     round);
             }
 
-            return _roundContexts[round];
+            return _roundContexts[(height, round)];
         }
 
         public Vote SignVote(Vote vote)
@@ -251,6 +238,18 @@ namespace Libplanet.Net.Consensus
             };
             return JsonSerializer.Serialize(message);
         }
+
+        /// <inheritdoc cref="IStore.ContainsBlock"/>
+        internal bool ContainsBlock(BlockHash blockHash) =>
+            _blockChain.Store.ContainsBlock(blockHash);
+
+        /// <inheritdoc cref="IStore.GetBlock{T}"/>
+        internal Block<T>? GetBlockFromStore(BlockHash blockHash) =>
+            _blockChain.Store.GetBlock<T>(HashAlgorithm, blockHash);
+
+        /// <inheritdoc cref="IStore.PutBlock{T}"/>
+        internal void PutBlockToStore(Block<T> block) =>
+            _blockChain.Store.PutBlock(block);
 
         private void TimerTimeoutCallback(object? sender, ElapsedEventArgs eventArgs)
         {
