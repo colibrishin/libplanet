@@ -4,12 +4,13 @@ using Libplanet.Net.Messages;
 
 namespace Libplanet.Net.Consensus
 {
-    public class DefaultState<T> : IState<T>
+    public class DefaultState<T> : CommonState<T>
         where T : IAction, new()
     {
-        public string Name { get; } = "DefaultState";
+        public override string Name { get; } = "DefaultState";
 
-        public ConsensusMessage? Handle(ConsensusContext<T> context, ConsensusMessage message)
+        protected override ConsensusMessage? HandleStateTransition(
+            ConsensusContext<T> context, ConsensusMessage message)
         {
             return message switch
             {
@@ -19,8 +20,7 @@ namespace Libplanet.Net.Consensus
         }
 
         private ConsensusMessage? HandlePropose(
-            ConsensusContext<T> context,
-            ConsensusPropose propose)
+            ConsensusContext<T> context, ConsensusPropose propose)
         {
             if (context.Height != propose.Height)
             {

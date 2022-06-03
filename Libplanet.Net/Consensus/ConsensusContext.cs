@@ -151,10 +151,23 @@ namespace Libplanet.Net.Consensus
                         "commit stage.");
                 }
 
+                CommitFailed.Reset();
+
                 // FIXME: Gets voteset by reference, it can be modified in other place.
                 VoteSets.Add(Height, CurrentRoundContext.VoteSet);
                 Height++;
                 Round = 0;
+
+                // FIXME: Double signing infraction will guarantee that the node will be punished
+                // who tried to vote forward, or manipulating blockHash etc.
+                _roundContexts[(Height, Round)] =
+                    new RoundContext<T>(NodeId, _validators, Height, Round);
+
+                // FIXME: This needs to be refactored somewhat better. We are stopping timeout
+                // in normal route twice.
+                // (Commit -> CommitBlock, Success -> StopTimeout -> SetTimeoutByState ->
+                // StopTimeout)
+                StopTimeout();
             }
         }
 
@@ -185,7 +198,6 @@ namespace Libplanet.Net.Consensus
             }
 
             VoteHolding.Reset();
-
             return Round;
         }
 
@@ -210,7 +222,9 @@ namespace Libplanet.Net.Consensus
 
         public ConsensusMessage? HandleMessage(ConsensusMessage message)
         {
-            var beforeRoundContext = CurrentRoundContext.State;
+            var height = Height;
+            var round = Round;
+            var beforeState = CurrentRoundContext.State;
 
             ConsensusMessage? res = null;
             try
@@ -222,7 +236,7 @@ namespace Libplanet.Net.Consensus
                 _logger.Error(e, "Handle throws exception: {E}", e);
             }
 
-            SetTimeoutByState(beforeRoundContext);
+            SetTimeoutByState(height, round, beforeState);
             return res;
         }
 
@@ -269,7 +283,27 @@ namespace Libplanet.Net.Consensus
             {
                 case PreVoteState<T> _:
                     CurrentRoundContext.State = new PreCommitState<T>();
+                    VoteHolding.Reset();
                     StartTimeout();
+
+                    // FIXME: This needs to be refactored somewhat better. Committing in
+                    // TimeoutCallback seems counter-intuitive.
+                    if (CurrentRoundContext.VoteSet.HasTwoThirdCommit())
+                    {
+                        try
+                        {
+                            CommitBlock(CurrentRoundContext.Height, CurrentRoundContext.BlockHash);
+                            StopTimeout();
+                        }
+                        catch (Exception e)
+                        {
+                            _logger.Error(
+                                "{MethodName}: Failed to committing block. : {StackTrace}",
+                                nameof(TimerTimeoutCallback),
+                                e);
+                        }
+                    }
+
                     break;
                 case PreCommitState<T> _:
                     NextRound(Round);
@@ -278,20 +312,40 @@ namespace Libplanet.Net.Consensus
             }
         }
 
-        private void SetTimeoutByState(IState<T> beforeRoundContext)
+        private void SetTimeoutByState(long beforeHeight, long beforeRound, IState<T> beforeState)
         {
-            switch (beforeRoundContext)
+            if (beforeHeight == Height && beforeRound == Round)
             {
-                case DefaultState<T> _
-                    when CurrentRoundContext.State is PreVoteState<T>:
-                case PreVoteState<T> _
-                    when CurrentRoundContext.State is PreCommitState<T>:
-                    StartTimeout();
-                    break;
-                case PreCommitState<T> _
-                    when CurrentRoundContext.State is DefaultState<T>:
-                    StopTimeout();
-                    break;
+                switch (beforeState)
+                {
+                    case DefaultState<T> _
+                        when CurrentRoundContext.State is PreVoteState<T>:
+                    case PreVoteState<T> _
+                        when CurrentRoundContext.State is PreCommitState<T>:
+                        StartTimeout();
+                        break;
+                    case PreCommitState<T> _
+                        when CurrentRoundContext.State is DefaultState<T>:
+                        StopTimeout();
+                        break;
+                }
+            }
+            else
+            {
+                // Round-skipping case
+                switch (beforeState)
+                {
+                    case PreCommitState<T> _
+                        when CurrentRoundContext.State is DefaultState<T>:
+                        StopTimeout();
+                        break;
+                    case PreCommitState<T> _:
+                        StartTimeout();
+                        break;
+                    case PreVoteState<T> _:
+                        StartTimeout();
+                        break;
+                }
             }
         }
 

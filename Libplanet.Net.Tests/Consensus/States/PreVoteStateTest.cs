@@ -89,7 +89,7 @@ namespace Libplanet.Net.Tests.Consensus.States
                                 validators[0]))
                         { Remote = TestUtils.Peer0 }));
             _fx.Store.PutBlock(_fx.Block1);
-            Assert.NotNull(
+            Assert.Null(
                 state.Handle(
                     context,
                     new ConsensusVote(
@@ -100,19 +100,6 @@ namespace Libplanet.Net.Tests.Consensus.States
                                 0,
                                 0,
                                 validatorsPubKey[0]).Sign(
-                                validators[0]))
-                        { Remote = TestUtils.Peer0 }));
-            Assert.Null(
-                state.Handle(
-                    context,
-                    new ConsensusVote(
-                                TestUtils.CreateVote(
-                                    validBlockHash,
-                                    VoteFlag.Absent,
-                                    1,
-                                    0,
-                                    0,
-                                    validatorsPubKey[0]).Sign(
                                 validators[0]))
                         { Remote = TestUtils.Peer0 }));
             Assert.Equal(1, context.CurrentRoundContext.VoteCount);

@@ -315,8 +315,6 @@ namespace Libplanet.Net.Consensus
                 _context.CommitBlock(
                     targetHeight,
                     targetHash);
-
-                _context.CommitFailed.Reset();
             }
         }
 

@@ -4,17 +4,17 @@ using Libplanet.Net.Messages;
 
 namespace Libplanet.Net.Consensus
 {
-    public class PreCommitState<T> : IState<T>
+    public class PreCommitState<T> : CommonState<T>
         where T : IAction, new()
     {
-        public string Name { get; } = "PreCommitState";
+        public override string Name { get; } = "PreCommitState";
 
-        public ConsensusMessage? Handle(ConsensusContext<T> context, ConsensusMessage message)
+        protected override ConsensusMessage? HandleStateTransition(
+            ConsensusContext<T> context, ConsensusMessage message)
         {
             return message switch
             {
                 ConsensusCommit commit => HandleCommit(context, commit),
-                ConsensusVote vote => HandleResetRound(context, vote),
                 _ => throw new TryUnexpectedMessageHandleException(message),
             };
         }
@@ -38,8 +38,6 @@ namespace Libplanet.Net.Consensus
 
             RoundContext<T> roundContext = context.CurrentRoundContext;
 
-            roundContext.Vote(commit.CommitVote);
-
             if (!roundContext.VoteSet.HasTwoThirdCommit())
             {
                 return null;
@@ -48,31 +46,6 @@ namespace Libplanet.Net.Consensus
             context.CommitBlock(roundContext.Height, roundContext.BlockHash);
 
             return null;
-        }
-
-        private ConsensusMessage? HandleResetRound(ConsensusContext<T> context, ConsensusVote vote)
-        {
-            if (context.Height != vote.Height)
-            {
-                return null;
-            }
-
-            if (context.Round >= vote.Round)
-            {
-                return null;
-            }
-
-            RoundContext<T> targetContext = context.RoundContextOf(vote.Round);
-            targetContext.Vote(vote.ProposeVote);
-
-            if (!targetContext.VoteSet.HasTwoThirdPrevote())
-            {
-                return null;
-            }
-
-            context.Round = vote.Round;
-            targetContext.BlockHash = vote.BlockHash;
-            return new ConsensusCommit(context.SignVote(targetContext.Voting(VoteFlag.Commit)));
         }
     }
 }

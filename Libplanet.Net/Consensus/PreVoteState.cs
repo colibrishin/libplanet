@@ -4,18 +4,47 @@ using Libplanet.Net.Messages;
 
 namespace Libplanet.Net.Consensus
 {
-    public class PreVoteState<T> : IState<T>
+    public class PreVoteState<T> : CommonState<T>
         where T : IAction, new()
     {
-        public string Name { get; } = "PreVoteState";
+        public override string Name { get; } = "PreVoteState";
 
-        public ConsensusMessage? Handle(ConsensusContext<T> context, ConsensusMessage message)
+        protected override ConsensusMessage? HandleStateTransition(
+            ConsensusContext<T> context, ConsensusMessage message)
         {
             return message switch
             {
                 ConsensusVote vote => HandleVote(context, vote),
+                ConsensusCommit commit => HandleCommit(context, commit),
                 _ => throw new TryUnexpectedMessageHandleException(message),
             };
+        }
+
+        private ConsensusMessage? HandleCommit(ConsensusContext<T> context, ConsensusCommit commit)
+        {
+            if (context.Height != commit.Height)
+            {
+                throw new UnexpectedHeightProposeException(commit);
+            }
+
+            if (context.Round != commit.Round)
+            {
+                throw new UnexpectedRoundProposeException(commit);
+            }
+
+            if (!context.CurrentRoundContext.BlockHash.Equals(commit.BlockHash))
+            {
+                throw new UnexpectedBlockHashException(commit);
+            }
+
+            RoundContext<T> roundContext = context.CurrentRoundContext;
+
+            if (roundContext.VoteSet.HasTwoThirdCommit())
+            {
+                roundContext.State = new PreCommitState<T>();
+            }
+
+            return null;
         }
 
         private ConsensusMessage? HandleVote(ConsensusContext<T> context, ConsensusVote vote)
@@ -37,33 +66,27 @@ namespace Libplanet.Net.Consensus
 
             RoundContext<T> roundContext = context.CurrentRoundContext;
 
-            if (context.NodeId == vote.NodeId &&
-                vote.BlockHash.Equals(roundContext.BlockHash) &&
-                !context.ContainsBlock(vote.BlockHash))
+            if (!context.ContainsBlock(vote.BlockHash))
             {
                 context.VoteHolding.Set();
                 throw new VoteBlockNotExistsException(vote);
             }
 
-            if (context.NodeId == vote.NodeId &&
+            if (vote.NodeId == context.NodeId &&
                 roundContext.CurrentNodeVoteFlag is VoteFlag.Null &&
-                vote.BlockHash.Equals(roundContext.BlockHash) &&
                 context.ContainsBlock(vote.BlockHash))
             {
                 context.VoteHolding.Reset();
-                roundContext.Vote(vote.ProposeVote);
-                return new ConsensusVote(roundContext.Voting(VoteFlag.Absent));
+                return new ConsensusVote(context.SignVote(roundContext.Voting(VoteFlag.Absent)));
             }
 
-            roundContext.Vote(vote.ProposeVote);
-
-            if (!roundContext.VoteSet.HasTwoThirdPrevote())
+            if (roundContext.VoteSet.HasTwoThirdPrevote())
             {
-                return null;
+                roundContext.State = new PreCommitState<T>();
+                return new ConsensusCommit(context.SignVote(roundContext.Voting(VoteFlag.Commit)));
             }
 
-            roundContext.State = new PreCommitState<T>();
-            return new ConsensusCommit(context.SignVote(roundContext.Voting(VoteFlag.Commit)));
+            return null;
         }
     }
 }
