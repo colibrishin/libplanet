@@ -88,20 +88,20 @@ namespace Libplanet.Net.Consensus
 
         public RoundContext<T> CurrentRoundContext => RoundContextOf(Height, Round);
 
+        // FIXME: Storing all voteset on memory is not required. Leave only 1~2 votesets.
+        public Dictionary<long, VoteSet?> VoteSets { get; }
+
         /// <summary>
         /// A <see cref="AsyncManualResetEvent"/> whether A vote is in hold for waiting
         /// <see cref="CurrentRoundContext"/> block.
         /// </summary>
-        public AsyncManualResetEvent VoteHolding { get; }
+        internal AsyncManualResetEvent VoteHolding { get; }
 
         /// <summary>
         /// A <see cref="AsyncManualResetEvent"/> whether A commit has been failed in
         /// <see cref="CurrentRoundContext"/>.
         /// </summary>
-        public AsyncManualResetEvent CommitFailed { get; }
-
-        // FIXME: Storing all voteset on memory is not required. Leave only 1~2 votesets.
-        public Dictionary<long, VoteSet?> VoteSets { get; }
+        internal AsyncManualResetEvent CommitFailed { get; }
 
         public void CommitBlock(long height, BlockHash hash)
         {
