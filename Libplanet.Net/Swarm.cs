@@ -39,7 +39,7 @@ namespace Libplanet.Net
 
         private readonly ILogger _logger;
         private readonly IStore _store;
-        private readonly ConsensusReactor<T> _consensusReactor;
+        private readonly IReactor _consensusReactor;
 
         private CancellationTokenSource _workerCancellationTokenSource;
         private CancellationToken _cancellationToken;
