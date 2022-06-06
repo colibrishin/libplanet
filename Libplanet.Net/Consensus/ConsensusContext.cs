@@ -103,6 +103,11 @@ namespace Libplanet.Net.Consensus
         /// </summary>
         internal AsyncManualResetEvent CommitFailed { get; }
 
+        /// <summary>
+        /// A <see cref="AsyncManualResetEvent"/> whether timer is started.
+        /// </summary>
+        internal AsyncManualResetEvent TimeoutTicked => _timoutTicker.TimeoutTicked;
+
         public void CommitBlock(long height, BlockHash hash)
         {
             // Unlike round, lock is required because block append may take time.

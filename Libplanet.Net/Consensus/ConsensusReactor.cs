@@ -65,6 +65,8 @@ namespace Libplanet.Net.Consensus
 
         internal AsyncManualResetEvent GetRecommitFailedHandle => _context.CommitFailed;
 
+        internal AsyncManualResetEvent GetTimeoutTickedHandle => _context.TimeoutTicked;
+
         public void Dispose()
         {
             // Block Transport will be disposed in Swarm
