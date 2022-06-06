@@ -451,28 +451,40 @@ namespace Libplanet.Net.Tests.Consensus
                 var proposeNode = 0;
                 var recommitNode = 1;
 
+                // FIXME!: We need to strictly send the message of order in Proposes -> votes.
+                // But somehow this broadcasts messages Proposes -> A Vote -> A Propose -> Votes!
                 Dictionary<string, JsonElement> json;
 
                 Block<DumbAction> block = await blockChains[proposeNode].MineBlock(
-                    keys[0],
+                    keys[proposeNode],
                     append: false);
 
-                stores[proposeNode].PutBlock(block);
-                stores[2].PutBlock(block);
-                stores[3].PutBlock(block);
+                var targetStores = stores.Except(new[]
+                {
+                    stores[recommitNode],
+                }).ToList();
+
+                foreach (var store in targetStores)
+                {
+                    store.PutBlock(block);
+                }
+
                 reactors[proposeNode].Propose(block.Hash);
 
-                await reactors[recommitNode].GetRecommitFailedHandle.WaitAsync();
-                stores[recommitNode].PutBlock(block);
+                // Default -> PreVote
+                await reactors[recommitNode].GetVoteHoldingHandle.WaitAsync();
+                await reactors[recommitNode].GetTimeoutTickedHandle.WaitAsync();
+                await reactors[recommitNode].GetCommitFailedHandle.WaitAsync();
 
-                await Task.Delay(((count - 1) * 1000) + 500);
+                stores[recommitNode].PutBlock(block);
+                await reactors[recommitNode].GetTimeoutTickedHandle.WaitAsync();
 
                 json =
                     JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(
                         reactors[recommitNode].ToString());
 
                 Assert.Equal(recommitNode, json["node_id"].GetInt32());
-                Assert.Equal(1, json["height"].GetInt32());
+                Assert.Equal(1L, json["height"].GetInt32());
                 Assert.Equal(0L, json["round"].GetInt32());
                 Assert.Equal("DefaultState", json["step"].GetString());
                 VoteSet? voteSet = reactors[recommitNode].VoteSetOf(proposeNode);
