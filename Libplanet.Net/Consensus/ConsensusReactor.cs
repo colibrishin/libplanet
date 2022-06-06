@@ -63,7 +63,7 @@ namespace Libplanet.Net.Consensus
 
         internal AsyncManualResetEvent GetVoteHoldingHandle => _context.VoteHolding;
 
-        internal AsyncManualResetEvent GetRecommitFailedHandle => _context.CommitFailed;
+        internal AsyncManualResetEvent GetCommitFailedHandle => _context.CommitFailed;
 
         internal AsyncManualResetEvent GetTimeoutTickedHandle => _context.TimeoutTicked;
 

@@ -86,7 +86,7 @@ namespace Libplanet.Net.Tests.Consensus
                 _fx.Store,
                 _fx.StateStore,
                 _fx.GenesisBlock);
-            var reactor = CreateReactor(
+            var reactor = CreateConcreteReactor(
                 blockChain,
                 key,
                 swarmPort: 11001,
@@ -108,7 +108,7 @@ namespace Libplanet.Net.Tests.Consensus
                 Assert.Equal(0L, json["height"].GetInt32());
                 Assert.Equal("PreVoteState", json["step"].GetString());
 
-                await Task.Delay((int)ConsensusContext<DumbAction>.TimeoutMillisecond);
+                await reactor.GetTimeoutTickedHandle.WaitAsync();
 
                 json =
                     JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(
@@ -128,7 +128,7 @@ namespace Libplanet.Net.Tests.Consensus
                 Assert.Equal(0L, json["height"].GetInt32());
                 Assert.Equal("PreCommitState", json["step"].GetString());
 
-                await Task.Delay((int)ConsensusContext<DumbAction>.TimeoutMillisecond);
+                await reactor.GetTimeoutTickedHandle.WaitAsync();
 
                 json =
                     JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(
