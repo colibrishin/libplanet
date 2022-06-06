@@ -238,7 +238,16 @@ namespace Libplanet.Net.Consensus
             }
             catch (Exception e)
             {
-                _logger.Error(e, "Handle throws exception: {E}", e);
+                _logger.Error(
+                    "{MethodName}: NodeId : {NodeId}, Failed to handle message {Message} " +
+                    "in Height #{Height}, Round #{Round}, State {State}: {StackTrace}",
+                    nameof(HandleMessage),
+                    NodeId,
+                    message.GetType().Name,
+                    Height,
+                    Round,
+                    CurrentRoundContext.State.Name,
+                    e);
             }
 
             SetTimeoutByState(height, round, beforeState);
