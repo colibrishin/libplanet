@@ -50,12 +50,10 @@ namespace Libplanet.Net.Consensus
                                             $"are must contain same public key.");
             }
 
-            // TODO: Height and round should be serialized.
             _consensusContext = new ConsensusContext<T>(
                 BroadcastMessage,
                 blockChain,
                 nodeId,
-                blockChain.Tip.Index,
                 privateKey,
                 validators,
                 newHeightDelay);

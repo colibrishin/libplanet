@@ -27,7 +27,6 @@ namespace Libplanet.Net.Consensus
             DelegateBroadcastMessage broadcastMessage,
             BlockChain<T> blockChain,
             long nodeId,
-            long height,
             PrivateKey privateKey,
             List<PublicKey> validators,
             TimeSpan newHeightDelay)
@@ -37,9 +36,10 @@ namespace Libplanet.Net.Consensus
             _nodeId = nodeId;
             _privateKey = privateKey;
             _validators = validators;
-            Height = height;
             _newHeightDelay = newHeightDelay;
+            Height = blockChain.Tip.Index;
 
+            // TODO: Round should be serialized.
             HeightContext = new Context<T>(
                 this,
                 _blockChain,
