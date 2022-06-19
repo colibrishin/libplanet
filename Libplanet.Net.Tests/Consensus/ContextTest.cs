@@ -692,6 +692,58 @@ namespace Libplanet.Net.Tests.Consensus
             }
         }
 
+        [Fact(Timeout = Timeout)]
+        public async void ThrowInvalidVoteSignature()
+        {
+            var (validators, privateKeys) = GetRandomValidators();
+
+            var codec = new Codec();
+            BlockChain<DumbAction> blockChain =
+                TestUtils.CreateDummyBlockChain((MemoryStoreFixture)_fx);
+            var (transport, consensusContext) =
+                TestUtils.CreateStandaloneConsensusContext(
+                    blockChain,
+                    newHeightDelay,
+                    0,
+                    port: Port,
+                    privateKey: privateKeys[0],
+                    validators: validators);
+
+            using (transport)
+            {
+                var context = new Context<DumbAction>(
+                    consensusContext,
+                    blockChain,
+                    0,
+                    blockChain.Tip.Index + 1,
+                    privateKeys[0],
+                    validators,
+                    Step.PreVote);
+                var block = await blockChain.MineBlock(privateKeys[1], append: false);
+
+                context.HandleMessage(
+                    new ConsensusPropose(
+                        1,
+                        1,
+                        0,
+                        block.Hash,
+                        codec.Encode(block.MarshalBlock()),
+                        -1)
+                    {
+                        Remote = new Peer(privateKeys[1].PublicKey),
+                    });
+
+                Assert.Throws<InvalidVoteSignatureMessageException>(
+                    () => context.HandleMessage(
+                        new ConsensusVote(
+                            TestUtils.CreateVote(
+                                privateKeys[0], 1, 1, 0, block.Hash, VoteFlag.Absent))
+                        {
+                            Remote = new Peer(privateKeys[1].PublicKey),
+                        }));
+            }
+        }
+
         private static (List<PublicKey>, List<PrivateKey>) GetRandomValidators(
             PrivateKey? node0PrivateKey = null, int n = 4)
         {
