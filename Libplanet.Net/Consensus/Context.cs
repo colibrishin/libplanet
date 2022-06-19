@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Text.Json;
 using System.Threading;
@@ -174,8 +175,7 @@ namespace Libplanet.Net.Consensus
                 message,
                 ToString());
 
-            if (GetPropose(Round) is
-                    (Block<T> block1, int validRound1) &&
+            if (GetPropose(Round) is (Block<T> block1, int validRound1) &&
                 validRound1 == -1 &&
                 Step == Step.Propose)
             {
@@ -197,8 +197,7 @@ namespace Libplanet.Net.Consensus
                 }
             }
 
-            if (GetPropose(Round) is
-                    (Block<T> block2, int validRound2) &&
+            if (GetPropose(Round) is (Block<T> block2, int validRound2) &&
                 validRound2 >= 0 &&
                 validRound2 < Round &&
                 HasTwoThirdsPreVote(validRound2, block2.Hash) &&
@@ -441,6 +440,34 @@ namespace Libplanet.Net.Consensus
                     throw new InvalidBlockProposeMessageException(
                         "Cannot propose a null block.",
                         message);
+                }
+            }
+
+            if (message is ConsensusVote vote)
+            {
+                Vote voteWithoutSign = vote.ProposeVote.RemoveSignature;
+                if (!vote.ProposeVote.Validator.Equals(_validators[(int)vote.NodeId]) ||
+                    vote.ProposeVote.Signature is null ||
+                    !vote.ProposeVote.Validator.Verify(
+                        voteWithoutSign.ByteArray.ToImmutableArray(),
+                        vote.ProposeVote.Signature))
+                {
+                    throw new InvalidVoteSignatureMessageException(
+                        $"{nameof(AddMessage)}: Vote signature is invalid.", message);
+                }
+            }
+
+            if (message is ConsensusCommit commit)
+            {
+                Vote voteWithoutSign = commit.CommitVote.RemoveSignature;
+                if (!commit.CommitVote.Validator.Equals(_validators[(int)commit.NodeId]) ||
+                    commit.CommitVote.Signature is null ||
+                    !commit.CommitVote.Validator.Verify(
+                        voteWithoutSign.ByteArray.ToImmutableArray(),
+                        commit.CommitVote.Signature))
+                {
+                    throw new InvalidVoteSignatureMessageException(
+                        $"{nameof(AddMessage)}: Commit signature is invalid.", message);
                 }
             }
 
