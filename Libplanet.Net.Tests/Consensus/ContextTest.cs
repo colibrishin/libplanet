@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Bencodex;
 using Libplanet.Blocks;
@@ -38,21 +39,43 @@ namespace Libplanet.Net.Tests.Consensus
             _fx = new MemoryStoreFixture(TestUtils.Policy.BlockAction);
         }
 
-        [Fact(Timeout=Timeout)]
-        public void Start()
+        [Fact(Timeout = Timeout)]
+        public async void Start()
         {
-            var blockChain = TestUtils.CreateDummyBlockChain((MemoryStoreFixture)_fx);
+            BlockChain<DumbAction> blockChain =
+                TestUtils.CreateDummyBlockChain((MemoryStoreFixture)_fx);
             var privateKey = new PrivateKey();
+            var proposeSent = false;
+            var messageReceived = new ManualResetEventSlim();
+
+            void IsProposeSent(ConsensusMessage message)
+            {
+                proposeSent = message is ConsensusPropose;
+                messageReceived.Set();
+            }
+
             var (transport, consensusContext) =
                 TestUtils.CreateStandaloneConsensusContext(
-                    blockChain, newHeightDelay, 0, port: Port, privateKey: privateKey);
+                    blockChain,
+                    newHeightDelay,
+                    1,
+                    port: Port,
+                    privateKey: privateKey,
+                    validators: new List<PublicKey>()
+                    {
+                        privateKey.PublicKey,
+                    },
+                    interceptConsensusMessage: IsProposeSent);
 
             using (transport)
             {
+                _ = transport.StartAsync();
+                await transport.WaitForRunningAsync();
+
                 var context = new Context<DumbAction>(
                     consensusContext,
                     blockChain,
-                    0,
+                    1,
                     blockChain.Tip.Index + 1,
                     privateKey,
                     new List<PublicKey>()
@@ -61,30 +84,47 @@ namespace Libplanet.Net.Tests.Consensus
                     });
 
                 context.Start();
+                messageReceived.Wait();
+
                 Assert.Equal(Step.Propose, context.Step);
                 Assert.Equal(1, context.Height);
                 Assert.Equal(0, context.Round);
                 Assert.Throws<KeyNotFoundException>(() => context.VoteSet(0));
+                Assert.True(proposeSent);
             }
         }
 
-        [Fact(Timeout=Timeout)]
-        public async Task ProposeBlockToPreVote()
+        [Fact(Timeout = Timeout)]
+        public async void ProposeBlockToPreVote()
         {
             var (validators, privateKeys) = GetRandomValidators();
             var codec = new Codec();
-            var blockChain = TestUtils.CreateDummyBlockChain((MemoryStoreFixture)_fx);
+            BlockChain<DumbAction> blockChain =
+                TestUtils.CreateDummyBlockChain((MemoryStoreFixture)_fx);
+            var voteSent = false;
+            var messageReceived = new ManualResetEventSlim();
+
+            void IsPreVoteSent(ConsensusMessage message)
+            {
+                voteSent = message is ConsensusVote;
+                messageReceived.Set();
+            }
+
             var (transport, consensusContext) =
                 TestUtils.CreateStandaloneConsensusContext(
                     blockChain,
                     newHeightDelay,
                     0,
-                    port: Port,
+                    port: Port + 1,
                     privateKey: privateKeys[0],
-                    validators: validators);
+                    validators: validators,
+                    interceptConsensusMessage: IsPreVoteSent);
 
             using (transport)
             {
+                _ = transport.StartAsync();
+                await transport.WaitForRunningAsync();
+
                 var context = new Context<DumbAction>(
                     consensusContext,
                     blockChain,
@@ -107,9 +147,11 @@ namespace Libplanet.Net.Tests.Consensus
                         Remote = new Peer(privateKeys[1].PublicKey),
                     });
 
+                messageReceived.Wait();
                 Assert.Equal(Step.PreVote, context.Step);
                 Assert.Equal(1, context.Height);
                 Assert.Equal(0, context.Round);
+                Assert.True(voteSent);
             }
         }
 
