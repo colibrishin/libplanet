@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Text.Json;
 using System.Threading;
@@ -52,6 +53,25 @@ namespace Libplanet.Net.Consensus
             long height,
             PrivateKey privateKey,
             List<PublicKey> validators)
+        : this(
+            consensusContext,
+            blockChain,
+            id,
+            height,
+            privateKey,
+            validators,
+            Step.Default)
+        {
+        }
+
+        internal Context(
+            ConsensusContext<T> consensusContext,
+            BlockChain<T> blockChain,
+            long id,
+            long height,
+            PrivateKey privateKey,
+            List<PublicKey> validators,
+            Step step)
         {
             _id = id;
             _privateKey = privateKey;
@@ -401,6 +421,18 @@ namespace Libplanet.Net.Consensus
                 }
             }
 
+            if (message is ConsensusVote vote && !IsVoteValid(vote))
+            {
+                throw new InvalidVoteSignatureMessageException(
+                    $"{nameof(AddMessage)}: Vote signature is invalid.", message);
+            }
+
+            if (message is ConsensusCommit commit && !IsVoteValid(commit))
+            {
+                throw new InvalidVoteSignatureMessageException(
+                    $"{nameof(AddMessage)}: Commit signature is invalid.", message);
+            }
+
             if (!_messagesInRound.ContainsKey(message.Round))
             {
                 _messagesInRound.TryAdd(message.Round, new ConcurrentBag<ConsensusMessage>());
@@ -531,6 +563,29 @@ namespace Libplanet.Net.Consensus
         private TimeSpan TimeoutPreCommit(long round)
         {
             return TimeSpan.FromSeconds(TimeoutPreCommitBase + round + TimeoutPreCommitMultiplier);
+        }
+
+        private bool IsVoteValid(ConsensusMessage message)
+        {
+            if (message is ConsensusVote vote)
+            {
+                return vote.ProposeVote.Signature != null &&
+                    (vote.ProposeVote.Validator.Equals(_validators[(int)vote.NodeId]) ||
+                     vote.ProposeVote.Validator.Verify(
+                         vote.ProposeVote.RemoveSignature.ByteArray.ToImmutableArray(),
+                         vote.ProposeVote.Signature));
+            }
+
+            if (message is ConsensusCommit commit)
+            {
+                return commit.CommitVote.Signature != null &&
+                       (commit.CommitVote.Validator.Equals(_validators[(int)commit.NodeId]) ||
+                        commit.CommitVote.Validator.Verify(
+                            commit.CommitVote.RemoveSignature.ByteArray.ToImmutableArray(),
+                            commit.CommitVote.Signature));
+            }
+
+            throw new TryUnexpectedMessageHandleException(message);
         }
     }
 }
