@@ -528,7 +528,7 @@ namespace Libplanet.Net.Tests.Consensus
         }
 
         [Fact(Timeout = Timeout)]
-        public async void PreCommitNILToTimeoutToPropose()
+        public async void TimeoutPreCommitNilToPropose()
         {
             var (validators, privateKeys) = GetRandomValidators();
 
@@ -613,7 +613,7 @@ namespace Libplanet.Net.Tests.Consensus
         }
 
         [Fact(Timeout = Timeout)]
-        public async void ProposeTimeoutToPreVote()
+        public async void TimeoutProposeToPreVote()
         {
             var (validators, privateKeys) = GetRandomValidators();
 
