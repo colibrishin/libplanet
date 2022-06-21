@@ -42,7 +42,7 @@ namespace Libplanet.Net.Tests.Consensus
         }
 
         [Fact(Timeout = Timeout)]
-        public async void Start()
+        public async void StartDefaultToPropose()
         {
             BlockChain<DumbAction> blockChain =
                 TestUtils.CreateDummyBlockChain((MemoryStoreFixture)_fx);
