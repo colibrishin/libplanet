@@ -48,7 +48,8 @@ namespace Libplanet.Net.Tests.Consensus
                 TestUtils.CreateDummyBlockChain((MemoryStoreFixture)_fx);
             var privateKey = new PrivateKey();
             var proposeSent = false;
-            var messageReceived = new ManualResetEventSlim();
+            var messageReceived = new AsyncManualResetEvent();
+            var roundStarted = new AsyncManualResetEvent();
             using ITransport transport =
                 TestUtils.CreateNetMQTransport(privateKey, port: Port + 7);
 
@@ -89,9 +90,11 @@ namespace Libplanet.Net.Tests.Consensus
                 {
                     privateKey.PublicKey,
                 });
+            context.RoundStarted += (sender, i) => roundStarted.Set();
 
             context.Start();
-            messageReceived.Wait();
+            await roundStarted.WaitAsync();
+            await messageReceived.WaitAsync();
 
             Assert.Equal(Step.Propose, context.Step);
             Assert.Equal(1, context.Height);
@@ -110,7 +113,7 @@ namespace Libplanet.Net.Tests.Consensus
             using ITransport transport =
                 TestUtils.CreateNetMQTransport(privateKeys[0], port: Port + 5);
             var voteSent = false;
-            var messageReceived = new ManualResetEventSlim();
+            var messageReceived = new AsyncManualResetEvent();
 
             void IsPreVoteSent(ConsensusMessage message)
             {
@@ -158,7 +161,7 @@ namespace Libplanet.Net.Tests.Consensus
                     Remote = new Peer(privateKeys[1].PublicKey),
                 });
 
-            messageReceived.Wait();
+            await messageReceived.WaitAsync();
             Assert.Equal(Step.PreVote, context.Step);
             Assert.Equal(1, context.Height);
             Assert.Equal(0, context.Round);
@@ -261,7 +264,6 @@ namespace Libplanet.Net.Tests.Consensus
         public async void ThrowInvalidValidatorVote()
         {
             var (validators, privateKeys) = GetRandomValidators();
-            var codec = new Codec();
             BlockChain<DumbAction> blockChain =
                 TestUtils.CreateDummyBlockChain((MemoryStoreFixture)_fx);
             using ITransport transport =
@@ -620,7 +622,7 @@ namespace Libplanet.Net.Tests.Consensus
             BlockChain<DumbAction> blockChain =
                 TestUtils.CreateDummyBlockChain((MemoryStoreFixture)_fx);
             var voteSent = false;
-            var messageReceived = new ManualResetEventSlim();
+            var messageReceived = new AsyncManualResetEvent();
 
             void IsPreVoteSent(ConsensusMessage message)
             {
@@ -667,7 +669,7 @@ namespace Libplanet.Net.Tests.Consensus
             context.Start();
             await timeoutOccurred.WaitAsync();
             await enterPreVote.WaitAsync();
-            messageReceived.Wait();
+            await messageReceived.WaitAsync();
 
             Assert.Equal(Step.PreVote, context.Step);
             Assert.Equal(1, context.Height);
