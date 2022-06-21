@@ -86,7 +86,6 @@ namespace Libplanet.Net.Tests.Consensus
         public async void ProposeBlockToPreVote()
         {
             var (validators, privateKeys) = GetRandomValidators();
-            var codec = new Codec();
             int nodeId = 1;
             bool voteSent = false;
             var messageReceived = new AsyncManualResetEvent();
@@ -117,17 +116,7 @@ namespace Libplanet.Net.Tests.Consensus
                     await blockChain.MineBlock(privateKeys[nodeId], append: false);
 
                 context.Start();
-                context.HandleMessage(
-                    new ConsensusPropose(
-                        1,
-                        1,
-                        0,
-                        block.Hash,
-                        codec.Encode(block.MarshalBlock()),
-                        -1)
-                    {
-                        Remote = new Peer(privateKeys[1].PublicKey),
-                    });
+                context.HandleMessage(TestUtils.CreateConsensusPropose(block, privateKeys[1]));
 
                 await messageReceived.WaitAsync();
                 Assert.Equal(Step.PreVote, context.Step);
@@ -141,27 +130,21 @@ namespace Libplanet.Net.Tests.Consensus
         public async void ThrowInvalidProposer()
         {
             var (validators, privateKeys) = GetRandomValidators();
-            var codec = new Codec();
             int nodeId = 0;
             var (blockChain, _, context) = CreateContextTest(
-                privateKeys[nodeId], false, port: Port + 2);
+                privateKeys[nodeId], false, port: Port + 2, validators: validators);
             Block<DumbAction> block =
                 await blockChain.MineBlock(privateKeys[nodeId], append: false);
 
             context.Start();
-            Assert.Throws<InvalidBlockProposeMessageException>(
+            Assert.Throws<InvalidProposerProposeMessageException>(
                 () =>
                     context.HandleMessage(
-                        new ConsensusPropose(
-                            0,
-                            1,
-                            0,
-                            default,
-                            codec.Encode(block.MarshalBlock()),
-                            -1)
-                        {
-                            Remote = new Peer(privateKeys[0].PublicKey),
-                        }));
+                        TestUtils.CreateConsensusPropose(
+                            block,
+                            privateKeys[nodeId],
+                            nodeId: 0,
+                            height: 1)));
         }
 
         [Fact(Timeout = Timeout)]
@@ -174,23 +157,10 @@ namespace Libplanet.Net.Tests.Consensus
                     privateKeys[nodeId], false, port: Port + 4, validators: validators);
 
             context.Start();
-            Assert.Throws<InvalidProposerProposeMessageException>(
+            Assert.Throws<InvalidBlockProposeMessageException>(
                 () =>
                     context.HandleMessage(
-                        new ConsensusPropose(
-                            0,
-                            1,
-                            0,
-                            default,
-                            codec.Encode(block.MarshalBlock()),
-                            -1)
-                        {
-                            Remote = new Peer(privateKeys[0].PublicKey),
-                        }));
-
-            Assert.Equal(Step.Propose, context.Step);
-            Assert.Equal(1, context.Height);
-            Assert.Equal(0, context.Round);
+                        TestUtils.CreateConsensusPropose(default, privateKeys[1], nodeId)));
         }
 
         [Fact(Timeout = Timeout)]
@@ -292,30 +262,9 @@ namespace Libplanet.Net.Tests.Consensus
             var block = await blockChain.MineBlock(privateKeys[nodeId], append: false);
 
             context.Start();
-            context.HandleMessage(
-                new ConsensusPropose(
-                    1,
-                    1,
-                    0,
-                    block.Hash,
-                    codec.Encode(block.MarshalBlock()),
-                    -1)
-                {
-                    Remote = new Peer(privateKeys[1].PublicKey),
-                });
-
             Assert.Throws<InvalidHeightMessageException>(
                 () => context.HandleMessage(
-                    new ConsensusPropose(
-                        2,
-                        2,
-                        0,
-                        block.Hash,
-                        codec.Encode(block.MarshalBlock()),
-                        -1)
-                    {
-                        Remote = new Peer(privateKeys[2].PublicKey),
-                    }));
+                    TestUtils.CreateConsensusPropose(block, privateKeys[2], 2, 2)));
 
             Assert.Throws<InvalidHeightMessageException>(
                 () => context.HandleMessage(
