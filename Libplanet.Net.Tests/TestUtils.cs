@@ -127,10 +127,10 @@ namespace Libplanet.Net.Tests
         public static ConsensusContext<DumbAction>
             CreateStandaloneConsensusContext(
             BlockChain<DumbAction> blockChain,
-            ITransport transport,
+            ITransport? transport,
             TimeSpan newHeightDelay,
             long nodeId = 0,
-            long height = 0,
+            long height = 1,
             string host = "localhost",
             int port = 18192,
             PrivateKey? privateKey = null,
@@ -157,7 +157,7 @@ namespace Libplanet.Net.Tests
             }
 
             void BroadcastMessage(ConsensusMessage message) =>
-                transport.BroadcastMessage(validatorPeers, message);
+                transport?.BroadcastMessage(validatorPeers, message);
 
             var consensusContext = new ConsensusContext<DumbAction>(
                 BroadcastMessage,
@@ -180,9 +180,79 @@ namespace Libplanet.Net.Tests
                 }
             }
 
-            transport.ProcessMessageHandler.Register(DummyHandle);
+            transport?.ProcessMessageHandler.Register(DummyHandle);
 
             return consensusContext;
+        }
+
+        public static (BlockChain<DumbAction>, ITransport?, Context<DumbAction>)
+            CreateContextTest(
+                MemoryStoreFixture fx,
+                PrivateKey privateKey,
+                bool useTransport,
+                WatchConsensusMessage? watchConsensusMessage = null,
+                List<PublicKey>? validators = null,
+                long nodeId = 0,
+                int round = 0,
+                string host = "localhost",
+                int port = 51211,
+                Step step = Step.Default,
+                long newHeightDelayInSecond = 4)
+        {
+            BlockChain<DumbAction> blockChain =
+                CreateDummyBlockChain(fx);
+            ITransport? transport = useTransport ?
+                CreateNetMQTransport(privateKey, host: host, port: port) : null;
+            ConsensusContext<DumbAction> consensusContext =
+                CreateStandaloneConsensusContext(
+                    blockChain,
+                    transport,
+                    TimeSpan.FromSeconds(newHeightDelayInSecond),
+                    nodeId: nodeId,
+                    host: host,
+                    port: port,
+                    height: blockChain.Tip.Index + 1,
+                    privateKey: privateKey,
+                    validators: validators,
+                    watchConsensusMessage: watchConsensusMessage);
+
+            var context = new Context<DumbAction>(
+                consensusContext,
+                blockChain,
+                nodeId,
+                blockChain.Tip.Index + 1,
+                privateKey,
+                validators ?? new List<PublicKey>()
+                {
+                    privateKey.PublicKey,
+                },
+                step: step,
+                round: round);
+
+            return (blockChain, transport, context);
+        }
+
+        public static (List<PublicKey>, List<PrivateKey>) GetRandomValidators(
+            PrivateKey? node0PrivateKey = null, int n = 4)
+        {
+            node0PrivateKey ??= new PrivateKey();
+            var privateKeys = new List<PrivateKey>()
+            {
+                node0PrivateKey,
+            };
+            var validators = new List<PublicKey>()
+            {
+                node0PrivateKey.PublicKey,
+            };
+
+            for (var i = 0; i < n - 1; ++i)
+            {
+                var tempKey = new PrivateKey();
+                privateKeys.Add(tempKey);
+                validators.Add(tempKey.PublicKey);
+            }
+
+            return (validators, privateKeys);
         }
     }
 }
