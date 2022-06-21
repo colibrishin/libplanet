@@ -51,7 +51,7 @@ namespace Libplanet.Net.Tests.Consensus
             var messageReceived = new AsyncManualResetEvent();
             var roundStarted = new AsyncManualResetEvent();
             using ITransport transport =
-                TestUtils.CreateNetMQTransport(privateKey, port: Port + 7);
+                TestUtils.CreateNetMQTransport(privateKey, port: Port + 1);
 
             void IsProposeSent(ConsensusMessage message)
             {
@@ -69,7 +69,7 @@ namespace Libplanet.Net.Tests.Consensus
                     newHeightDelay,
                     1,
                     blockChain.Tip.Index + 1,
-                    port: Port + 7,
+                    port: Port + 1,
                     privateKey: privateKey,
                     validators: new List<PublicKey>()
                     {
@@ -111,7 +111,7 @@ namespace Libplanet.Net.Tests.Consensus
             BlockChain<DumbAction> blockChain =
                 TestUtils.CreateDummyBlockChain((MemoryStoreFixture)_fx);
             using ITransport transport =
-                TestUtils.CreateNetMQTransport(privateKeys[0], port: Port + 5);
+                TestUtils.CreateNetMQTransport(privateKeys[0], port: Port + 2);
             var voteSent = false;
             var messageReceived = new AsyncManualResetEvent();
 
@@ -131,7 +131,7 @@ namespace Libplanet.Net.Tests.Consensus
                     newHeightDelay,
                     0,
                     blockChain.Tip.Index + 1,
-                    port: Port + 5,
+                    port: Port + 2,
                     privateKey: privateKeys[0],
                     validators: validators,
                     watchConsensusMessage: IsPreVoteSent);
@@ -176,14 +176,14 @@ namespace Libplanet.Net.Tests.Consensus
             BlockChain<DumbAction> blockChain =
                 TestUtils.CreateDummyBlockChain((MemoryStoreFixture)_fx);
             using ITransport transport =
-                TestUtils.CreateNetMQTransport(privateKeys[0], port: Port + 9);
+                TestUtils.CreateNetMQTransport(privateKeys[0], port: Port + 3);
             var consensusContext =
                 TestUtils.CreateStandaloneConsensusContext(
                     blockChain,
                     transport,
                     newHeightDelay,
                     0,
-                    port: Port,
+                    port: Port + 3,
                     privateKey: privateKeys[0],
                     validators: validators);
 
@@ -220,14 +220,14 @@ namespace Libplanet.Net.Tests.Consensus
             BlockChain<DumbAction> blockChain =
                 TestUtils.CreateDummyBlockChain((MemoryStoreFixture)_fx);
             using ITransport transport =
-                TestUtils.CreateNetMQTransport(privateKeys[0], port: Port + 11);
+                TestUtils.CreateNetMQTransport(privateKeys[0], port: Port + 4);
             var consensusContext =
                 TestUtils.CreateStandaloneConsensusContext(
                     blockChain,
                     transport,
                     newHeightDelay,
                     0,
-                    port: Port,
+                    port: Port + 4,
                     privateKey: privateKeys[0],
                     validators: validators);
 
@@ -267,14 +267,14 @@ namespace Libplanet.Net.Tests.Consensus
             BlockChain<DumbAction> blockChain =
                 TestUtils.CreateDummyBlockChain((MemoryStoreFixture)_fx);
             using ITransport transport =
-                TestUtils.CreateNetMQTransport(privateKeys[0], port: Port + 11);
+                TestUtils.CreateNetMQTransport(privateKeys[0], port: Port + 5);
             var consensusContext =
                 TestUtils.CreateStandaloneConsensusContext(
                     blockChain,
                     transport,
                     newHeightDelay,
                     0,
-                    port: Port,
+                    port: Port + 5,
                     privateKey: privateKeys[0],
                     validators: validators);
 
@@ -370,14 +370,14 @@ namespace Libplanet.Net.Tests.Consensus
             BlockChain<DumbAction> blockChain =
                 TestUtils.CreateDummyBlockChain((MemoryStoreFixture)_fx);
             using ITransport transport =
-                TestUtils.CreateNetMQTransport(privateKeys[1], port: Port + 8);
+                TestUtils.CreateNetMQTransport(privateKeys[1], port: Port + 6);
             var consensusContext =
                 TestUtils.CreateStandaloneConsensusContext(
                     blockChain,
                     transport,
                     newHeightDelay,
                     1,
-                    port: Port,
+                    port: Port + 6,
                     privateKey: privateKeys[1],
                     validators: validators);
 
@@ -436,12 +436,12 @@ namespace Libplanet.Net.Tests.Consensus
         }
 
         [Fact(Timeout = Timeout)]
-        public async void PreVoteNILToPreCommit()
+        public async void PreVoteNilToPreCommit()
         {
             var (validators, privateKeys) = GetRandomValidators();
 
             using ITransport transport =
-                TestUtils.CreateNetMQTransport(privateKeys[0], port: Port + 4);
+                TestUtils.CreateNetMQTransport(privateKeys[0], port: Port + 7);
             BlockChain<DumbAction> blockChain =
                 TestUtils.CreateDummyBlockChain((MemoryStoreFixture)_fx);
             var voteSent = false;
@@ -462,7 +462,7 @@ namespace Libplanet.Net.Tests.Consensus
                     newHeightDelay,
                     0,
                     blockChain.Tip.Index + 1,
-                    port: Port + 4,
+                    port: Port + 7,
                     privateKey: privateKeys[0],
                     validators: validators,
                     watchConsensusMessage: IsPreCommitSent);
@@ -533,7 +533,7 @@ namespace Libplanet.Net.Tests.Consensus
             var (validators, privateKeys) = GetRandomValidators();
 
             using ITransport transport =
-                TestUtils.CreateNetMQTransport(privateKeys[0], port: Port + 2);
+                TestUtils.CreateNetMQTransport(privateKeys[0], port: Port + 8);
             BlockChain<DumbAction> blockChain =
                 TestUtils.CreateDummyBlockChain((MemoryStoreFixture)_fx);
             var consensusContext =
@@ -543,7 +543,7 @@ namespace Libplanet.Net.Tests.Consensus
                     newHeightDelay,
                     0,
                     blockChain.Tip.Index + 1,
-                    port: Port + 2,
+                    port: Port + 8,
                     privateKey: privateKeys[0],
                     validators: validators);
 
@@ -618,7 +618,7 @@ namespace Libplanet.Net.Tests.Consensus
             var (validators, privateKeys) = GetRandomValidators();
 
             using ITransport transport =
-                TestUtils.CreateNetMQTransport(privateKeys[0], port: Port + 6);
+                TestUtils.CreateNetMQTransport(privateKeys[0], port: Port + 9);
             BlockChain<DumbAction> blockChain =
                 TestUtils.CreateDummyBlockChain((MemoryStoreFixture)_fx);
             var voteSent = false;
@@ -640,7 +640,7 @@ namespace Libplanet.Net.Tests.Consensus
                     newHeightDelay,
                     0,
                     blockChain.Tip.Index + 1,
-                    port: Port + 6,
+                    port: Port + 9,
                     privateKey: privateKeys[0],
                     validators: validators,
                     watchConsensusMessage: IsPreVoteSent);
@@ -683,7 +683,7 @@ namespace Libplanet.Net.Tests.Consensus
             var (validators, privateKeys) = GetRandomValidators();
 
             using ITransport transport =
-                TestUtils.CreateNetMQTransport(privateKeys[0], port: Port + 3);
+                TestUtils.CreateNetMQTransport(privateKeys[0], port: Port + 10);
             var codec = new Codec();
             BlockChain<DumbAction> blockChain =
                 TestUtils.CreateDummyBlockChain((MemoryStoreFixture)_fx);
@@ -706,7 +706,7 @@ namespace Libplanet.Net.Tests.Consensus
                     newHeightDelay,
                     0,
                     blockChain.Tip.Index + 1,
-                    port: Port + 3,
+                    port: Port + 10,
                     privateKey: privateKeys[0],
                     validators: validators,
                     watchConsensusMessage: IsPreCommitSent);
@@ -789,7 +789,7 @@ namespace Libplanet.Net.Tests.Consensus
 
             var codec = new Codec();
             using ITransport transport =
-                TestUtils.CreateNetMQTransport(privateKeys[0], port: Port + 1);
+                TestUtils.CreateNetMQTransport(privateKeys[0], port: Port + 11);
             BlockChain<DumbAction> blockChain =
                 TestUtils.CreateDummyBlockChain((MemoryStoreFixture)_fx);
             var consensusContext =
@@ -799,7 +799,7 @@ namespace Libplanet.Net.Tests.Consensus
                     newHeightDelay,
                     0,
                     blockChain.Tip.Index + 1,
-                    port: Port + 1,
+                    port: Port + 11,
                     privateKey: privateKeys[0],
                     validators: validators);
 
