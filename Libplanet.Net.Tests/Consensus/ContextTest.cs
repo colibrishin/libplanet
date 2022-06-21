@@ -641,54 +641,44 @@ namespace Libplanet.Net.Tests.Consensus
                 Assert.Equal(0, context.Round);
                 Assert.True(voteSent);
 
-            context.HandleMessage(
-                new ConsensusVote(
-                    TestUtils.CreateVote(privateKeys[3], 3, 1, 0, block.Hash, VoteFlag.Absent))
-                {
-                    Remote = new Peer(privateKeys[3].PublicKey),
-                });
+                context.HandleMessage(
+                    new ConsensusVote(
+                        TestUtils.CreateVote(privateKeys[3], 3, 1, 0, block.Hash, VoteFlag.Absent))
+                    {
+                        Remote = new Peer(privateKeys[3].PublicKey),
+                    });
 
-            roundVoteSet = context.VoteSet(0);
-            Assert.Equal(VoteFlag.Absent, roundVoteSet.Votes[0].Flag);
-            Assert.Equal(VoteFlag.Absent, roundVoteSet.Votes[1].Flag);
-            Assert.Equal(VoteFlag.Absent, roundVoteSet.Votes[2].Flag);
-            Assert.Equal(VoteFlag.Absent, roundVoteSet.Votes[3].Flag);
-            Assert.Equal(block.Hash, roundVoteSet.Votes[0].BlockHash);
-            Assert.Equal(block.Hash, roundVoteSet.Votes[1].BlockHash);
-            Assert.Equal(block.Hash, roundVoteSet.Votes[2].BlockHash);
-            Assert.Equal(block.Hash, roundVoteSet.Votes[3].BlockHash);
+                roundVoteSet = context.VoteSet(0);
+                Assert.Equal(VoteFlag.Absent, roundVoteSet.Votes[0].Flag);
+                Assert.Equal(VoteFlag.Absent, roundVoteSet.Votes[1].Flag);
+                Assert.Equal(VoteFlag.Absent, roundVoteSet.Votes[2].Flag);
+                Assert.Equal(VoteFlag.Absent, roundVoteSet.Votes[3].Flag);
+                Assert.Equal(block.Hash, roundVoteSet.Votes[0].BlockHash);
+                Assert.Equal(block.Hash, roundVoteSet.Votes[1].BlockHash);
+                Assert.Equal(block.Hash, roundVoteSet.Votes[2].BlockHash);
+                Assert.Equal(block.Hash, roundVoteSet.Votes[3].BlockHash);
+            }
         }
 
         [Fact(Timeout = Timeout)]
         public async void PreCommitBlockToEndCommit()
         {
             var (validators, privateKeys) = GetRandomValidators();
+            int nodeId = 0;
 
             var codec = new Codec();
-            using ITransport transport =
-                TestUtils.CreateNetMQTransport(privateKeys[0], port: Port + 1);
-            BlockChain<DumbAction> blockChain =
-                TestUtils.CreateDummyBlockChain((MemoryStoreFixture)_fx);
-            var consensusContext =
-                TestUtils.CreateStandaloneConsensusContext(
-                    blockChain,
-                    transport,
-                    newHeightDelay,
-                    0,
-                    blockChain.Tip.Index + 1,
-                    port: Port + 1,
-                    privateKey: privateKeys[0],
-                    validators: validators);
+            var (blockChain, _, consensusContext) = CreateConsensusContextTest(
+                privateKeys[nodeId], false, port: Port + 11, validators: validators);
 
             var context = new Context<DumbAction>(
                 consensusContext,
                 blockChain,
-                0,
+                nodeId,
                 blockChain.Tip.Index + 1,
-                privateKeys[0],
+                privateKeys[nodeId],
                 validators,
                 Step.PreVote);
-            var block = await blockChain.MineBlock(privateKeys[0], append: false);
+            var block = await blockChain.MineBlock(privateKeys[nodeId], append: false);
 
             context.HandleMessage(
                 new ConsensusPropose(
@@ -744,6 +734,572 @@ namespace Libplanet.Net.Tests.Consensus
             Assert.Equal(block.Hash, roundVoteSet.Votes[2].BlockHash);
             Assert.Equal(block.Hash, roundVoteSet.Votes[3].BlockHash);
             Assert.True(blockChain.ContainsBlock(block.Hash));
+        }
+
+        [Fact(Timeout = Timeout)]
+        public async void RoundSkipTimeoutProposeToPreCommitNilToPropose()
+        {
+            var (validators, privateKeys) = GetRandomValidators();
+            var codec = new Codec();
+            int nodeId = 3;
+
+            var (blockChain, transport, consensusContext) = CreateConsensusContextTest(
+                privateKeys[nodeId],
+                true,
+                nodeId: nodeId,
+                port: Port + 12,
+                validators: validators);
+
+            _ = transport.StartAsync();
+            await transport.WaitForRunningAsync();
+
+            var context = new Context<DumbAction>(
+                consensusContext,
+                blockChain,
+                nodeId,
+                blockChain.Tip.Index + 1,
+                privateKeys[nodeId],
+                validators);
+            var block = await blockChain.MineBlock(privateKeys[nodeId], append: false);
+            var timeoutOccurred = new AsyncManualResetEvent();
+            context.TimeoutOccurred += (sender, tuple) => timeoutOccurred.Set();
+
+            using (transport)
+            {
+                _ = transport!.StartAsync();
+                await transport.WaitForRunningAsync();
+
+                context.HandleMessage(
+                    new ConsensusPropose(
+                        0,
+                        1,
+                        0,
+                        block.Hash,
+                        codec.Encode(block.MarshalBlock()),
+                        -1)
+                    {
+                        Remote = new Peer(privateKeys[1].PublicKey),
+                    });
+                context.HandleMessage(
+                    new ConsensusPropose(
+                        0,
+                        1,
+                        1,
+                        block.Hash,
+                        codec.Encode(block.MarshalBlock()),
+                        -1)
+                    {
+                        Remote = new Peer(privateKeys[2].PublicKey),
+                    });
+
+                context.HandleMessage(
+                    new ConsensusCommit(
+                        TestUtils.CreateVote(privateKeys[0], 0, 1, 1, null, VoteFlag.Commit))
+                    {
+                        Remote = new Peer(privateKeys[0].PublicKey),
+                    });
+
+                context.HandleMessage(
+                    new ConsensusCommit(
+                        TestUtils.CreateVote(privateKeys[1], 1, 1, 1, null, VoteFlag.Commit))
+                    {
+                        Remote = new Peer(privateKeys[1].PublicKey),
+                    });
+                context.HandleMessage(
+                    new ConsensusCommit(
+                        TestUtils.CreateVote(privateKeys[2], 2, 1, 1, null, VoteFlag.Commit))
+                    {
+                        Remote = new Peer(privateKeys[2].PublicKey),
+                    });
+
+                await timeoutOccurred.WaitAsync();
+                var roundVoteSet = context.VoteSet(1);
+                Assert.True(roundVoteSet.HasTwoThirdCommit());
+                Assert.Equal(Step.Propose, context.Step);
+                Assert.Equal(1, context.Height);
+                Assert.Equal(2, context.Round);
+
+                Assert.Equal(VoteFlag.Commit, roundVoteSet.Votes[0].Flag);
+                Assert.Equal(VoteFlag.Commit, roundVoteSet.Votes[1].Flag);
+                Assert.Equal(VoteFlag.Commit, roundVoteSet.Votes[2].Flag);
+                Assert.Equal(VoteFlag.Null, roundVoteSet.Votes[3].Flag);
+                Assert.Null(roundVoteSet.Votes[0].BlockHash);
+                Assert.Null(roundVoteSet.Votes[1].BlockHash);
+                Assert.Null(roundVoteSet.Votes[2].BlockHash);
+                Assert.Equal(block.Hash, roundVoteSet.Votes[3].BlockHash);
+            }
+        }
+
+        [Fact(Timeout = Timeout)]
+        public async void RoundSkipProposeToPreCommitBlockToEndCommit()
+        {
+            var (validators, privateKeys) = GetRandomValidators();
+            var codec = new Codec();
+            int nodeId = 3;
+
+            var (blockChain, transport, consensusContext) = CreateConsensusContextTest(
+                privateKeys[nodeId],
+                true,
+                nodeId: nodeId,
+                port: Port + 13,
+                validators: validators);
+
+            using (transport)
+            {
+                _ = transport!.StartAsync();
+                await transport.WaitForRunningAsync();
+
+                var context = new Context<DumbAction>(
+                    consensusContext,
+                    blockChain,
+                    nodeId,
+                    blockChain.Tip.Index + 1,
+                    privateKeys[nodeId],
+                    validators);
+                var block = await blockChain.MineBlock(privateKeys[nodeId], append: false);
+
+                context.Start();
+                context.HandleMessage(
+                    new ConsensusPropose(
+                        0,
+                        1,
+                        0,
+                        block.Hash,
+                        codec.Encode(block.MarshalBlock()),
+                        -1)
+                    {
+                        Remote = new Peer(privateKeys[1].PublicKey),
+                    });
+                context.HandleMessage(
+                    new ConsensusPropose(
+                        0,
+                        1,
+                        1,
+                        block.Hash,
+                        codec.Encode(block.MarshalBlock()),
+                        -1)
+                    {
+                        Remote = new Peer(privateKeys[2].PublicKey),
+                    });
+
+                context.HandleMessage(
+                    new ConsensusCommit(
+                        TestUtils.CreateVote(privateKeys[0], 0, 1, 1, block.Hash, VoteFlag.Commit))
+                    {
+                        Remote = new Peer(privateKeys[0].PublicKey),
+                    });
+
+                context.HandleMessage(
+                    new ConsensusCommit(
+                        TestUtils.CreateVote(privateKeys[1], 1, 1, 1, block.Hash, VoteFlag.Commit))
+                    {
+                        Remote = new Peer(privateKeys[1].PublicKey),
+                    });
+                context.HandleMessage(
+                    new ConsensusCommit(
+                        TestUtils.CreateVote(privateKeys[2], 2, 1, 1, block.Hash, VoteFlag.Commit))
+                    {
+                        Remote = new Peer(privateKeys[2].PublicKey),
+                    });
+
+                var roundVoteSet = context.VoteSet(1);
+                Assert.True(roundVoteSet.HasTwoThirdCommit());
+                Assert.Equal(Step.EndCommit, context.Step);
+                Assert.Equal(1, context.Height);
+                Assert.Equal(1, context.Round);
+
+                Assert.Equal(VoteFlag.Commit, roundVoteSet.Votes[0].Flag);
+                Assert.Equal(VoteFlag.Commit, roundVoteSet.Votes[1].Flag);
+                Assert.Equal(VoteFlag.Commit, roundVoteSet.Votes[2].Flag);
+                Assert.Equal(VoteFlag.Null, roundVoteSet.Votes[3].Flag);
+                Assert.Equal(block.Hash, roundVoteSet.Votes[0].BlockHash);
+                Assert.Equal(block.Hash, roundVoteSet.Votes[1].BlockHash);
+                Assert.Equal(block.Hash, roundVoteSet.Votes[2].BlockHash);
+                Assert.Equal(block.Hash, roundVoteSet.Votes[3].BlockHash);
+            }
+        }
+
+        [Fact(Timeout = Timeout)]
+        public async void RoundSkipProposeToPreVoteBlockToPreCommit()
+        {
+            var (validators, privateKeys) = GetRandomValidators();
+            var codec = new Codec();
+            int nodeId = 3;
+
+            bool voteSent = false;
+            var messageReceived = new ManualResetEventSlim();
+
+            void IsPreCommitSent(ConsensusMessage message)
+            {
+                voteSent = message is ConsensusCommit;
+                if (voteSent)
+                {
+                    messageReceived.Set();
+                }
+            }
+
+            var (blockChain, transport, consensusContext) = CreateConsensusContextTest(
+                privateKeys[nodeId],
+                true,
+                IsPreCommitSent,
+                nodeId: nodeId,
+                port: Port + 14,
+                validators: validators);
+
+            using (transport)
+            {
+                _ = transport!.StartAsync();
+                await transport.WaitForRunningAsync();
+
+                var context = new Context<DumbAction>(
+                    consensusContext,
+                    blockChain,
+                    nodeId,
+                    blockChain.Tip.Index + 1,
+                    privateKeys[nodeId],
+                    validators);
+                var block = await blockChain.MineBlock(privateKeys[nodeId], append: false);
+
+                context.Start();
+                context.HandleMessage(
+                    new ConsensusPropose(
+                        0,
+                        1,
+                        0,
+                        block.Hash,
+                        codec.Encode(block.MarshalBlock()),
+                        -1)
+                    {
+                        Remote = new Peer(privateKeys[1].PublicKey),
+                    });
+                context.HandleMessage(
+                    new ConsensusPropose(
+                        0,
+                        1,
+                        1,
+                        block.Hash,
+                        codec.Encode(block.MarshalBlock()),
+                        -1)
+                    {
+                        Remote = new Peer(privateKeys[2].PublicKey),
+                    });
+
+                context.HandleMessage(
+                    new ConsensusVote(
+                        TestUtils.CreateVote(privateKeys[0], 0, 1, 1, block.Hash, VoteFlag.Absent))
+                    {
+                        Remote = new Peer(privateKeys[0].PublicKey),
+                    });
+
+                context.HandleMessage(
+                    new ConsensusVote(
+                        TestUtils.CreateVote(privateKeys[1], 1, 1, 1, block.Hash, VoteFlag.Absent))
+                    {
+                        Remote = new Peer(privateKeys[1].PublicKey),
+                    });
+                context.HandleMessage(
+                    new ConsensusVote(
+                        TestUtils.CreateVote(privateKeys[2], 2, 1, 1, block.Hash, VoteFlag.Absent))
+                    {
+                        Remote = new Peer(privateKeys[2].PublicKey),
+                    });
+
+                messageReceived.Wait();
+                var roundVoteSet = context.VoteSet(1);
+                Assert.True(roundVoteSet.HasTwoThirdPrevote());
+                Assert.Equal(Step.PreCommit, context.Step);
+                Assert.Equal(1, context.Height);
+                Assert.Equal(1, context.Round);
+                Assert.True(voteSent);
+
+                Assert.Equal(VoteFlag.Absent, roundVoteSet.Votes[0].Flag);
+                Assert.Equal(VoteFlag.Absent, roundVoteSet.Votes[1].Flag);
+                Assert.Equal(VoteFlag.Absent, roundVoteSet.Votes[2].Flag);
+                Assert.Equal(VoteFlag.Null, roundVoteSet.Votes[3].Flag);
+                Assert.Equal(block.Hash, roundVoteSet.Votes[0].BlockHash);
+                Assert.Equal(block.Hash, roundVoteSet.Votes[1].BlockHash);
+                Assert.Equal(block.Hash, roundVoteSet.Votes[2].BlockHash);
+                Assert.Equal(block.Hash, roundVoteSet.Votes[3].BlockHash);
+            }
+        }
+
+        [Fact(Timeout = Timeout)]
+        public async void RoundSkipProposeToPreVoteNilToPreCommit()
+        {
+            var (validators, privateKeys) = GetRandomValidators();
+            int nodeId = 0;
+
+            var codec = new Codec();
+            bool voteSent = false;
+            var messageReceived = new ManualResetEventSlim();
+
+            void IsPreCommitSent(ConsensusMessage message)
+            {
+                voteSent = message is ConsensusCommit;
+                if (voteSent)
+                {
+                    messageReceived.Set();
+                }
+            }
+
+            var (blockChain, transport, consensusContext) = CreateConsensusContextTest(
+                privateKeys[nodeId],
+                true,
+                IsPreCommitSent,
+                nodeId: nodeId,
+                port: Port + 15,
+                validators: validators);
+
+            using (transport)
+            {
+                _ = transport!.StartAsync();
+                await transport.WaitForRunningAsync();
+
+                var context = new Context<DumbAction>(
+                    consensusContext,
+                    blockChain,
+                    nodeId,
+                    blockChain.Tip.Index + 1,
+                    privateKeys[nodeId],
+                    validators);
+                var block = await blockChain.MineBlock(privateKeys[nodeId], append: false);
+
+                context.Start();
+                context.HandleMessage(
+                    new ConsensusPropose(
+                        0,
+                        1,
+                        0,
+                        block.Hash,
+                        codec.Encode(block.MarshalBlock()),
+                        -1)
+                    {
+                        Remote = new Peer(privateKeys[1].PublicKey),
+                    });
+                context.HandleMessage(
+                    new ConsensusPropose(
+                        0,
+                        1,
+                        1,
+                        block.Hash,
+                        codec.Encode(block.MarshalBlock()),
+                        -1)
+                    {
+                        Remote = new Peer(privateKeys[2].PublicKey),
+                    });
+
+                context.HandleMessage(
+                    new ConsensusVote(
+                        TestUtils.CreateVote(privateKeys[0], 0, 1, 1, block.Hash, VoteFlag.Absent))
+                    {
+                        Remote = new Peer(privateKeys[0].PublicKey),
+                    });
+
+                context.HandleMessage(
+                    new ConsensusVote(
+                        TestUtils.CreateVote(privateKeys[1], 1, 1, 1, null, VoteFlag.Absent))
+                    {
+                        Remote = new Peer(privateKeys[1].PublicKey),
+                    });
+                context.HandleMessage(
+                    new ConsensusVote(
+                        TestUtils.CreateVote(privateKeys[2], 2, 1, 1, null, VoteFlag.Absent))
+                    {
+                        Remote = new Peer(privateKeys[2].PublicKey),
+                    });
+                context.HandleMessage(
+                    new ConsensusVote(
+                        TestUtils.CreateVote(privateKeys[3], 3, 1, 1, null, VoteFlag.Absent))
+                    {
+                        Remote = new Peer(privateKeys[3].PublicKey),
+                    });
+
+                messageReceived.Wait();
+                var roundVoteSet = context.VoteSet(1);
+                Assert.True(roundVoteSet.HasTwoThirdPrevote());
+                Assert.Equal(Step.PreCommit, context.Step);
+                Assert.Equal(1, context.Height);
+                Assert.Equal(1, context.Round);
+                Assert.True(voteSent);
+
+                Assert.Equal(VoteFlag.Absent, roundVoteSet.Votes[0].Flag);
+                Assert.Equal(VoteFlag.Absent, roundVoteSet.Votes[1].Flag);
+                Assert.Equal(VoteFlag.Absent, roundVoteSet.Votes[2].Flag);
+                Assert.Equal(VoteFlag.Absent, roundVoteSet.Votes[3].Flag);
+                Assert.Equal(block.Hash, roundVoteSet.Votes[0].BlockHash);
+                Assert.Null(roundVoteSet.Votes[1].BlockHash);
+                Assert.Null(roundVoteSet.Votes[2].BlockHash);
+                Assert.Null(roundVoteSet.Votes[3].BlockHash);
+            }
+        }
+
+        [Fact(Timeout = Timeout)]
+        public async void RoundSkipPreVoteToPreCommitBlockToEndCommit()
+        {
+            var (validators, privateKeys) = GetRandomValidators();
+            int nodeId = 3;
+            var codec = new Codec();
+
+            var (blockChain, _, consensusContext) = CreateConsensusContextTest(
+                privateKeys[nodeId],
+                false,
+                nodeId: nodeId,
+                port: Port + 16,
+                validators: validators);
+
+            var context = new Context<DumbAction>(
+                consensusContext,
+                blockChain,
+                nodeId,
+                blockChain.Tip.Index + 1,
+                privateKeys[nodeId],
+                validators,
+                Step.PreVote);
+            var block = await blockChain.MineBlock(privateKeys[nodeId], append: false);
+
+            context.HandleMessage(
+                new ConsensusPropose(
+                    1,
+                    1,
+                    0,
+                    block.Hash,
+                    codec.Encode(block.MarshalBlock()),
+                    -1)
+                {
+                    Remote = new Peer(privateKeys[1].PublicKey),
+                });
+            context.HandleMessage(
+                new ConsensusPropose(
+                    1,
+                    1,
+                    1,
+                    block.Hash,
+                    codec.Encode(block.MarshalBlock()),
+                    -1)
+                {
+                    Remote = new Peer(privateKeys[2].PublicKey),
+                });
+
+            context.HandleMessage(
+                new ConsensusCommit(
+                    TestUtils.CreateVote(privateKeys[0], 0, 1, 1, block.Hash, VoteFlag.Commit))
+                {
+                    Remote = new Peer(privateKeys[0].PublicKey),
+                });
+            context.HandleMessage(
+                new ConsensusCommit(
+                    TestUtils.CreateVote(privateKeys[1], 1, 1, 1, block.Hash, VoteFlag.Commit))
+                {
+                    Remote = new Peer(privateKeys[1].PublicKey),
+                });
+            context.HandleMessage(
+                new ConsensusCommit(
+                    TestUtils.CreateVote(privateKeys[2], 2, 1, 1, block.Hash, VoteFlag.Commit))
+                {
+                    Remote = new Peer(privateKeys[2].PublicKey),
+                });
+
+            var roundVoteSet = context.VoteSet(1);
+            Assert.True(roundVoteSet.HasTwoThirdCommit());
+            Assert.Equal(Step.EndCommit, context.Step);
+            Assert.Equal(1, context.Height);
+            Assert.Equal(1, context.Round);
+
+            Assert.Equal(VoteFlag.Commit, roundVoteSet.Votes[0].Flag);
+            Assert.Equal(VoteFlag.Commit, roundVoteSet.Votes[1].Flag);
+            Assert.Equal(VoteFlag.Commit, roundVoteSet.Votes[2].Flag);
+            Assert.Equal(VoteFlag.Null, roundVoteSet.Votes[3].Flag);
+            Assert.Equal(block.Hash, roundVoteSet.Votes[0].BlockHash);
+            Assert.Equal(block.Hash, roundVoteSet.Votes[1].BlockHash);
+            Assert.Equal(block.Hash, roundVoteSet.Votes[2].BlockHash);
+            Assert.Equal(block.Hash, roundVoteSet.Votes[3].BlockHash);
+            Assert.True(blockChain.ContainsBlock(block.Hash));
+        }
+
+        [Fact(Timeout = Timeout)]
+        public async void RoundSkipPreVoteToPreCommitNilToTimeoutToPropose()
+        {
+            var (validators, privateKeys) = GetRandomValidators();
+            var codec = new Codec();
+            int nodeId = 3;
+            var timeoutOccurred = new AsyncManualResetEvent();
+
+            var (blockChain, _, consensusContext) = CreateConsensusContextTest(
+                privateKeys[nodeId],
+                false,
+                nodeId: nodeId,
+                port: Port + 17,
+                validators: validators);
+
+            var context = new Context<DumbAction>(
+                consensusContext,
+                blockChain,
+                nodeId,
+                blockChain.Tip.Index + 1,
+                privateKeys[nodeId],
+                validators,
+                Step.PreVote);
+            var block = await blockChain.MineBlock(privateKeys[nodeId], append: false);
+            context.TimeoutOccurred += (sender, tuple) => timeoutOccurred.Set();
+
+            context.HandleMessage(
+                new ConsensusPropose(
+                    1,
+                    1,
+                    0,
+                    block.Hash,
+                    codec.Encode(block.MarshalBlock()),
+                    -1)
+                {
+                    Remote = new Peer(privateKeys[1].PublicKey),
+                });
+            context.HandleMessage(
+                new ConsensusPropose(
+                    1,
+                    1,
+                    1,
+                    block.Hash,
+                    codec.Encode(block.MarshalBlock()),
+                    -1)
+                {
+                    Remote = new Peer(privateKeys[2].PublicKey),
+                });
+
+            context.HandleMessage(
+                new ConsensusCommit(
+                    TestUtils.CreateVote(privateKeys[0], 0, 1, 1, null, VoteFlag.Commit))
+                {
+                    Remote = new Peer(privateKeys[0].PublicKey),
+                });
+            context.HandleMessage(
+                new ConsensusCommit(
+                    TestUtils.CreateVote(privateKeys[1], 1, 1, 1, null, VoteFlag.Commit))
+                {
+                    Remote = new Peer(privateKeys[1].PublicKey),
+                });
+            context.HandleMessage(
+                new ConsensusCommit(
+                    TestUtils.CreateVote(privateKeys[2], 2, 1, 1, null, VoteFlag.Commit))
+                {
+                    Remote = new Peer(privateKeys[2].PublicKey),
+                });
+
+            await timeoutOccurred.WaitAsync();
+            var roundVoteSet = context.VoteSet(1);
+            Assert.True(roundVoteSet.HasTwoThirdCommit());
+            Assert.Equal(Step.Propose, context.Step);
+            Assert.Equal(1, context.Height);
+            Assert.Equal(2, context.Round);
+
+            Assert.Equal(VoteFlag.Commit, roundVoteSet.Votes[0].Flag);
+            Assert.Equal(VoteFlag.Commit, roundVoteSet.Votes[1].Flag);
+            Assert.Equal(VoteFlag.Commit, roundVoteSet.Votes[2].Flag);
+            Assert.Equal(VoteFlag.Null, roundVoteSet.Votes[3].Flag);
+            Assert.Null(roundVoteSet.Votes[0].BlockHash);
+            Assert.Null(roundVoteSet.Votes[1].BlockHash);
+            Assert.Null(roundVoteSet.Votes[2].BlockHash);
+            Assert.Equal(block.Hash, roundVoteSet.Votes[3].BlockHash);
+            Assert.False(blockChain.ContainsBlock(block.Hash));
         }
 
         private static (List<PublicKey>, List<PrivateKey>) GetRandomValidators(
