@@ -127,7 +127,7 @@ namespace Libplanet.Net.Tests
         public static ConsensusContext<DumbAction>
             CreateStandaloneConsensusContext(
             BlockChain<DumbAction> blockChain,
-            ITransport transport,
+            ITransport? transport,
             TimeSpan newHeightDelay,
             long nodeId = 0,
             long height = 0,
@@ -157,7 +157,7 @@ namespace Libplanet.Net.Tests
             }
 
             void BroadcastMessage(ConsensusMessage message) =>
-                transport.BroadcastMessage(validatorPeers, message);
+                transport?.BroadcastMessage(validatorPeers, message);
 
             var consensusContext = new ConsensusContext<DumbAction>(
                 BroadcastMessage,
@@ -180,7 +180,7 @@ namespace Libplanet.Net.Tests
                 }
             }
 
-            transport.ProcessMessageHandler.Register(DummyHandle);
+            transport?.ProcessMessageHandler.Register(DummyHandle);
 
             return consensusContext;
         }
