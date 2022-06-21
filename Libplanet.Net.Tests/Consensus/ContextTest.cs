@@ -750,9 +750,6 @@ namespace Libplanet.Net.Tests.Consensus
                 port: Port + 12,
                 validators: validators);
 
-            _ = transport.StartAsync();
-            await transport.WaitForRunningAsync();
-
             var context = new Context<DumbAction>(
                 consensusContext,
                 blockChain,
