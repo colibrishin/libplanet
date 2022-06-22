@@ -1,17 +1,11 @@
 using System;
-using System.Collections.Generic;
-using System.Threading;
 using Bencodex;
-using Libplanet.Blockchain;
 using Libplanet.Blocks;
 using Libplanet.Consensus;
-using Libplanet.Crypto;
 using Libplanet.Net.Consensus;
 using Libplanet.Net.Messages;
-using Libplanet.Net.Transports;
 using Libplanet.Tests.Common.Action;
 using Libplanet.Tests.Store;
-using Nito.AsyncEx;
 using Serilog;
 using Xunit;
 using Xunit.Abstractions;
@@ -23,7 +17,6 @@ namespace Libplanet.Net.Tests.Consensus
     {
         private const int Timeout = 60_000;
         private const int Port = 19192;
-        private readonly TimeSpan newHeightDelay = TimeSpan.FromSeconds(4);
         private readonly StoreFixture _fx;
         private readonly ILogger _logger;
 
@@ -129,10 +122,13 @@ namespace Libplanet.Net.Tests.Consensus
         [Fact(Timeout = Timeout)]
         public async void ThrowInvalidProposer()
         {
-            var (validators, privateKeys) = GetRandomValidators();
+            var (validators, privateKeys) = TestUtils.GetRandomValidators();
             int nodeId = 0;
-            var (blockChain, _, context) = CreateContextTest(
-                privateKeys[nodeId], false, port: Port + 2, validators: validators);
+            var (blockChain, _, context) = TestUtils.CreateContextTest(
+                (MemoryStoreFixture)_fx,
+                privateKeys[nodeId],
+                false,
+                validators: validators);
             Block<DumbAction> block =
                 await blockChain.MineBlock(privateKeys[nodeId], append: false);
 
@@ -150,11 +146,14 @@ namespace Libplanet.Net.Tests.Consensus
         [Fact(Timeout = Timeout)]
         public void ThrowNilPropose()
         {
-            var (validators, privateKeys) = GetRandomValidators();
+            var (validators, privateKeys) = TestUtils.GetRandomValidators();
             int nodeId = 0;
             var (_, _, context) =
-                CreateContextTest(
-                    privateKeys[nodeId], false, port: Port + 4, validators: validators);
+                TestUtils.CreateContextTest(
+                    (MemoryStoreFixture)_fx,
+                    privateKeys[nodeId],
+                    false,
+                    validators: validators);
 
             context.Start();
             Assert.Throws<InvalidBlockProposeMessageException>(
@@ -166,11 +165,14 @@ namespace Libplanet.Net.Tests.Consensus
         [Fact(Timeout = Timeout)]
         public async void ThrowInvalidValidatorVote()
         {
-            var (validators, privateKeys) = GetRandomValidators();
+            var (validators, privateKeys) = TestUtils.GetRandomValidators();
             int nodeId = 0;
             var (blockChain, _, context) =
-                CreateContextTest(
-                    privateKeys[nodeId], false, port: Port + 5, validators: validators);
+                TestUtils.CreateContextTest(
+                    (MemoryStoreFixture)_fx,
+                    privateKeys[nodeId],
+                    false,
+                    validators: validators);
             var block = await blockChain.MineBlock(privateKeys[nodeId], append: false);
 
             context.Start();
@@ -250,14 +252,14 @@ namespace Libplanet.Net.Tests.Consensus
         [Fact(Timeout = Timeout)]
         public async void ThrowDifferentHeight()
         {
-            var (validators, privateKeys) = GetRandomValidators();
+            var (validators, privateKeys) = TestUtils.GetRandomValidators();
             int nodeId = 1;
             var codec = new Codec();
-            var (blockChain, _, context) = CreateContextTest(
+            var (blockChain, _, context) = TestUtils.CreateContextTest(
+                (MemoryStoreFixture)_fx,
                 privateKeys[nodeId],
                 false,
                 nodeId: nodeId,
-                port: Port + 6,
                 validators: validators);
             var block = await blockChain.MineBlock(privateKeys[nodeId], append: false);
 
@@ -270,7 +272,12 @@ namespace Libplanet.Net.Tests.Consensus
                 () => context.HandleMessage(
                     new ConsensusVote(
                         TestUtils.CreateVote(
-                            privateKeys[2], 2, 2, 0, block.Hash, VoteFlag.Absent))
+                            privateKeys[2],
+                            2,
+                            2,
+                            0,
+                            block.Hash,
+                            VoteFlag.Absent))
                     {
                         Remote = new Peer(privateKeys[2].PublicKey),
                     }));
@@ -279,7 +286,12 @@ namespace Libplanet.Net.Tests.Consensus
                 () => context.HandleMessage(
                     new ConsensusCommit(
                         TestUtils.CreateVote(
-                            privateKeys[2], 2, 2, 0, block.Hash, VoteFlag.Absent))
+                            privateKeys[2],
+                            2,
+                            2,
+                            0,
+                            block.Hash,
+                            VoteFlag.Absent))
                     {
                         Remote = new Peer(privateKeys[2].PublicKey),
                     }));
