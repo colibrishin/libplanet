@@ -1,6 +1,10 @@
 using System;
+using System.Collections.Generic;
+using System.Net;
+using System.Threading.Tasks;
 using Libplanet.Blockchain;
 using Libplanet.Net.Consensus;
+using Libplanet.Net.Messages;
 using Libplanet.Net.Transports;
 using Libplanet.Tests.Common.Action;
 using Libplanet.Tests.Store;
@@ -44,18 +48,26 @@ namespace Libplanet.Net.Tests.Consensus.Context
             Fx = new MemoryStoreFixture(TestUtils.Policy.BlockAction);
             BlockChain = TestUtils.CreateDummyBlockChain((MemoryStoreFixture)Fx);
             Transport = TestUtils.CreateNetMQTransport(
-                TestUtils.PrivateKeys[(int)nodeId], port: (int)(Port + nodeId));
+                TestUtils.PrivateKeys[(int)nodeId], port: Port);
 
-            _consensusContext = TestUtils.CreateStandaloneConsensusContext(
+            var validatorPeers = new List<BoundPeer>()
+            {
+                new BoundPeer(
+                    TestUtils.PrivateKeys[(int)nodeId].PublicKey,
+                    new DnsEndPoint("localhost", Port)),
+            };
+
+            void BroadcastMessage(ConsensusMessage message) =>
+                Transport.BroadcastMessage(validatorPeers, message);
+
+            _consensusContext = new ConsensusContext<DumbAction>(
+                BroadcastMessage,
                 BlockChain,
-                Transport,
-                _newHeightDelay,
                 nodeId,
                 height,
-                port: Port,
                 privateKey: TestUtils.PrivateKeys[(int)nodeId],
                 validators: TestUtils.Validators,
-                watchConsensusMessage: watchConsensusMessage);
+                _newHeightDelay);
 
             Context = new Context<DumbAction>(
                 _consensusContext,
@@ -66,6 +78,20 @@ namespace Libplanet.Net.Tests.Consensus.Context
                 TestUtils.Validators,
                 step,
                 round);
+
+            async Task ContextHandle(Message message)
+            {
+                switch (message)
+                {
+                    case ConsensusMessage consensusMessage:
+                        await Transport.ReplyMessageAsync(message, default);
+                        Context.HandleMessage(consensusMessage);
+                        watchConsensusMessage?.Invoke(consensusMessage);
+                        break;
+                }
+            }
+
+            Transport.ProcessMessageHandler.Register(ContextHandle);
         }
 
         public async void Dispose()
