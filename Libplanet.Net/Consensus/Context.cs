@@ -210,6 +210,14 @@ namespace Libplanet.Net.Consensus
             return TimeSpan.FromSeconds(TimeoutPreCommitBase + round + TimeoutPreCommitMultiplier);
         }
 
+        internal static DateTimeOffset PreVoteMessageFutureLifeTime(ConsensusVote message) =>
+            message.Timestamp.AddMilliseconds(TimeoutPreVote(message.Round).Milliseconds +
+                                              TimeoutPreCommit(message.Round).Milliseconds);
+
+        internal static DateTimeOffset PreCommitMessageFutureLifeTime(ConsensusCommit message) =>
+            message.Timestamp.AddMilliseconds(TimeoutPreVote(message.Round).Milliseconds +
+                                              TimeoutPreCommit(message.Round).Milliseconds);
+
         // Isn't thread-safe, use carefully in tests.
         internal void HandleMessage(ConsensusMessage message)
         {
@@ -242,6 +250,12 @@ namespace Libplanet.Net.Consensus
 
             if (message is ConsensusPropose propose)
             {
+                if (propose.Timestamp < _blockChain.Tip.Header.Timestamp)
+                {
+                    throw new InvalidTimestampMessageException(
+                        "The timestamp of ConsensusPropose is invalid.", message);
+                }
+
                 if (!propose.Remote!.PublicKey.Equals(Proposer(message.Round)))
                 {
                     throw new InvalidProposerProposeMessageException(
@@ -257,27 +271,60 @@ namespace Libplanet.Net.Consensus
                 if (message.BlockHash.Equals(default(BlockHash)))
                 {
                     throw new InvalidBlockProposeMessageException(
-                        "Cannot propose a null block.",
-                        message);
+                        "Cannot propose a null block.", message);
                 }
             }
 
-            if (message is ConsensusVote vote &&
-                (!vote.ProposeVote.Verify(vote.Remote!.PublicKey) ||
-                 !_validators.Contains(vote.ProposeVote.Validator)))
+            if (message is ConsensusVote vote)
             {
-                throw new InvalidValidatorVoteMessageException(
-                    "Received ConsensusVote message is made by invalid validator.",
-                    vote);
+                if (!vote.ProposeVote.Verify(vote.Remote!.PublicKey) ||
+                 !_validators.Contains(vote.ProposeVote.Validator))
+                {
+                    throw new InvalidValidatorVoteMessageException(
+                        "Received ConsensusVote message is made by invalid validator.",
+                        vote);
+                }
+
+                if (vote.ProposeVote.Flag != VoteFlag.Absent)
+                {
+                    throw new InvalidVoteFlagMessageException(
+                        "The flag of received ConsensusVote is not properly set. " +
+                        $"(expected: Absent, actual: {vote.ProposeVote.Flag}",
+                        vote);
+                }
+
+                if (vote.Timestamp > GetPropose(vote.Round).Item1?.Timestamp &&
+                    PreVoteMessageFutureLifeTime(vote) < DateTimeOffset.UtcNow)
+                {
+                    throw new InvalidTimestampMessageException(
+                        "The timestamp of ConsensusVote is invalid.", message);
+                }
             }
 
-            if (message is ConsensusCommit commit &&
-                (!commit.CommitVote.Verify(commit.Remote!.PublicKey) ||
-                 !_validators.Contains(commit.CommitVote.Validator)))
+            if (message is ConsensusCommit commit)
             {
-                throw new InvalidValidatorVoteMessageException(
-                    "Received ConsensusCommit message is made by invalid validator.",
-                    commit);
+                if (!commit.CommitVote.Verify(commit.Remote!.PublicKey) ||
+                   !_validators.Contains(commit.CommitVote.Validator))
+                {
+                    throw new InvalidValidatorVoteMessageException(
+                        "Received ConsensusCommit message is made by invalid validator.",
+                        commit);
+                }
+
+                if (commit.CommitVote.Flag != VoteFlag.Absent)
+                {
+                    throw new InvalidVoteFlagMessageException(
+                        "The flag of received ConsensusCommit is not properly set. " +
+                        $"(expected: Commit, actual: {commit.CommitVote.Flag}",
+                        commit);
+                }
+
+                if (commit.Timestamp > GetPropose(commit.Round).Item1?.Timestamp &&
+                    PreCommitMessageFutureLifeTime(commit) < DateTimeOffset.UtcNow)
+                {
+                    throw new InvalidTimestampMessageException(
+                        "The timestamp of ConsensusCommit is invalid.", message);
+                }
             }
 
             if (!_messagesInRound.ContainsKey(message.Round))
