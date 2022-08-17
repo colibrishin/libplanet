@@ -26,6 +26,11 @@ To be released.
  -  Added `BlockContent.Propose()` method.  [[#PBFT]]
  -  Added `BlockCommit` class.  [[#PBFT]]
  -  Added `BlockChain.ProposeBlock()` method.  [[#PBFT]]
+ -  Added `Crypto.ConsensusCryptoBackend` class.  [[#PBFT]]
+ -  Added `ConsensusCryptoBackend` property to `Crypto.CryptoConfig`.  [[#PBFT]]
+ -  Added `Crypto.BlsPrivateKey` class.  [[#PBFT]]
+ -  Added `Crypto.BlsPublicKey` class.  [[#PBFT]]
+ -  Added `Crypto.BlsSignature` class.  [[#PBFT]]
  -  (Libplanet.Net) Added `IReactor` interface.  [[#PBFT]]
  -  (Libplanet.Net) Added `ConsensusReactor` class which inherits
     `IReactor` interface.  [[#PBFT]]
