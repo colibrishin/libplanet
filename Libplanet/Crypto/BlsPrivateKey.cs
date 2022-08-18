@@ -8,7 +8,7 @@ using herumi.bls;
 
 namespace Libplanet.Crypto
 {
-    public class BlsPrivateKey : IEquatable<BlsPrivateKey>
+    public class BlsPrivateKey : IEquatable<BlsPrivateKey>, ICryptoType
     {
         private const int KeyByteSize = BLS.SECRETKEY_SERIALIZE_SIZE;
         private readonly IReadOnlyList<byte> _privateKey;
@@ -71,6 +71,8 @@ namespace Libplanet.Crypto
                 return _publicKey;
             }
         }
+
+        IReadOnlyList<byte> ICryptoType.KeyBytes => ByteArray;
 
         [Pure]
         public ImmutableArray<byte> ByteArray => _privateKey.ToImmutableArray();

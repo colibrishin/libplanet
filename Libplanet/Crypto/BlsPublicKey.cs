@@ -8,7 +8,7 @@ using herumi.bls;
 
 namespace Libplanet.Crypto
 {
-    public class BlsPublicKey : IEquatable<BlsPublicKey>
+    public class BlsPublicKey : IEquatable<BlsPublicKey>, ICryptoType
     {
         private const int KeyByteSize = BLS.PUBLICKEY_SERIALIZE_SIZE;
 
@@ -29,6 +29,8 @@ namespace Libplanet.Crypto
 
             _ = CryptoConfig.ConsensusCryptoBackend.ValidateGetNativePublicKey(this);
         }
+
+        IReadOnlyList<byte> ICryptoType.KeyBytes => ToByteArray();
 
         [Pure]
         public BlsSignature ProofOfPossession { get; }

@@ -8,7 +8,7 @@ using herumi.bls;
 
 namespace Libplanet.Crypto
 {
-    public class BlsSignature : IEquatable<BlsSignature>
+    public class BlsSignature : IEquatable<BlsSignature>, ICryptoType
     {
         private const int KeyByteSize = BLS.SIGNATURE_SERIALIZE_SIZE;
         private readonly IReadOnlyList<byte> _signature;
@@ -26,6 +26,8 @@ namespace Libplanet.Crypto
             _signature = signature;
             _ = CryptoConfig.ConsensusCryptoBackend.ValidateGetNativeSignature(this);
         }
+
+        IReadOnlyList<byte> ICryptoType.KeyBytes => ToByteArray();
 
         [Pure]
         public ImmutableArray<byte> ByteArray => _signature.ToImmutableArray();
