@@ -23,7 +23,7 @@ namespace Libplanet.Crypto
         /// <returns> Created a signature from <paramref name="messageHash"/> with the corresponding
         /// <paramref name="privateKey"/>.
         /// </returns>
-        byte[] Sign(HashDigest<T> messageHash, PrivateKey privateKey);
+        byte[] Sign(HashDigest<T> messageHash, IECDSAParamPrivateKey privateKey);
 
         /// <summary>
         /// Verifies whether a <paramref name="signature"/> was created from
@@ -41,6 +41,6 @@ namespace Libplanet.Crypto
         bool Verify(
             HashDigest<T> messageHash,
             byte[] signature,
-            PublicKey publicKey);
+            IECDSAParamPublicKey publicKey);
     }
 }
