@@ -27,7 +27,8 @@ namespace Libplanet.Crypto
             _publicKey = publicKey;
             ProofOfPossession = proofOfPossession;
 
-            _ = CryptoConfig.ConsensusCryptoBackend.ValidateGetNativePublicKey(this);
+            CryptoConfig.ConsensusCryptoBackend.Validate(
+                this, BlsCryptoBackend<SHA256>.ValidatePublicKey);
         }
 
         IReadOnlyList<byte> ICryptoType.KeyBytes => ToByteArray();
@@ -64,7 +65,11 @@ namespace Libplanet.Crypto
             }
 
             HashDigest<SHA256> hashed = HashDigest<SHA256>.DeriveFrom(message.ToImmutableArray());
-            return CryptoConfig.ConsensusCryptoBackend.Verify(hashed, signature, this);
+            return CryptoConfig.ConsensusCryptoBackend.Verify(
+                new [] { hashed },
+                signature.ToByteArray(),
+                new ICryptoType[] { this },
+                BlsCryptoBackend<SHA256>.Verify);
         }
 
         public override string ToString() => ByteUtil.Hex(ToByteArray());

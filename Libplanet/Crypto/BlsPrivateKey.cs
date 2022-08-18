@@ -19,7 +19,7 @@ namespace Libplanet.Crypto
         /// </summary>
         public BlsPrivateKey()
         {
-            _privateKey = CryptoConfig.ConsensusCryptoBackend.GeneratePrivateKey();
+            _privateKey = BlsCryptoBackend<SHA256>.GeneratePrivateKey();
         }
 
         /// <summary>
@@ -44,7 +44,8 @@ namespace Libplanet.Crypto
             }
 
             _privateKey = privateKey;
-            _ = CryptoConfig.ConsensusCryptoBackend.ValidateGetNativePrivateKey(this);
+            CryptoConfig.ConsensusCryptoBackend.Validate(
+                this, BlsCryptoBackend<SHA256>.ValidatePrivateKey);
         }
 
         /// <summary>
@@ -65,7 +66,7 @@ namespace Libplanet.Crypto
             {
                 if (_publicKey is null)
                 {
-                    _publicKey = CryptoConfig.ConsensusCryptoBackend.GetPublicKey(this);
+                    _publicKey = BlsCryptoBackend<SHA256>.GetPublicKey(this);
                 }
 
                 return _publicKey;
@@ -100,7 +101,7 @@ namespace Libplanet.Crypto
         public BlsSignature Sign(byte[] message)
         {
             HashDigest<SHA256> hashed = HashDigest<SHA256>.DeriveFrom(message);
-            return CryptoConfig.ConsensusCryptoBackend.Sign(hashed, this);
+            return new BlsSignature(CryptoConfig.ConsensusCryptoBackend.Sign(hashed, this));
         }
 
         public BlsSignature Sign(ImmutableArray<byte> message) => Sign(message.ToArray());

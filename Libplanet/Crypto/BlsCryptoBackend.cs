@@ -1,92 +1,126 @@
 using System;
+using System.Linq;
 using System.Security.Cryptography;
 using herumi.bls;
 
 namespace Libplanet.Crypto
 {
-    public class BlsCryptoBackend<T>
+    public class BlsCryptoBackend<T> : IExtendedCryptoBackend<T>
         where T : HashAlgorithm
     {
-        public BlsSignature Sign(HashDigest<T> messageHash, BlsPrivateKey privateKey)
+        internal byte[] Sign(HashDigest<T> messageHash, BlsPrivateKey privateKey)
         {
-            SecretKey sk = ValidateGetNativePrivateKey(privateKey);
+            SecretKey sk = GetNativePrivateKey(privateKey);
             Msg msg = ConvertHashDigestToNativeMessage(messageHash);
 
             Signature sign = sk.Sign(msg);
-            return new BlsSignature(sign.Serialize());
+            return sign.Serialize();
         }
 
-        public bool Verify(
+        internal static bool Verify(
             HashDigest<T> messageHash,
             BlsSignature signature,
             BlsPublicKey publicKey)
         {
-            herumi.bls.PublicKey pk = ValidateGetNativePublicKey(publicKey);
-            Signature sign = ValidateGetNativeSignature(signature);
+            herumi.bls.PublicKey pk = GetNativePublicKey(publicKey);
+            Signature sign = GetNativeSignature(signature);
             Msg msg = ConvertHashDigestToNativeMessage(messageHash);
 
             return pk.Verify(sign, msg);
         }
 
-        public byte[] GeneratePrivateKey()
+        internal static byte[] GeneratePrivateKey()
         {
             SecretKey sk = default;
             sk.SetByCSPRNG();
             return sk.Serialize();
         }
 
-        public BlsPublicKey GetPublicKey(BlsPrivateKey privateKey)
+        internal static BlsPublicKey GetPublicKey(BlsPrivateKey privateKey)
         {
-            SecretKey sk = ValidateGetNativePrivateKey(privateKey);
+            SecretKey sk = GetNativePrivateKey(privateKey);
 
             return new BlsPublicKey(
                 sk.GetPublicKey().Serialize(),
                 new BlsSignature(sk.GetPop().Serialize()));
         }
 
-        public herumi.bls.PublicKey ValidateGetNativePublicKey(
-            BlsPublicKey publicKey)
+        internal static void ValidatePublicKey(ICryptoType publicKey)
         {
-            herumi.bls.PublicKey pk = default;
-            pk.Deserialize(publicKey.ToByteArray());
-
-            Signature pop = default;
-            try
+            if (!(publicKey is BlsPublicKey pk))
             {
-                pop.Deserialize(publicKey.ProofOfPossession.ToByteArray());
-            }
-            catch (Exception e) when (e is ArithmeticException || e is ArgumentException)
-            {
-                throw new CryptographicException(
-                    "Invalid proof of possession.", e);
+                throw new InvalidCastException($"Input for {nameof(publicKey)} must be a {nameof(BlsPublicKey)}.");
             }
 
-            if (!pk.VerifyPop(pop))
+            herumi.bls.PublicKey nativePk = GetNativePublicKey(pk);
+            nativePk.Deserialize(publicKey.KeyBytes.ToArray());
+
+            Signature pop = GetNativeSignature(pk.ProofOfPossession);
+
+            if (!nativePk.VerifyPop(pop))
             {
                 throw new CryptographicException(
                     "Proof of possession does not match with public key.");
             }
-
-            return pk;
         }
 
-        public SecretKey ValidateGetNativePrivateKey(BlsPrivateKey privateKey)
+        internal static void ValidatePrivateKey(ICryptoType privateKey)
         {
-            SecretKey sk = default;
+            if (!(privateKey is BlsPrivateKey pk))
+            {
+                throw new InvalidCastException($"Input for {nameof(privateKey)} must be a {nameof(BlsPrivateKey)}.");
+            }
+
+            _ = GetNativePrivateKey(pk);
+        }
+
+        internal static void ValidateSignature(ICryptoType signature)
+        {
+
+            if (!(signature is BlsSignature sign))
+            {
+                throw new InvalidCastException($"Input for {nameof(signature)} must be a {nameof(BlsSignature)}.");
+            }
+
+            _ = GetNativeSignature(sign);
+        }
+
+        internal BlsSignature AggregateSignature(BlsSignature lhs, BlsSignature rhs)
+        {
+            Signature lhsSig = default;
+            Signature rhsSig = default;
             try
             {
-                sk.Deserialize(privateKey.ToByteArray());
+                lhsSig.Deserialize(lhs.ToByteArray());
+                rhsSig.Deserialize(rhs.ToByteArray());
             }
             catch (Exception e) when (e is ArithmeticException || e is ArgumentException)
             {
-                throw new CryptographicException("Invalid private key.", e);
+                throw new CryptographicException("Invalid signature.", e);
             }
 
-            return sk;
+            lhsSig.Add(rhsSig);
+            return new BlsSignature(lhsSig.Serialize());
         }
 
-        public Signature ValidateGetNativeSignature(BlsSignature signature)
+        internal bool FastAggregateVerify(
+            BlsSignature signature, BlsPublicKey[] publicKeys, HashDigest<T> message)
         {
+            herumi.bls.PublicKey[] pks = new herumi.bls.PublicKey[publicKeys.Length];
+            Msg msg = ConvertHashDigestToNativeMessage(message);
+
+            try
+            {
+                for (var i = 0; i < pks.Length; ++i)
+                {
+                    pks[i].Deserialize(publicKeys[i].ToByteArray());
+                }
+            }
+            catch (Exception e) when (e is ArithmeticException || e is ArgumentException)
+            {
+                throw new CryptographicException("Invalid public key.", e);
+            }
+
             Signature sig = default;
             try
             {
@@ -97,33 +131,10 @@ namespace Libplanet.Crypto
                 throw new CryptographicException("Invalid signature.", e);
             }
 
-            return sig;
-        }
-
-        public BlsSignature AggregateSignature(BlsSignature lhs, BlsSignature rhs)
-        {
-            Signature lhsSig = ValidateGetNativeSignature(lhs);
-            Signature rhsSig = ValidateGetNativeSignature(rhs);
-            lhsSig.Add(rhsSig);
-            return new BlsSignature(lhsSig.Serialize());
-        }
-
-        public bool FastAggregateVerify(
-            BlsSignature signature, BlsPublicKey[] publicKeys, HashDigest<T> message)
-        {
-            herumi.bls.PublicKey[] pks = new herumi.bls.PublicKey[publicKeys.Length];
-            Msg msg = ConvertHashDigestToNativeMessage(message);
-
-            for (var i = 0; i < pks.Length; ++i)
-            {
-                pks[i] = ValidateGetNativePublicKey(publicKeys[i]);
-            }
-
-            Signature sig = ValidateGetNativeSignature(signature);
             return sig.FastAggregateVerify(in pks, msg);
         }
 
-        public bool AggregateVerify(
+        internal bool AggregateVerify(
             BlsSignature signature, BlsPublicKey[] publicKeys, HashDigest<T>[] messages)
         {
             herumi.bls.PublicKey[] pks = new herumi.bls.PublicKey[publicKeys.Length];
@@ -131,15 +142,15 @@ namespace Libplanet.Crypto
 
             for (var i = 0; i < pks.Length; ++i)
             {
-                pks[i] = ValidateGetNativePublicKey(publicKeys[i]);
+                pks[i] = GetNativePublicKey(publicKeys[i]);
                 msgs[i] = ConvertHashDigestToNativeMessage(messages[i]);
             }
 
-            Signature sig = ValidateGetNativeSignature(signature);
+            Signature sig = GetNativeSignature(signature);
             return sig.AggregateVerify(in pks, in msgs);
         }
 
-        private Msg ConvertHashDigestToNativeMessage(HashDigest<T> hashDigest)
+        private static Msg ConvertHashDigestToNativeMessage(HashDigest<T> hashDigest)
         {
             Msg msg = default;
             try
@@ -154,5 +165,63 @@ namespace Libplanet.Crypto
 
             return msg;
         }
+
+        private static SecretKey GetNativePrivateKey(BlsPrivateKey privateKey)
+        {
+            SecretKey sk = default;
+            try
+            {
+                sk.Deserialize(privateKey.ToByteArray());
+            }
+            catch (Exception e) when (e is ArithmeticException || e is ArgumentException)
+            {
+                throw new CryptographicException("Invalid private key.", e);
+            }
+
+            return sk;
+        }
+
+        private static herumi.bls.PublicKey GetNativePublicKey(BlsPublicKey publicKey)
+        {
+            herumi.bls.PublicKey pk = default;
+            try
+            {
+                pk.Deserialize(publicKey.ToByteArray());
+            }
+            catch (Exception e) when (e is ArithmeticException || e is ArgumentException)
+            {
+                throw new CryptographicException("Invalid public key.", e);
+            }
+
+            return pk;
+        }
+
+        private static Signature GetNativeSignature(BlsSignature signature)
+        {
+            Signature sig = default;
+            try
+            {
+                sig.Deserialize(signature.ToByteArray());
+            }
+            catch (Exception e) when (e is ArithmeticException || e is ArgumentException)
+            {
+                throw new CryptographicException("Invalid signature.", e);
+            }
+
+            return sig;
+        }
+
+        public void Validate(ICryptoType target, Action<ICryptoType> predicate)
+            => predicate(target);
+
+        public byte[] Sign(HashDigest<T> messageHash, ICryptoType privateKey) =>
+            Sign(messageHash, (BlsPrivateKey)privateKey);
+
+        public bool Verify(
+            HashDigest<T>[] messageHash,
+            byte[] signature,
+            ICryptoType[] publicKey,
+            Func<HashDigest<T>[], byte[], ICryptoType[], bool> predicate)
+            => predicate(messageHash, signature, publicKey);
     }
 }
