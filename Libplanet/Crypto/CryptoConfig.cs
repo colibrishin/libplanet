@@ -9,7 +9,7 @@ namespace Libplanet.Crypto
     public static class CryptoConfig
     {
         private static ICryptoBackend<SHA256> _cryptoBackend;
-        private static BlsCryptoBackend<SHA256> _consensusCryptoBackend;
+        private static IExtendedCryptoBackend<SHA256> _consensusCryptoBackend;
 
         /// <summary>
         /// Global cryptography backend to sign and verify messages.
@@ -20,7 +20,7 @@ namespace Libplanet.Crypto
             set => _cryptoBackend = value;
         }
 
-        public static BlsCryptoBackend<SHA256> ConsensusCryptoBackend
+        public static IExtendedCryptoBackend<SHA256> ConsensusCryptoBackend
         {
             get => _consensusCryptoBackend ??= new BlsCryptoBackend<SHA256>();
             set => _consensusCryptoBackend = value;
