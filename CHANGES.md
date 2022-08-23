@@ -12,6 +12,10 @@ To be released.
 
  -  Added `LastCommit` property to `IBlockMetadata`.  [[#PBFT]]
  -  Added `IBlockPolicy.GetValidators()` method.  [[#PBFT]]
+ -  In `Crypto.ICryptoBackend.Sign(HashDigest<T>, PrivateKey)` parameters,
+    `PrivateKey` changed to `IECPrivateKey`. [[#PBFT]]
+ -  In `Crypto.ICryptoBackend.Verify(HashDigest<T>, byte[], PublicKey)`
+    parameters, `PublicKey` changed to `IECPublicKey`. [[#PBFT]]
  -  Bumped `BlockMetadata.CurrentProtocolVersion` to 4.  [[#PBFT]]
  -  (Libplanet.Net) Removed `SwarmOptions.StaticPeers`.  [[#PBFT]]
 
@@ -30,9 +34,15 @@ To be released.
  -  Added `Crypto.ConsensusCryptoBackend` class.  [[#PBFT]]
  -  Added static `ConsensusCryptoBackend` property to `Crypto.CryptoConfig`.
     [[#PBFT]]
- -  Added `Crypto.BlsPrivateKey` class.  [[#PBFT]]
- -  Added `Crypto.BlsPublicKey` class.  [[#PBFT]]
+ -  Added `Crypto.IECPublicKey` interface. [[#PBFT]]
+ -  Added `Crypto.IECPrivateKey` interface. [[#PBFT]]
+ -  Added `Crypto.IECPrivateKey` inherited `Crypto.BlsPrivateKey` class.
+    [[#PBFT]]
+ -  Added `Crypto.IECPublicKey` inherited `Crypto.BlsPublicKey` class.
+    [[#PBFT]]
  -  Added `Crypto.BlsSignature` class.  [[#PBFT]]
+ -  `Crypto.PublicKey` is now inheriting `Crypto.IECPrivateKey`. [[#PBFT]]
+ -  `Crypto.PrivateKey` is now inheriting `Crypto.IECPubliceKey`. [[#PBFT]]
  -  (Libplanet.Net) Added `IReactor` interface.  [[#PBFT]]
  -  (Libplanet.Net) Added `ConsensusReactor` class which inherits
     `IReactor` interface.  [[#PBFT]]

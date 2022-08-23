@@ -4,11 +4,12 @@ using System.Collections.Immutable;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Security.Cryptography;
+using Org.BouncyCastle.Crypto.Parameters;
 using Planetarium.Cryptography.BLS12_381;
 
 namespace Libplanet.Crypto
 {
-    public class BlsPrivateKey : IEquatable<BlsPrivateKey>
+    public class BlsPrivateKey : IEquatable<BlsPrivateKey>, IECPrivateKey
     {
         private const int KeyByteSize = BLS.SECRETKEY_SERIALIZE_SIZE;
         private readonly IReadOnlyList<byte> _privateKey;
@@ -75,6 +76,13 @@ namespace Libplanet.Crypto
             }
         }
 
+        IECPublicKey IECPrivateKey.PublicKey => PublicKey;
+
+        IReadOnlyList<byte> IECPrivateKey.KeyBytes => ByteArray;
+
+        public ECPrivateKeyParameters KeyParam => throw new NotSupportedException(
+            "Currently setting key with BLS key parameter is not supported.");
+
         public BlsSignature ProofOfPossession
         {
             get
@@ -109,13 +117,13 @@ namespace Libplanet.Crypto
 
         public override int GetHashCode() => ByteUtil.CalculateHashCode(ToByteArray());
 
-        public BlsSignature Sign(byte[] message)
+        public byte[] Sign(byte[] message)
         {
             HashDigest<SHA256> hashed = HashDigest<SHA256>.DeriveFrom(message);
-            return new BlsSignature(CryptoConfig.ConsensusCryptoBackend.Sign(hashed, this));
+            return CryptoConfig.ConsensusCryptoBackend.Sign(hashed, this);
         }
 
-        public BlsSignature Sign(ImmutableArray<byte> message) => Sign(message.ToArray());
+        public byte[] Sign(ImmutableArray<byte> message) => Sign(message.ToArray());
 
         [Pure]
         public byte[] ToByteArray() => _privateKey.ToArray();

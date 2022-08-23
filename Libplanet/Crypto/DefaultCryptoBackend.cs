@@ -10,7 +10,7 @@ namespace Libplanet.Crypto
     public class DefaultCryptoBackend<T> : ICryptoBackend<T>
         where T : HashAlgorithm
     {
-        public byte[] Sign(HashDigest<T> messageHash, PrivateKey privateKey)
+        public byte[] Sign(HashDigest<T> messageHash, IECPrivateKey privateKey)
         {
             var h = new Sha256Digest();
             var kCalculator = new HMacDsaKCalculator(h);
@@ -34,10 +34,7 @@ namespace Libplanet.Crypto
             return bos.ToArray();
         }
 
-        public bool Verify(
-            HashDigest<T> messageHash,
-            byte[] signature,
-            PublicKey publicKey)
+        public bool Verify(HashDigest<T> messageHash, byte[] signature, IECPublicKey publicKey)
         {
             try
             {
