@@ -23,7 +23,7 @@ namespace Libplanet.Net
         /// <param name="endPoint">A <see cref="DnsEndPoint"/> consisting of the
         /// host and port of the <see cref="Peer"/>.</param>
         public BoundPeer(
-            PublicKey publicKey,
+            IECPublicKey publicKey,
             DnsEndPoint endPoint)
         : this(publicKey, endPoint, null)
         {
@@ -38,7 +38,7 @@ namespace Libplanet.Net
         }
 
         internal BoundPeer(
-            PublicKey publicKey,
+            IECPublicKey publicKey,
             DnsEndPoint endPoint,
             IPAddress? publicIPAddress)
         : base(publicKey, publicIPAddress)

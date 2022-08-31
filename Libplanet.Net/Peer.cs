@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics.Contracts;
+using System.Linq;
 using System.Net;
 using System.Runtime.Serialization;
 using Bencodex.Types;
@@ -19,20 +20,22 @@ namespace Libplanet.Net
         private static readonly byte[] PublicKeyKey = { 0x70 }; // 'p'
         private static readonly byte[] PublicIpAddressKey = { 0x50 }; // 'P'
 
-        public Peer(PublicKey publicKey)
+        public Peer(IECPublicKey publicKey)
         : this(publicKey, null)
         {
         }
 
         public Peer(Bencodex.Types.Dictionary dictionary)
         : this(
-            new PublicKey(((Binary)dictionary[PublicKeyKey]).ByteArray),
+            ((Binary)dictionary[PublicKeyKey]).ByteArray.Length == 32
+                ? (IECPublicKey)new PublicKey(((Binary)dictionary[PublicKeyKey]).ByteArray)
+                : new BlsPublicKey(((Binary)dictionary[PublicKeyKey]).ByteArray),
             dictionary[PublicIpAddressKey] is Text text ? IPAddress.Parse(text) : null)
         {
         }
 
         internal Peer(
-            PublicKey publicKey,
+            IECPublicKey publicKey,
             IPAddress? publicIPAddress)
         {
             PublicKey = publicKey ??
@@ -42,7 +45,17 @@ namespace Libplanet.Net
 
         protected Peer(SerializationInfo info, StreamingContext context)
         {
-            PublicKey = new PublicKey(info.GetValue<byte[]>(nameof(PublicKey)));
+            var bytes = info.GetValue<byte[]>(nameof(PublicKey));
+
+            if (bytes.Length == 65)
+            {
+                PublicKey = new PublicKey(bytes);
+            }
+            else
+            {
+                PublicKey = new BlsPublicKey(bytes);
+            }
+
             if (info.GetString(nameof(PublicIPAddress)) is string address)
             {
                 PublicIPAddress = IPAddress.Parse(address);
@@ -55,7 +68,7 @@ namespace Libplanet.Net
         /// </summary>
         [LogAsScalar]
         [Pure]
-        public PublicKey PublicKey { get; }
+        public IECPublicKey PublicKey { get; }
 
         /// <summary>The peer's address which is derived from
         /// its <see cref="PublicKey"/>.
@@ -98,12 +111,12 @@ namespace Libplanet.Net
         /// <inheritdoc/>
         public virtual void GetObjectData(SerializationInfo info, StreamingContext context)
         {
-            info.AddValue(nameof(PublicKey), PublicKey.Format(true));
+            info.AddValue(nameof(PublicKey), PublicKey.KeyBytes);
             info.AddValue(nameof(PublicIPAddress), PublicIPAddress?.ToString());
         }
 
         public virtual Bencodex.Types.Dictionary ToBencodex() => Bencodex.Types.Dictionary.Empty
-            .Add(PublicKeyKey, PublicKey.Format(true))
+            .Add(PublicKeyKey, PublicKey.KeyBytes.ToArray())
             .Add(
                 PublicIpAddressKey,
                 PublicIPAddress is IPAddress ip ? (IValue)(Text)ip.ToString() : Null.Value);
