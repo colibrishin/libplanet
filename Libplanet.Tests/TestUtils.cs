@@ -31,6 +31,9 @@ namespace Libplanet.Tests
         public static readonly PrivateKey GenesisMiner = PrivateKey.FromString(
             "2a15e7deaac09ce631e1faa184efadb175b6b90989cf1faed9dfc321ad1db5ac");
 
+        public static readonly BlsPrivateKey ConsensusPrivateKey = BlsPrivateKey.FromString(
+            "228ca2b44ae6e03f29e8e90be5119d0bf763df538d8cdd81b051c9eabce1f1fb");
+
         public static readonly PrivateKey ChainPrivateKey = PrivateKey.FromString(
             "cf36ecf9e47c879a0dbf46b2ecd83fd276182ade0265825e3b8c6ba214467b76");
 
