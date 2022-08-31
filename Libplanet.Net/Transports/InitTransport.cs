@@ -33,7 +33,7 @@ namespace Libplanet.Net.Transports
 
             public string Host { get; set; }
 
-            public PrivateKey MessageSigner { get; set; }
+            public IECPrivateKey MessageSigner { get; set; }
 
             public AppProtocolVersion AppProtocolVersion { get; set; }
 

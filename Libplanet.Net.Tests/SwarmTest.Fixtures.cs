@@ -141,7 +141,7 @@ namespace Libplanet.Net.Tests
                 {
                     ConsensusPeers = ImmutableList<BoundPeer>.Empty,
                     ConsensusPort = 5000,
-                    ConsensusPrivateKey = new PrivateKey(),
+                    ConsensusPrivateKey = new BlsPrivateKey(),
                     ConsensusWorkers = 100,
                     TargetBlockInterval = TimeSpan.FromSeconds(10),
                 });

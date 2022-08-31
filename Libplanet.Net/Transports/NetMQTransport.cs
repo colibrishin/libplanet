@@ -23,7 +23,7 @@ namespace Libplanet.Net.Transports
     /// </summary>
     public class NetMQTransport : ITransport
     {
-        private readonly PrivateKey _privateKey;
+        private readonly IECPrivateKey _privateKey;
         private readonly string _host;
         private readonly IList<IceServer> _iceServers;
         private readonly ILogger _logger;
@@ -93,7 +93,7 @@ namespace Libplanet.Net.Transports
         /// <exception cref="ArgumentException">Thrown when both <paramref name="host"/> and
         /// <paramref name="iceServers"/> are <c>null</c>.</exception>
         public NetMQTransport(
-            PrivateKey privateKey,
+            IECPrivateKey privateKey,
             AppProtocolVersion appProtocolVersion,
             IImmutableSet<PublicKey> trustedAppProtocolVersionSigners,
             int workers,

@@ -98,6 +98,7 @@ namespace Libplanet.Net
                 );
             }
 
+            // TODO: Gets BLS PrivateKey.
             try
             {
                 var pubKey = new PublicKey(ByteUtil.ParseHex(tokens[0]));

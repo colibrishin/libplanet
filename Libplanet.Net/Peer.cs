@@ -27,7 +27,7 @@ namespace Libplanet.Net
 
         public Peer(Bencodex.Types.Dictionary dictionary)
         : this(
-            ((Binary)dictionary[PublicKeyKey]).ByteArray.Length == 32
+            ((Binary)dictionary[PublicKeyKey]).ByteArray.Length == 65
                 ? (IECPublicKey)new PublicKey(((Binary)dictionary[PublicKeyKey]).ByteArray)
                 : new BlsPublicKey(((Binary)dictionary[PublicKeyKey]).ByteArray),
             dictionary[PublicIpAddressKey] is Text text ? IPAddress.Parse(text) : null)
@@ -111,7 +111,7 @@ namespace Libplanet.Net
         /// <inheritdoc/>
         public virtual void GetObjectData(SerializationInfo info, StreamingContext context)
         {
-            info.AddValue(nameof(PublicKey), PublicKey.KeyBytes);
+            info.AddValue(nameof(PublicKey), PublicKey.KeyBytes.ToArray());
             info.AddValue(nameof(PublicIPAddress), PublicIPAddress?.ToString());
         }
 

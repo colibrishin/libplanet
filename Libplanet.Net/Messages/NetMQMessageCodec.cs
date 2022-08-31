@@ -25,7 +25,7 @@ namespace Libplanet.Net.Messages
         /// <inheritdoc/>
         public NetMQMessage Encode(
             Message message,
-            PrivateKey privateKey,
+            IECPrivateKey privateKey,
             AppProtocolVersion appProtocolVersion,
             Peer peer,
             DateTimeOffset timestamp)

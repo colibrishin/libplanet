@@ -98,7 +98,7 @@ namespace Libplanet.Explorer.Executable
         {
             get
             {
-                return Seeds?.Select(seed => $"{ByteUtil.Hex(seed.PublicKey.Format(true))}," +
+                return Seeds?.Select(seed => $"{ByteUtil.Hex(seed.PublicKey.KeyBytes.ToArray())}," +
                                              $"{seed.EndPoint.Host},{seed.EndPoint.Port}");
             }
 

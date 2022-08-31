@@ -126,10 +126,12 @@ namespace Libplanet.Net
                             consensusReactorOption.ConsensusWorkers,
                             host,
                             consensusReactorOption.ConsensusPort,
+                            consensusReactorOption.ConsensusPrivateKey,
                             iceServers,
                             differentAppProtocolVersionEncountered)
                     ),
                     BlockChain,
+                    _privateKey,
                     consensusReactorOption.ConsensusPrivateKey,
                     consensusReactorOption.ConsensusPeers,
                     consensusReactorOption.TargetBlockInterval);
@@ -1131,6 +1133,7 @@ namespace Libplanet.Net
             int workers,
             string host,
             int? listenPort,
+            IECPrivateKey messageSigner,
             IEnumerable<IceServer> iceServers,
             DifferentAppProtocolVersionEncountered differentAppProtocolVersionEncountered
         ) => new InitTransport.TransportParam
@@ -1141,7 +1144,7 @@ namespace Libplanet.Net
             Host = host,
             IceServers = iceServers,
             ListenPort = listenPort,
-            MessageSigner = _privateKey,
+            MessageSigner = messageSigner,
             MessageTimestampBuffer = Options.MessageTimestampBuffer,
             TrustedAppProtocolVersionSigners = TrustedAppProtocolVersionSigners,
         };

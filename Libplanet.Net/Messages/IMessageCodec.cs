@@ -11,7 +11,7 @@ namespace Libplanet.Net.Messages
         /// <paramref name="privateKey"/> and <paramref name="peer"/>.
         /// </summary>
         /// <param name="message">The message to encode.</param>
-        /// <param name="privateKey">The <see cref="PrivateKey"/> to sign the encoded message.
+        /// <param name="privateKey">The <see cref="IECPrivateKey"/> to sign the encoded message.
         /// </param>
         /// <param name="appProtocolVersion">The <see cref="AppProtocolVersion"/> of
         /// the transport layer.</param>
@@ -24,10 +24,10 @@ namespace Libplanet.Net.Messages
         /// <returns>A <see typeref="T"/> containing the signed <see cref="Message"/>.
         /// </returns>
         /// <exception cref="InvalidCredentialException">Thrown when <paramref name="privateKey"/>'s
-        /// <see cref="PublicKey"/> does not match that of <paramref name="peer"/>.</exception>
+        /// <see cref="IECPublicKey"/> does not match that of <paramref name="peer"/>.</exception>
         T Encode(
             Message message,
-            PrivateKey privateKey,
+            IECPrivateKey privateKey,
             AppProtocolVersion appProtocolVersion,
             Peer peer,
             DateTimeOffset timestamp);

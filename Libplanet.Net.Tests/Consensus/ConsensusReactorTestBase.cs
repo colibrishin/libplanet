@@ -35,6 +35,7 @@ namespace Libplanet.Net.Tests.Consensus
         private const int Port = 6100;
         private readonly StoreFixture _fx;
         private readonly PrivateKey[] _privateKey;
+        private readonly BlsPrivateKey[] _consensusPrivateKey;
         private readonly IStore[] _stores;
 
         private ILogger _logger;
@@ -55,6 +56,7 @@ namespace Libplanet.Net.Tests.Consensus
             CancellationTokenSource = new CancellationTokenSource();
 
             _privateKey = new PrivateKey[Count];
+            _consensusPrivateKey = new BlsPrivateKey[Count];
             ConsensusReactors = new ConsensusReactor<DumbAction>[Count];
             ValidatorPeers = new List<BoundPeer>();
             _stores = new IStore[Count];
@@ -63,9 +65,10 @@ namespace Libplanet.Net.Tests.Consensus
             for (var i = 0; i < Count; i++)
             {
                 _privateKey[i] = new PrivateKey();
+                _consensusPrivateKey[i] = new BlsPrivateKey();
                 ValidatorPeers.Add(
                     new BoundPeer(
-                        _privateKey[i].PublicKey,
+                        _consensusPrivateKey[i].PublicKey,
                         new DnsEndPoint("localhost", Port + i)));
                 _stores[i] = new MemoryStore();
                 BlockChains[i] = new BlockChain<DumbAction>(
@@ -81,6 +84,7 @@ namespace Libplanet.Net.Tests.Consensus
                 ConsensusReactors[i] = (ConsensusReactor<DumbAction>)CreateReactor(
                     blockChain: BlockChains[i],
                     key: _privateKey[i],
+                    consensusKey: _consensusPrivateKey[i],
                     consensusPort: Port + i,
                     validatorPeers: ValidatorPeers,
                     newHeightDelayMilliseconds: PropagationDelay * 2);

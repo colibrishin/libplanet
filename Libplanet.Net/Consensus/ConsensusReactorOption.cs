@@ -24,7 +24,7 @@ namespace Libplanet.Net.Consensus
         /// <summary>
         /// A <see cref="PrivateKey"/> for signing block and message.
         /// </summary>
-        public PrivateKey ConsensusPrivateKey { get; set; }
+        public BlsPrivateKey ConsensusPrivateKey { get; set; }
 
         /// <summary>
         /// A list of validators.

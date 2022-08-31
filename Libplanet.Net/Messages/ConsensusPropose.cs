@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Libplanet.Blocks;
 using Libplanet.Crypto;
 using Libplanet.Net.Consensus;
@@ -24,7 +25,7 @@ namespace Libplanet.Net.Messages
         /// <see cref="Libplanet.Net.Consensus.Step.PreVote"/> round.
         /// </param>
         public ConsensusPropose(
-            PublicKey validator,
+            BlsPublicKey validator,
             long height,
             int round,
             BlockHash blockHash,
@@ -65,7 +66,7 @@ namespace Libplanet.Net.Messages
             {
                 var frames = new List<byte[]>
                 {
-                    Validator.Format(true),
+                    Validator.KeyBytes.ToArray(),
                     BitConverter.GetBytes(Height),
                     BitConverter.GetBytes(Round),
                     BlockHash is { } blockHash ? blockHash.ToByteArray() : new[] { Nil },
