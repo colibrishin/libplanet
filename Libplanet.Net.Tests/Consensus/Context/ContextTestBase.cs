@@ -55,7 +55,8 @@ namespace Libplanet.Net.Tests.Consensus.Context
                 BroadcastMessage,
                 BlockChain,
                 height,
-                privateKey: TestUtils.PrivateKeys[(int)nodeId],
+                TestUtils.PrivateKeys[(int)nodeId],
+                TestUtils.ConsensusPrivateKeys[(int)nodeId],
                 validators: TestUtils.Validators,
                 _newHeightDelay);
 
@@ -64,6 +65,7 @@ namespace Libplanet.Net.Tests.Consensus.Context
                 BlockChain,
                 height,
                 TestUtils.PrivateKeys[(int)nodeId],
+                TestUtils.ConsensusPrivateKeys[(int)nodeId],
                 TestUtils.Validators,
                 step,
                 round);

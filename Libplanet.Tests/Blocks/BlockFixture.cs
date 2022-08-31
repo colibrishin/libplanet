@@ -44,9 +44,9 @@ namespace Libplanet.Tests.Blocks
                             0,
                             Genesis.Hash,
                             Genesis.Timestamp,
-                            Miner.PublicKey,
+                            TestUtils.ConsensusPrivateKey.PublicKey,
                             VoteFlag.Commit,
-                            null).Sign(Miner),
+                            null).Sign(TestUtils.ConsensusPrivateKey),
                     }.ToImmutableArray())
             );
             byte[] hasTxNonce =
@@ -75,9 +75,9 @@ namespace Libplanet.Tests.Blocks
                             0,
                             Next.Hash,
                             Next.Timestamp,
-                            Miner.PublicKey,
+                            TestUtils.ConsensusPrivateKey.PublicKey,
                             VoteFlag.Commit,
-                            null).Sign(Miner),
+                            null).Sign(TestUtils.ConsensusPrivateKey),
                     }.ToImmutableArray())
             );
         }

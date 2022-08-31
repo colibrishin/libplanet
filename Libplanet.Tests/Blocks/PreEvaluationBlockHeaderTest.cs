@@ -82,10 +82,11 @@ namespace Libplanet.Tests.Blocks
         [Fact]
         public void Constructors()
         {
-            var validatorA = new PrivateKey();
-            var validatorB = new PrivateKey();
-            var validatorC = new PrivateKey();
-            var invalidValidator = new PrivateKey();
+            var validatorAswarmKey = new PrivateKey();
+            var validatorA = new BlsPrivateKey();
+            var validatorB = new BlsPrivateKey();
+            var validatorC = new BlsPrivateKey();
+            var invalidValidator = new BlsPrivateKey();
             BlockHash blockHash = BlockHash.FromString(
                 "341e8f360597d5bc45ab96aabc5f1b0608063f30af7bd4153556c9536a07693a"
             );
@@ -125,7 +126,7 @@ namespace Libplanet.Tests.Blocks
             {
                 Index = 2,
                 Timestamp = DateTimeOffset.UtcNow,
-                PublicKey = validatorA.PublicKey,
+                PublicKey = validatorAswarmKey.PublicKey,
                 Difficulty = 123,
                 PreviousHash = _contents.GenesisHash,
                 TxHash = HashDigest<SHA256>.FromString(
@@ -150,7 +151,7 @@ namespace Libplanet.Tests.Blocks
             {
                 Index = 2,
                 Timestamp = DateTimeOffset.UtcNow,
-                PublicKey = validatorA.PublicKey,
+                PublicKey = validatorAswarmKey.PublicKey,
                 Difficulty = 123,
                 PreviousHash = _contents.GenesisHash,
                 TxHash = HashDigest<SHA256>.FromString(
@@ -185,7 +186,7 @@ namespace Libplanet.Tests.Blocks
             {
                 Index = 2,
                 Timestamp = DateTimeOffset.UtcNow,
-                PublicKey = validatorA.PublicKey,
+                PublicKey = validatorAswarmKey.PublicKey,
                 Difficulty = 123,
                 PreviousHash = _contents.GenesisHash,
                 TxHash = HashDigest<SHA256>.FromString(
@@ -220,7 +221,7 @@ namespace Libplanet.Tests.Blocks
             {
                 Index = 2,
                 Timestamp = DateTimeOffset.UtcNow,
-                PublicKey = validatorA.PublicKey,
+                PublicKey = validatorAswarmKey.PublicKey,
                 Difficulty = 123,
                 PreviousHash = _contents.GenesisHash,
                 TxHash = HashDigest<SHA256>.FromString(
@@ -262,7 +263,7 @@ namespace Libplanet.Tests.Blocks
             {
                 Index = 2,
                 Timestamp = DateTimeOffset.UtcNow,
-                PublicKey = validatorA.PublicKey,
+                PublicKey = validatorAswarmKey.PublicKey,
                 Difficulty = 123,
                 PreviousHash = _contents.GenesisHash,
                 TxHash = HashDigest<SHA256>.FromString(

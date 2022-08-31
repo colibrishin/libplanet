@@ -109,12 +109,14 @@ namespace Libplanet.Net.Tests.Consensus
         private IReactor CreateReactor(
             BlockChain<DumbAction> blockChain,
             PrivateKey? key = null,
+            BlsPrivateKey? consensusKey = null,
             string host = "localhost",
             int consensusPort = 5101,
             List<BoundPeer> validatorPeers = null!,
             int newHeightDelayMilliseconds = 10_000)
         {
             key ??= new PrivateKey();
+            consensusKey ??= new BlsPrivateKey();
 
             var consensusTransport = new NetMQTransport(
                 key,
@@ -130,6 +132,7 @@ namespace Libplanet.Net.Tests.Consensus
                 consensusTransport,
                 blockChain,
                 key,
+                consensusKey,
                 validatorPeers.ToImmutableList(),
                 TimeSpan.FromMilliseconds(newHeightDelayMilliseconds));
         }

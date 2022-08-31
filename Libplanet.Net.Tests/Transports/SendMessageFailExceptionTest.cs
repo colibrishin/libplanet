@@ -54,5 +54,42 @@ namespace Libplanet.Net.Tests.Transports
                     ie.Message.Equals(ie2.Message)) ||
                 (e.InnerException is null && e2.InnerException is null));
         }
+
+        [Theory]
+        [MemberData(nameof(InnerExceptions))]
+        public void BLSSerialization(Exception? innerException)
+        {
+            Message ping = new PingMsg();
+            BoundPeer peer = new BoundPeer(
+                new BlsPrivateKey().PublicKey,
+                new DnsEndPoint("0.0.0.0", 1234));
+
+            SendMessageFailException e;
+            if (innerException is { } i)
+            {
+                e = new SendMessageFailException("An error message", peer, i);
+            }
+            else
+            {
+                e = new SendMessageFailException("An error message", peer);
+            }
+
+            var f = new BinaryFormatter();
+            SendMessageFailException e2;
+
+            using (var s = new MemoryStream())
+            {
+                f.Serialize(s, e);
+                s.Seek(0, SeekOrigin.Begin);
+                e2 = (SendMessageFailException)f.Deserialize(s);
+            }
+
+            Assert.Equal(e.Message, e2.Message);
+            Assert.Equal(e.Peer, e2.Peer);
+            Assert.True(
+                ((e.InnerException is { } ie && e2.InnerException is { } ie2) &&
+                 ie.Message.Equals(ie2.Message)) ||
+                (e.InnerException is null && e2.InnerException is null));
+        }
     }
 }

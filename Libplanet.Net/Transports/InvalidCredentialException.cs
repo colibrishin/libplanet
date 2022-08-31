@@ -15,8 +15,8 @@ namespace Libplanet.Net.Transports
     {
         internal InvalidCredentialException(
             string message,
-            PublicKey expected,
-            PublicKey actual)
+            IECPublicKey expected,
+            IECPublicKey actual)
             : base(message)
         {
             Expected = expected;
@@ -32,16 +32,16 @@ namespace Libplanet.Net.Transports
             Actual = new PublicKey(info.GetValue<byte[]>(nameof(Actual)));
         }
 
-        public PublicKey Expected { get; private set; }
+        public IECPublicKey Expected { get; private set; }
 
-        public PublicKey Actual { get; private set; }
+        public IECPublicKey Actual { get; private set; }
 
         public override void GetObjectData(
             SerializationInfo info, StreamingContext context)
         {
             base.GetObjectData(info, context);
-            info.AddValue(nameof(Expected), Expected.Format(true));
-            info.AddValue(nameof(Actual), Actual.Format(true));
+            info.AddValue(nameof(Expected), Expected.KeyBytes);
+            info.AddValue(nameof(Actual), Actual.KeyBytes);
         }
     }
 }

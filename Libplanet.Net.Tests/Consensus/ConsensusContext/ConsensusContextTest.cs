@@ -16,13 +16,17 @@ namespace Libplanet.Net.Tests.Consensus.ConsensusContext
     public class ConsensusContextTest : ConsensusContextTestBase
     {
         private static readonly PrivateKey PrivateKeyPeer1 = TestUtils.Peer1Priv;
-        private static readonly List<PublicKey> Validators = new List<PublicKey>()
-            { TestUtils.Peer0Priv.PublicKey, PrivateKeyPeer1.PublicKey, };
+
+        private static readonly BlsPrivateKey ConsensusPrivateKeyPeer1 =
+            TestUtils.Peer1ConsensusPriv;
+
+        private static readonly List<BlsPublicKey> Validators = new List<BlsPublicKey>()
+            { TestUtils.Peer0ConsensusPriv.PublicKey, ConsensusPrivateKeyPeer1.PublicKey, };
 
         private readonly ILogger _logger;
 
         public ConsensusContextTest(ITestOutputHelper output)
-            : base(output, PrivateKeyPeer1, Validators)
+            : base(output, PrivateKeyPeer1, ConsensusPrivateKeyPeer1, Validators)
         {
             const string outputTemplate =
                 "{Timestamp:HH:mm:ss:ffffffZ} - {Message}";
@@ -78,7 +82,7 @@ namespace Libplanet.Net.Tests.Consensus.ConsensusContext
             ConsensusContext.HandleMessage(
                 new ConsensusVote(
                     TestUtils.CreateVote(
-                        TestUtils.Peer0Priv, 1, hash: blockHash, flag: VoteFlag.Absent))
+                        TestUtils.Peer0ConsensusPriv, 1, hash: blockHash, flag: VoteFlag.Absent))
                 {
                     Remote = new Peer(TestUtils.Validators[0]),
                 });
@@ -86,7 +90,7 @@ namespace Libplanet.Net.Tests.Consensus.ConsensusContext
             ConsensusContext.HandleMessage(
                 new ConsensusCommit(
                     TestUtils.CreateVote(
-                        TestUtils.Peer0Priv, 1, hash: blockHash, flag: VoteFlag.Commit))
+                        TestUtils.Peer0ConsensusPriv, 1, hash: blockHash, flag: VoteFlag.Commit))
                 {
                     Remote = new Peer(TestUtils.Validators[0]),
                 });
@@ -123,7 +127,7 @@ namespace Libplanet.Net.Tests.Consensus.ConsensusContext
             Assert.Throws<InvalidHeightMessageException>(
                 () => ConsensusContext.HandleMessage(
                     new ConsensusPropose(
-                        new PrivateKey().PublicKey,
+                        new BlsPrivateKey().PublicKey,
                         0,
                         0,
                         Fx.Block1.Hash,

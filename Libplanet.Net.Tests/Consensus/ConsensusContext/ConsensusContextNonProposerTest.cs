@@ -59,7 +59,7 @@ namespace Libplanet.Net.Tests.Consensus.ConsensusContext
             var block1 = await BlockChain.MineBlock(TestUtils.Peer1Priv, append: false);
             ConsensusContext.HandleMessage(
                 new ConsensusPropose(
-                    TestUtils.Peer1.PublicKey,
+                    TestUtils.Peer1ConsensusPriv.PublicKey,
                     1,
                     0,
                     block1.Hash,
@@ -78,7 +78,7 @@ namespace Libplanet.Net.Tests.Consensus.ConsensusContext
                     DateTimeOffset.UtcNow,
                     TestUtils.Validators[i],
                     VoteFlag.Absent,
-                    null).Sign(TestUtils.PrivateKeys[i]);
+                    null).Sign(TestUtils.ConsensusPrivateKeys[i]);
                 ConsensusContext.HandleMessage(
                     new ConsensusVote(expectedVotes[i])
                     {
@@ -97,7 +97,7 @@ namespace Libplanet.Net.Tests.Consensus.ConsensusContext
                     DateTimeOffset.UtcNow,
                     TestUtils.Validators[i],
                     VoteFlag.Commit,
-                    null).Sign(TestUtils.PrivateKeys[i]);
+                    null).Sign(TestUtils.ConsensusPrivateKeys[i]);
                 ConsensusContext.HandleMessage(
                     new ConsensusCommit(expectedVotes[i])
                     {
@@ -171,9 +171,9 @@ namespace Libplanet.Net.Tests.Consensus.ConsensusContext
             Assert.Equal(2, ConsensusContext.Height);
             Assert.Equal(Step.PreVote, ConsensusContext.Step);
 
-            foreach (var privateKey in TestUtils.PrivateKeys)
+            foreach (var privateKey in TestUtils.ConsensusPrivateKeys)
             {
-                if (privateKey == TestUtils.Peer2Priv)
+                if (privateKey == TestUtils.Peer2ConsensusPriv)
                 {
                     // Peer2 will send a ConsensusVote by handling the ConsensusPropose message.
                     continue;
@@ -197,9 +197,9 @@ namespace Libplanet.Net.Tests.Consensus.ConsensusContext
             await heightTwoStepChangedToPreCommit.WaitAsync();
             Assert.Equal(Step.PreCommit, ConsensusContext.Contexts[2].Step);
 
-            foreach (var privateKey in TestUtils.PrivateKeys)
+            foreach (var privateKey in TestUtils.ConsensusPrivateKeys)
             {
-                if (privateKey == TestUtils.Peer2Priv)
+                if (privateKey == TestUtils.Peer2ConsensusPriv)
                 {
                     // Peer2 will send a ConsensusCommit by handling the ConsensusVote message.
                     continue;
@@ -223,7 +223,7 @@ namespace Libplanet.Net.Tests.Consensus.ConsensusContext
             // Message from higher height
             ConsensusContext.HandleMessage(
                 new ConsensusPropose(
-                    TestUtils.Peer3.PublicKey,
+                    TestUtils.Peer3ConsensusPriv.PublicKey,
                     3,
                     0,
                     blockHeightThree.Hash,

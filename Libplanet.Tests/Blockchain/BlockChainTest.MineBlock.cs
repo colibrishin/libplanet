@@ -554,9 +554,9 @@ namespace Libplanet.Tests.Blockchain
         [Fact]
         public async Task MineBlockWithLastCommit()
         {
-            var keyA = new PrivateKey();
-            var keyB = new PrivateKey();
-            var keyC = new PrivateKey();
+            var keyA = new BlsPrivateKey();
+            var keyB = new BlsPrivateKey();
+            var keyC = new BlsPrivateKey();
 
             var voteSet = new VoteSet(
                 _blockChain.Tip.Index,

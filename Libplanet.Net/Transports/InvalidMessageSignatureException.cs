@@ -16,7 +16,7 @@ namespace Libplanet.Net.Transports
         internal InvalidMessageSignatureException(
             string message,
             Peer peer,
-            PublicKey publicKey,
+            IECPublicKey publicKey,
             byte[] messageToVerify,
             byte[] signature)
             : base(message)
@@ -40,7 +40,7 @@ namespace Libplanet.Net.Transports
 
         public Peer Peer { get; private set; }
 
-        public PublicKey PublicKey { get; private set; }
+        public IECPublicKey PublicKey { get; private set; }
 
         public byte[] MessageToVerify { get; private set; }
 
@@ -51,7 +51,7 @@ namespace Libplanet.Net.Transports
         {
             base.GetObjectData(info, context);
             info.AddValue(nameof(Peer), Peer);
-            info.AddValue(nameof(PublicKey), PublicKey.Format(true));
+            info.AddValue(nameof(PublicKey), PublicKey.KeyBytes);
             info.AddValue(nameof(MessageToVerify), MessageToVerify);
             info.AddValue(nameof(Signature), Signature);
         }
