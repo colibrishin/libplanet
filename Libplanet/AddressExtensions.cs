@@ -15,12 +15,12 @@ namespace Libplanet
         /// <para>This enables a code like <c>publicKey.ToAddress()</c> instead
         /// of <c>new Address(publicKey)</c>.</para>
         /// </summary>
-        /// <param name="publicKey">A <see cref="PublicKey"/> to derive
+        /// <param name="publicKey">A <see cref="IECPublicKey"/> to derive
         /// the corresponding <see cref="Address"/> from.</param>
         /// <returns>The corresponding <see cref="Address"/> derived from
         /// <paramref name="publicKey"/>.</returns>
-        /// <seealso cref="Address(PublicKey)"/>
-        public static Address ToAddress(this PublicKey publicKey)
+        /// <seealso cref="Address(IECPublicKey)"/>
+        public static Address ToAddress(this IECPublicKey publicKey)
         {
             return new Address(publicKey);
         }
@@ -31,11 +31,11 @@ namespace Libplanet
         /// <para>This enables a code like <c>privateKey.ToAddress()</c> instead
         /// of <c>new Address(privateKey.PublicKey)</c>.</para>
         /// </summary>
-        /// <param name="privateKey">A <see cref="PrivateKey"/> to derive
+        /// <param name="privateKey">A <see cref="IECPrivateKey"/> to derive
         /// the corresponding <see cref="Address"/> from.</param>
         /// <returns>The corresponding <see cref="Address"/> derived from
         /// <paramref name="privateKey"/>.</returns>
-        public static Address ToAddress(this PrivateKey privateKey)
+        public static Address ToAddress(this IECPrivateKey privateKey)
         {
             return new Address(privateKey.PublicKey);
         }
