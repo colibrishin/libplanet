@@ -15,7 +15,7 @@ namespace Libplanet
     /// <summary>
     /// An identifier of 20 bytes (or 40 letters in hexadecimal, commonly with
     /// a prefix <c>0x</c>) that refers to a unique account.
-    /// <para>It is derived from the corresponding <see cref="PublicKey"/>
+    /// <para>It is derived from the corresponding <see cref="IPublicKey"/>
     /// of an account, but as a derivation loses information, it is always
     /// unidirectional.</para>
     /// <para>The address derivation from a public key is as follows:</para>
@@ -23,7 +23,7 @@ namespace Libplanet
     /// <item><description>Calculates the Keccak-256, which is a previous form
     /// of SHA-3 before NIST standardized it and does not follow
     /// <a href="http://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.202.pdf"
-    /// >FIPS-202</a>, of the corresponding <see cref="PublicKey"/>.
+    /// >FIPS-202</a>, of the corresponding <see cref="IPublicKey"/>.
     /// </description></item>
     /// <item><description>Takes only the last 20 bytes of the calculated
     /// Keccak-256 hash.</description></item>
@@ -32,12 +32,12 @@ namespace Libplanet
     /// </description></item>
     /// </list>
     /// <para>Since the scheme of the address derivation and the <see
-    /// cref="PrivateKey"/>/<see cref="PublicKey"/> is the same to
+    /// cref="IPrivateKey"/>/<see cref="IPublicKey"/> is the same to
     /// <a href="https://www.ethereum.org/">Ethereum</a>, Ethereum addresses
     /// can be used by Libplanet-backed games/apps too.</para>
     /// </summary>
     /// <remarks>Every <see cref="Address"/> value is immutable.</remarks>
-    /// <seealso cref="PublicKey"/>
+    /// <seealso cref="IPublicKey"/>
     [Serializable]
     public readonly struct Address : ISerializable, IComparable<Address>, IComparable
     {
@@ -95,16 +95,16 @@ namespace Libplanet
 
         /// <summary>
         /// Derives the corresponding <see cref="Address"/> from a <see
-        /// cref="PublicKey"/>.
+        /// cref="IPublicKey"/>.
         /// <para>Note that there is an equivalent extension method
-        /// <see cref="AddressExtensions.ToAddress(PublicKey)"/>, which enables
+        /// <see cref="AddressExtensions.ToAddress(IPublicKey)"/>, which enables
         /// a code like <c>publicKey.ToAddress()</c> instead of
         /// <c>new Address(publicKey)</c>, for convenience.</para>
         /// </summary>
-        /// <param name="publicKey">A <see cref="PublicKey"/> to derive
+        /// <param name="publicKey">A <see cref="IPublicKey"/> to derive
         /// the corresponding <see cref="Address"/> from.</param>
-        /// <seealso cref="AddressExtensions.ToAddress(PublicKey)"/>
-        public Address(PublicKey publicKey)
+        /// <seealso cref="AddressExtensions.ToAddress(IPublicKey)"/>
+        public Address(IPublicKey publicKey)
             : this(DeriveAddress(publicKey))
         {
         }
@@ -305,9 +305,9 @@ namespace Libplanet
             return output;
         }
 
-        private static byte[] DeriveAddress(PublicKey key)
+        private static byte[] DeriveAddress(IPublicKey key)
         {
-            byte[] hashPayload = key.Format(false).Skip(1).ToArray();
+            byte[] hashPayload = key.KeyBytes.ToArray().Skip(1).ToArray();
             var output = CalculateHash(hashPayload);
 
             return output.Skip(output.Length - Size).ToArray();

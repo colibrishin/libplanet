@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics.Contracts;
 using System.Globalization;
+using System.Linq;
 using System.Net;
 using System.Runtime.Serialization;
 using Bencodex.Types;
@@ -21,12 +22,12 @@ namespace Libplanet.Net
         /// <summary>
         /// Initializes a new instance of the <see cref="BoundPeer"/> class.
         /// </summary>
-        /// <param name="publicKey">A <see cref="PublicKey"/> of the
+        /// <param name="publicKey">A <see cref="IPublicKey"/> of the
         /// <see cref="BoundPeer"/>.</param>
         /// <param name="endPoint">A <see cref="DnsEndPoint"/> consisting of the
         /// host and port of the <see cref="BoundPeer"/>.</param>
         public BoundPeer(
-            PublicKey publicKey,
+            IPublicKey publicKey,
             DnsEndPoint endPoint)
             : this(publicKey, endPoint, null)
         {
@@ -46,7 +47,7 @@ namespace Libplanet.Net
 #pragma warning restore SA1118
 
         internal BoundPeer(
-            PublicKey publicKey,
+            IPublicKey publicKey,
             DnsEndPoint endPoint,
             IPAddress? publicIPAddress)
         {
@@ -68,17 +69,17 @@ namespace Libplanet.Net
         }
 
         /// <summary>
-        /// The corresponding <see cref="Libplanet.Crypto.PublicKey"/> of
+        /// The corresponding <see cref="Libplanet.Crypto.IPublicKey"/> of
         /// this peer.
         /// </summary>
         [LogAsScalar]
         [Pure]
-        public PublicKey PublicKey { get; }
+        public IPublicKey PublicKey { get; }
 
         /// <summary>The peer's address which is derived from
-        /// its <see cref="PublicKey"/>.
+        /// its <see cref="IPublicKey"/>.
         /// </summary>
-        /// <seealso cref="PublicKey"/>
+        /// <seealso cref="IPublicKey"/>
         [LogAsScalar]
         [Pure]
         public Address Address => new Address(PublicKey);
@@ -167,8 +168,9 @@ namespace Libplanet.Net
             }
 
             return PublicKey.Equals(other.PublicKey) &&
-                (PublicIPAddress?.Equals(other.PublicIPAddress) ?? other.PublicIPAddress is null) &&
-                EndPoint.Equals(other.EndPoint);
+                   (PublicIPAddress?.Equals(other.PublicIPAddress) ??
+                    other.PublicIPAddress is null) &&
+                   EndPoint.Equals(other.EndPoint);
         }
 
         public override bool Equals(object? obj) => obj is BoundPeer other && Equals(other);
@@ -180,7 +182,7 @@ namespace Libplanet.Net
             SerializationInfo info,
             StreamingContext context)
         {
-            info.AddValue(nameof(PublicKey), PublicKey.Format(true));
+            info.AddValue(nameof(PublicKey), PublicKey.KeyBytes.ToArray());
             info.AddValue("end_point_host", EndPoint.Host);
             info.AddValue("end_point_port", EndPoint.Port);
             info.AddValue(nameof(PublicIPAddress), PublicIPAddress?.ToString());
@@ -188,7 +190,7 @@ namespace Libplanet.Net
 
         public Bencodex.Types.Dictionary ToBencodex() =>
             Bencodex.Types.Dictionary.Empty
-                .Add(PublicKeyKey, PublicKey.Format(true))
+                .Add(PublicKeyKey, PublicKey.KeyBytes.ToArray())
                 .Add(EndPointHostKey, EndPoint.Host)
                 .Add(EndPointPortKey, EndPoint.Port)
                 .Add(

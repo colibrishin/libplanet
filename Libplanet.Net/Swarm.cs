@@ -30,7 +30,7 @@ namespace Libplanet.Net
         private const int InitialBlockDownloadWindow = 100;
         private static readonly Codec Codec = new Codec();
 
-        private readonly PrivateKey _privateKey;
+        private readonly IPrivateKey _privateKey;
         private readonly AppProtocolVersion _appProtocolVersion;
 
         private readonly AsyncLock _runningMutex;
@@ -65,7 +65,7 @@ namespace Libplanet.Net
         /// and their version is signed by a trusted party (i.e.,
         /// <paramref name="trustedAppProtocolVersionSigners"/>).
         /// </param>
-        /// <param name="trustedAppProtocolVersionSigners"><see cref="PublicKey"/>s of parties who
+        /// <param name="trustedAppProtocolVersionSigners"><see cref="IPublicKey"/>s of parties who
         /// signed <see cref="AppProtocolVersion"/>s to trust.  To trust any party, pass
         /// <see langword="null"/>, which is the default.</param>
         /// <param name="options">Options for <see cref="Swarm{T}"/>.</param>
@@ -73,14 +73,14 @@ namespace Libplanet.Net
         /// initialize <see cref="ConsensusReactor{T}"/>.</param>
         public Swarm(
             BlockChain<T> blockChain,
-            PrivateKey privateKey,
+            IPrivateKey privateKey,
             AppProtocolVersion appProtocolVersion,
             int workers = 100,
             string host = null,
             int? listenPort = null,
             IEnumerable<IceServer> iceServers = null,
             DifferentAppProtocolVersionEncountered differentAppProtocolVersionEncountered = null,
-            IEnumerable<PublicKey> trustedAppProtocolVersionSigners = null,
+            IEnumerable<IPublicKey> trustedAppProtocolVersionSigners = null,
             SwarmOptions options = null,
             ConsensusReactorOption? consensusOption = null)
         {
@@ -145,11 +145,11 @@ namespace Libplanet.Net
 
         internal Swarm(
             BlockChain<T> blockChain,
-            PrivateKey privateKey,
+            IPrivateKey privateKey,
             AppProtocolVersion appProtocolVersion,
             RoutingTable routingTable,
             ITransport transport,
-            IEnumerable<PublicKey> trustedAppProtocolVersionSigners = null,
+            IEnumerable<IPublicKey> trustedAppProtocolVersionSigners = null,
             SwarmOptions options = null)
         {
             BlockChain = blockChain ?? throw new ArgumentNullException(nameof(blockChain));
@@ -217,10 +217,10 @@ namespace Libplanet.Net
         public BlockChain<T> BlockChain { get; private set; }
 
         /// <summary>
-        /// <see cref="PublicKey"/>s of parties who signed <see cref="AppProtocolVersion"/>s to
+        /// <see cref="IPublicKey"/>s of parties who signed <see cref="AppProtocolVersion"/>s to
         /// trust.  In case of <see langword="null"/>, any parties are trusted.
         /// </summary>
-        public IImmutableSet<PublicKey> TrustedAppProtocolVersionSigners { get; }
+        public IImmutableSet<IPublicKey> TrustedAppProtocolVersionSigners { get; }
 
         /// <summary>
         /// The application protocol version to comply.

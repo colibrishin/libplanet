@@ -87,12 +87,12 @@ namespace Libplanet.Net.Consensus
 
         private readonly BlockChain<T> _blockChain;
         private readonly Codec _codec;
-        private readonly List<PublicKey> _validators;
+        private readonly List<IPublicKey> _validators;
         private readonly Channel<ConsensusMessage> _messageRequests;
         private readonly Channel<System.Action> _mutationRequests;
         private readonly MessageLog _messageLog;
 
-        private readonly PrivateKey _privateKey;
+        private readonly IPrivateKey _privateKey;
         private readonly HashSet<int> _preVoteTimeoutFlags;
         private readonly HashSet<int> _hasTwoThirdsPreVoteFlags;
         private readonly HashSet<int> _preCommitTimeoutFlags;
@@ -123,13 +123,13 @@ namespace Libplanet.Net.Consensus
         /// <seealso cref="ProcessGenericUponRules"/>
         /// <seealso cref="Voting"/>
         /// </param>
-        /// <param name="validators">A list of <see cref="PublicKey"/> of validators.</param>
+        /// <param name="validators">A list of <see cref="IPublicKey"/> of validators.</param>
         public Context(
             ConsensusContext<T> consensusContext,
             BlockChain<T> blockChain,
             long height,
-            PrivateKey privateKey,
-            List<PublicKey> validators)
+            IPrivateKey privateKey,
+            List<IPublicKey> validators)
             : this(
                 consensusContext,
                 blockChain,
@@ -145,8 +145,8 @@ namespace Libplanet.Net.Consensus
             ConsensusContext<T> consensusContext,
             BlockChain<T> blockChain,
             long height,
-            PrivateKey privateKey,
-            List<PublicKey> validators,
+            IPrivateKey privateKey,
+            List<IPublicKey> validators,
             Step step,
             int round = 0,
             int cacheSize = 128)
@@ -301,10 +301,10 @@ namespace Libplanet.Net.Consensus
         /// Gets the proposer of the given round.
         /// </summary>
         /// <param name="round">A round to get proposer.</param>
-        /// <returns>Returns designated proposer's <see cref="PublicKey"/> for the
+        /// <returns>Returns designated proposer's <see cref="IPublicKey"/> for the
         /// <paramref name="round"/>.
         /// </returns>
-        private PublicKey Proposer(int round)
+        private IPublicKey Proposer(int round)
         {
             // return designated proposer for the height round pair.
             return _validators[(int)((Height + round) % TotalValidators)];

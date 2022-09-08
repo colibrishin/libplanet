@@ -21,22 +21,23 @@ namespace Libplanet.Node
         where T : IAction, new()
     {
         /// <summary>
-        /// The <see cref="PrivateKey"/> used for defining the identity of a <see cref="Swarm{T}"/>.
+        /// The <see cref="IPrivateKey"/> used for defining the identity of a
+        /// <see cref="Swarm{T}"/>.
         /// </summary>
-        private PrivateKey _privateKey;
+        private IPrivateKey _privateKey;
 
         /// <summary>
-        /// The <see cref="PrivateKey"/> used to sign consensus related messages.
+        /// The <see cref="IPrivateKey"/> used to sign consensus related messages.
         /// </summary>
-        private PrivateKey _consensusPrivateKey;
+        private IPrivateKey _consensusPrivateKey;
 
         /// <summary>
         /// Initialize a <see cref="NodeConfig{T}"/> instance.
         /// </summary>
-        /// <param name="privateKey">The <see cref="PrivateKey"/> to use to initialize
+        /// <param name="privateKey">The <see cref="IPrivateKey"/> to use to initialize
         /// a <see cref="Swarm{T}"/> instance.  This determines the identity of a node
         /// on the network.</param>
-        /// <param name="consensusPrivateKey">>The <see cref="PrivateKey"/> to use in
+        /// <param name="consensusPrivateKey">>The <see cref="IPrivateKey"/> to use in
         /// an <see cref="IReactor"/> instance.  This is used to sign consensus related
         /// messages.</param>
         /// <param name="networkConfig">The <see cref="Node.NetworkConfig{T}"/> to use.</param>
@@ -47,8 +48,8 @@ namespace Libplanet.Node
         /// <param name="renderers">The <see cref="IRenderer{T}"/>s for rendering events when
         /// <see cref="BlockChain{T}.Tip"/> changes.</param>
         public NodeConfig(
-            PrivateKey privateKey,
-            PrivateKey consensusPrivateKey,
+            IPrivateKey privateKey,
+            IPrivateKey consensusPrivateKey,
             NetworkConfig<T> networkConfig,
             SwarmConfig swarmConfig,
             IStore store,

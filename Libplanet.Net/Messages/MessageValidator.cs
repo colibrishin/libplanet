@@ -17,7 +17,7 @@ namespace Libplanet.Net.Messages
 
         internal MessageValidator(
             AppProtocolVersion appProtocolVersion,
-            IImmutableSet<PublicKey>? trustedAppProtocolVersionSigners,
+            IImmutableSet<IPublicKey>? trustedAppProtocolVersionSigners,
             DifferentAppProtocolVersionEncountered? differentAppProtocolVersionEncountered,
             TimeSpan? messageTimestampBuffer)
         {
@@ -69,7 +69,7 @@ namespace Libplanet.Net.Messages
         /// </list>
         /// </para>
         /// </summary>
-        public IImmutableSet<PublicKey>? TrustedApvSigners { get; }
+        public IImmutableSet<IPublicKey>? TrustedApvSigners { get; }
 
         /// <summary>
         /// A callback method that gets invoked when a an <see cref="AppProtocolVersion"/>
@@ -135,7 +135,7 @@ namespace Libplanet.Net.Messages
 
         private static void ValidateAppProtocolVersion(
             AppProtocolVersion appProtocolVersion,
-            IImmutableSet<PublicKey>? trustedAppProtocolVersionSigners,
+            IImmutableSet<IPublicKey>? trustedAppProtocolVersionSigners,
             DifferentAppProtocolVersionEncountered? differentAppProtocolVersionEncountered,
             Message message)
         {

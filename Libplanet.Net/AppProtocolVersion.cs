@@ -18,7 +18,7 @@ namespace Libplanet.Net
     /// is theoretically arbitrary, hence a &#x201c;claim.&#x201d; (i.e., no authority).</para>
     /// <para>In order to verify who claimed a version, every <see cref="AppProtocolVersion"/>
     /// has its <see cref="Signature"/> which is made by its <see cref="Signer"/>.
-    /// <see cref="Verify(PublicKey)"/> method purposes to determine whether an information
+    /// <see cref="Verify(IPublicKey)"/> method purposes to determine whether an information
     /// is claimed by its corresponding <see cref="Signer"/> in fact.</para>
     /// </summary>
     public readonly struct AppProtocolVersion : IEquatable<AppProtocolVersion>
@@ -120,7 +120,7 @@ namespace Libplanet.Net
         /// <returns>A signed version claim.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="signer"/> is
         /// <c>null</c>.</exception>
-        public static AppProtocolVersion Sign(PrivateKey signer, int version, IValue extra = null)
+        public static AppProtocolVersion Sign(IPrivateKey signer, int version, IValue extra = null)
         {
             if (signer is null)
             {
@@ -230,7 +230,7 @@ namespace Libplanet.Net
         /// <see cref="Signer"/>'s and the <see cref="Signature"/> is certainly signed by
         /// the <see cref="Signer"/>.</returns>
         [Pure]
-        public bool Verify(PublicKey publicKey) =>
+        public bool Verify(IPublicKey publicKey) =>
             Signer.Equals(new Address(publicKey)) &&
             publicKey.Verify(GetMessage(Version, Extra), Signature.ToBuilder().ToArray());
 

@@ -212,7 +212,7 @@ namespace Libplanet.Blocks
         public Address Miner => Metadata.Miner;
 
         /// <inheritdoc cref="IBlockMetadata.PublicKey"/>
-        public PublicKey? PublicKey => Metadata.PublicKey;
+        public IPublicKey? PublicKey => Metadata.PublicKey;
 
         /// <inheritdoc cref="IBlockMetadata.PreviousHash"/>
         public BlockHash? PreviousHash => Metadata.PreviousHash;
@@ -275,7 +275,7 @@ namespace Libplanet.Blocks
         /// it is not usable with blocks of the earlier <see cref="ProtocolVersion"/>s than 2.
         /// </remarks>
         public ImmutableArray<byte> MakeSignature(
-            PrivateKey privateKey,
+            IPrivateKey privateKey,
             HashDigest<SHA256> stateRootHash
         )
         {

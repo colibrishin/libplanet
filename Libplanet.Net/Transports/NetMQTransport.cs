@@ -23,7 +23,7 @@ namespace Libplanet.Net.Transports
     /// </summary>
     public class NetMQTransport : ITransport
     {
-        private readonly PrivateKey _privateKey;
+        private readonly IPrivateKey _privateKey;
         private readonly string _host;
         private readonly IList<IceServer> _iceServers;
         private readonly ILogger _logger;
@@ -64,10 +64,10 @@ namespace Libplanet.Net.Transports
         /// <summary>
         /// Creates a <see cref="NetMQTransport"/> instance.
         /// </summary>
-        /// <param name="privateKey"><see cref="PrivateKey"/> of the transport layer.</param>
+        /// <param name="privateKey"><see cref="IPrivateKey"/> of the transport layer.</param>
         /// <param name="appProtocolVersion"><see cref="AppProtocolVersion"/>-typed
         /// version of the transport layer.</param>
-        /// <param name="trustedAppProtocolVersionSigners"><see cref="PublicKey"/>s of parties
+        /// <param name="trustedAppProtocolVersionSigners"><see cref="IPublicKey"/>s of parties
         /// to trust <see cref="AppProtocolVersion"/>s they signed.  To trust any party, pass
         /// <c>null</c>.</param>
         /// <param name="workers">The number of background workers (i.e., threads).</param>
@@ -92,9 +92,9 @@ namespace Libplanet.Net.Transports
         /// <exception cref="ArgumentException">Thrown when both <paramref name="host"/> and
         /// <paramref name="iceServers"/> are <c>null</c>.</exception>
         private NetMQTransport(
-            PrivateKey privateKey,
+            IPrivateKey privateKey,
             AppProtocolVersion appProtocolVersion,
-            IImmutableSet<PublicKey> trustedAppProtocolVersionSigners,
+            IImmutableSet<IPublicKey> trustedAppProtocolVersionSigners,
             int workers,
             string host,
             int? listenPort,
@@ -198,10 +198,10 @@ namespace Libplanet.Net.Transports
         /// <summary>
         /// Creates an initialized <see cref="NetMQTransport"/> instance.
         /// </summary>
-        /// <param name="privateKey"><see cref="PrivateKey"/> of the transport layer.</param>
+        /// <param name="privateKey"><see cref="IPrivateKey"/> of the transport layer.</param>
         /// <param name="appProtocolVersion"><see cref="AppProtocolVersion"/>-typed
         /// version of the transport layer.</param>
-        /// <param name="trustedAppProtocolVersionSigners"><see cref="PublicKey"/>s of parties
+        /// <param name="trustedAppProtocolVersionSigners"><see cref="IPublicKey"/>s of parties
         /// to trust <see cref="AppProtocolVersion"/>s they signed.  To trust any party, pass
         /// <c>null</c>.</param>
         /// <param name="workers">The number of background workers (i.e., threads).</param>
@@ -231,9 +231,9 @@ namespace Libplanet.Net.Transports
         /// receive reply <see cref="Message"/>s.
         /// </returns>
         public static async Task<NetMQTransport> Create(
-            PrivateKey privateKey,
+            IPrivateKey privateKey,
             AppProtocolVersion appProtocolVersion,
-            IImmutableSet<PublicKey> trustedAppProtocolVersionSigners,
+            IImmutableSet<IPublicKey> trustedAppProtocolVersionSigners,
             int workers,
             string host,
             int? listenPort,

@@ -35,7 +35,7 @@ namespace Libplanet.Blocks
         private long _index;
         private DateTimeOffset _timestamp = DateTimeOffset.UtcNow;
         private Address _miner;
-        private PublicKey? _publicKey;
+        private IPublicKey? _publicKey;
         private HashDigest<SHA256>? _txHash;
 
         /// <summary>
@@ -139,7 +139,7 @@ namespace Libplanet.Blocks
 
         /// <inheritdoc cref="IBlockMetadata.PublicKey"/>
         /// <remarks>Its setter also updates the <see cref="Miner"/> property too.</remarks>
-        public PublicKey? PublicKey
+        public IPublicKey? PublicKey
         {
             get => _publicKey;
             set
@@ -197,15 +197,15 @@ namespace Libplanet.Blocks
                 dict = dict.Add("transaction_fingerprint", txHash.ByteArray);
             }
 
-            // As blocks hadn't been signed before ProtocolVersion <= 1, the PublicKey property
+            // As blocks hadn't been signed before ProtocolVersion <= 1, the IPublicKey property
             // is nullable type-wise.  Blocks with ProtocolVersion <= 1 had a `reward_beneficiary`
             // field, which referred to the Miner address.  On the other hand, blocks with
             // ProtocolVersion >= 2 have a `public_key` field instead.  (As Miner addresses can be
-            // derived from PublicKeys, we don't need to include both at a time.)  The PublicKey
+            // derived from PublicKeys, we don't need to include both at a time.)  The IPublicKey
             // property in this class guarantees that its ProtocolVersion is <= 1 when it is null
             // and its ProtocolVersion is >= 2 when it is not null:
             dict = PublicKey is { } pubKey && ProtocolVersion > 1
-                ? dict.Add("public_key", pubKey.Format(compress: true)) // ProtocolVersion >= 2
+                ? dict.Add("public_key", pubKey.KeyBytes.ToArray()) // ProtocolVersion >= 2
                 : dict.Add("reward_beneficiary", Miner.ByteArray); /////// ProtocolVersion <= 1
 
             return dict;

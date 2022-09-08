@@ -207,6 +207,6 @@ namespace Libplanet.Blockchain.Policies
 
         /// <inheritdoc/>
         [Pure]
-        public IEnumerable<PublicKey> GetValidators() => new List<PublicKey>();
+        public IEnumerable<IPublicKey> GetValidators() => new List<IPublicKey>();
     }
 }

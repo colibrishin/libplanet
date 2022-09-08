@@ -15,7 +15,7 @@ using Org.BouncyCastle.Crypto.Digests;
 namespace Libplanet.KeyStore
 {
     /// <summary>
-    /// Protects a <see cref="PrivateKey"/> with a passphrase (i.e., password).
+    /// Protects a <see cref="IPrivateKey"/> with a passphrase (i.e., password).
     /// </summary>
     public sealed class ProtectedPrivateKey
     {
@@ -24,10 +24,10 @@ namespace Libplanet.KeyStore
         /// </summary>
         /// <param name="address">The address of the protected private key.</param>
         /// <param name="kdf">A key derivation function to derive a symmetric key to decrypt
-        /// a <see cref="PrivateKey"/>.</param>
+        /// a <see cref="IPrivateKey"/>.</param>
         /// <param name="mac">MAC digest to check if a derived key is correct or not.</param>
-        /// <param name="cipher">A symmetric cipher to decrypt a <see cref="PrivateKey"/>.</param>
-        /// <param name="ciphertext">An encrypted <see cref="PrivateKey"/>.</param>
+        /// <param name="cipher">A symmetric cipher to decrypt a <see cref="IPrivateKey"/>.</param>
+        /// <param name="ciphertext">An encrypted <see cref="IPrivateKey"/>.</param>
         public ProtectedPrivateKey(
             Address address,
             IKdf kdf,
@@ -50,10 +50,10 @@ namespace Libplanet.KeyStore
         /// </summary>
         /// <param name="address">The address of the protected private key.</param>
         /// <param name="kdf">A key derivation function to derive a symmetric key to decrypt
-        /// a <see cref="PrivateKey"/>.</param>
+        /// a <see cref="IPrivateKey"/>.</param>
         /// <param name="mac">MAC digest to check if a derived key is correct or not.</param>
-        /// <param name="cipher">A symmetric cipher to decrypt a <see cref="PrivateKey"/>.</param>
-        /// <param name="ciphertext">An encrypted <see cref="PrivateKey"/>.</param>
+        /// <param name="cipher">A symmetric cipher to decrypt a <see cref="IPrivateKey"/>.</param>
+        /// <param name="ciphertext">An encrypted <see cref="IPrivateKey"/>.</param>
         public ProtectedPrivateKey(
             Address address,
             IKdf kdf,
@@ -76,7 +76,7 @@ namespace Libplanet.KeyStore
 
         /// <summary>
         /// A key derivation function to derive a symmetric key to decrypt
-        /// a <see cref="PrivateKey"/>.
+        /// a <see cref="IPrivateKey"/>.
         /// </summary>
         [Pure]
         public IKdf Kdf { get; }
@@ -85,26 +85,26 @@ namespace Libplanet.KeyStore
         public ImmutableArray<byte> Mac { get; }
 
         /// <summary>
-        /// A symmetric cipher to decrypt a <see cref="PrivateKey"/>.
+        /// A symmetric cipher to decrypt a <see cref="IPrivateKey"/>.
         /// </summary>
         [Pure]
         public ICipher Cipher { get; }
 
         /// <summary>
-        /// An encrypted <see cref="PrivateKey"/>.
+        /// An encrypted <see cref="IPrivateKey"/>.
         /// </summary>
         [Pure]
         public ImmutableArray<byte> Ciphertext { get; }
 
         /// <summary>
-        /// Protects a bare <see cref="PrivateKey"/> using a user input
+        /// Protects a bare <see cref="IPrivateKey"/> using a user input
         /// <paramref name="passphrase"/>.
         /// </summary>
         /// <param name="privateKey">A bare private key to protect.</param>
         /// <param name="passphrase">A user input passphrase (i.e., password).</param>
         /// <returns>A passphrase-protected private key.</returns>
         [Pure]
-        public static ProtectedPrivateKey Protect(PrivateKey privateKey, string passphrase)
+        public static ProtectedPrivateKey Protect(IPrivateKey privateKey, string passphrase)
         {
             var salt = new byte[32];
             using RandomNumberGenerator rng = RandomNumberGenerator.Create();
@@ -115,7 +115,8 @@ namespace Libplanet.KeyStore
             var iv = new byte[16];
             rng.GetBytes(iv);
             var cipher = new Aes128Ctr(iv);
-            ImmutableArray<byte> ciphertext = cipher.Encrypt(encKey, privateKey.ByteArray);
+            ImmutableArray<byte> ciphertext =
+                cipher.Encrypt(encKey, privateKey.KeyBytes.ToImmutableArray());
             ImmutableArray<byte> mac = CalculateMac(derivedKey, ciphertext);
             Address address = privateKey.ToAddress();
             return new ProtectedPrivateKey(address, kdf, mac, cipher, ciphertext);
@@ -292,19 +293,19 @@ namespace Libplanet.KeyStore
         }
 
         /// <summary>
-        /// Gets the protected <see cref="PrivateKey"/> using a user input
+        /// Gets the protected <see cref="IPrivateKey"/> using a user input
         /// <paramref name="passphrase"/>.
         /// </summary>
         /// <param name="passphrase">A user input passphrase (i.e., password).</param>
-        /// <returns>A bare <see cref="PrivateKey"/>.</returns>
+        /// <returns>A bare <see cref="IPrivateKey"/>.</returns>
         /// <exception cref="IncorrectPassphraseException">Thrown when the given
         /// <paramref name="passphrase"/> does not match to the <see cref="ProtectedPrivateKey"/>'s
         /// passphrase.</exception>
         /// <exception cref="MismatchedAddressException">Thrown when the unprotected
-        /// <see cref="PrivateKey"/> does not match to the expected <see cref="Address"/>.
+        /// <see cref="IPrivateKey"/> does not match to the expected <see cref="Address"/>.
         /// </exception>
         [Pure]
-        public PrivateKey Unprotect(string passphrase)
+        public IPrivateKey Unprotect(string passphrase)
         {
             ImmutableArray<byte> derivedKey = Kdf.Derive(passphrase);
             var mac = CalculateMac(derivedKey, Ciphertext);

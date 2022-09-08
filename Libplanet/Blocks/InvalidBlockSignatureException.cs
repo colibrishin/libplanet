@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Immutable;
 using System.Diagnostics.Contracts;
+using System.Linq;
 using System.Runtime.Serialization;
 using Libplanet.Crypto;
 using Libplanet.Serialization;
@@ -22,7 +23,7 @@ namespace Libplanet.Blocks
         /// <param name="invalidSignature">The block signature which is invalid.</param>
         public InvalidBlockSignatureException(
             string message,
-            PublicKey? publicKey,
+            IPublicKey? publicKey,
             ImmutableArray<byte>? invalidSignature
         )
             : base(
@@ -71,7 +72,7 @@ namespace Libplanet.Blocks
         /// The public key used for signing the block.
         /// </summary>
         [Pure]
-        public PublicKey? PublicKey { get; }
+        public IPublicKey? PublicKey { get; }
 
         /// <summary>
         /// The block signature which is invalid.
@@ -84,7 +85,7 @@ namespace Libplanet.Blocks
             base.GetObjectData(info, context);
             if (PublicKey is { } pubKey)
             {
-                info.AddValue(nameof(PublicKey), pubKey.Format(true));
+                info.AddValue(nameof(PublicKey), pubKey.KeyBytes.ToArray());
             }
 
             if (InvalidSignature is { } sig)

@@ -28,7 +28,7 @@ namespace Libplanet.Blockchain
         /// </para>
         /// </summary>
         /// <param name="proposer">
-        /// The proposer's <see cref="PublicKey"/> that proposes the block.</param>
+        /// The proposer's <see cref="IPublicKey"/> that proposes the block.</param>
         /// <param name="timestamp">The <see cref="DateTimeOffset"/> when proposing started.</param>
         /// <param name="maxBlockBytes">The maximum number of bytes a block can have.
         /// See also <see cref="IBlockPolicy{T}.GetMaxBlockBytes(long)"/>.</param>
@@ -46,7 +46,7 @@ namespace Libplanet.Blockchain
         /// <exception cref="OperationCanceledException">Thrown when
         /// <see cref="BlockChain{T}.Tip"/> is changed while proposing.</exception>
         public Block<T> ProposeBlock(
-            PrivateKey proposer,
+            IPrivateKey proposer,
             DateTimeOffset? timestamp = null,
             long? maxBlockBytes = null,
             int? maxTransactions = null,
@@ -71,7 +71,7 @@ namespace Libplanet.Blockchain
         /// Proposes a next <see cref="Block{T}"/> using staged <see cref="Transaction{T}"/>s.
         /// </summary>
         /// <param name="proposer">
-        /// The proposer's <see cref="PublicKey"/> that proposes the block.</param>
+        /// The proposer's <see cref="IPublicKey"/> that proposes the block.</param>
         /// <param name="timestamp">The <see cref="DateTimeOffset"/> when proposing started.</param>
         /// <param name="maxBlockBytes">The maximum number of bytes a block can have.
         /// See also <see cref="IBlockPolicy{T}.GetMaxBlockBytes(long)"/>.</param>
@@ -89,7 +89,7 @@ namespace Libplanet.Blockchain
         /// <exception cref="OperationCanceledException">Thrown when
         /// <see cref="BlockChain{T}.Tip"/> is changed while proposing.</exception>
         public Block<T> ProposeBlock(
-            PrivateKey proposer,
+            IPrivateKey proposer,
             DateTimeOffset timestamp,
             long maxBlockBytes,
             int maxTransactions,

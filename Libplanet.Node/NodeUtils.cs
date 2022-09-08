@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Text;
 using Bencodex;
 using Bencodex.Types;
@@ -39,12 +40,12 @@ namespace Libplanet.Node
 
         /// <summary>
         /// Creates an empty genesis <see cref="Block{T}"/> using <see cref="DefaultBlockPolicy"/>
-        /// signed with a random <see cref="PrivateKey"/>.
+        /// signed with a random <see cref="IPrivateKey"/>.
         /// </summary>
         /// <returns>An empty genesis <see cref="Block{T}"/> using <see cref="DefaultBlockPolicy"/>
-        /// signed with a random <see cref="PrivateKey"/>.</returns>
+        /// signed with a random <see cref="IPrivateKey"/>.</returns>
         /// <remarks>
-        /// A <see cref="PrivateKey"/> used to sign a newly created genesis <see cref="Block{T}"/>
+        /// A <see cref="IPrivateKey"/> used to sign a newly created genesis <see cref="Block{T}"/>
         /// is ephemeral, i.e. lost after its creation.  This method is mostly for developmental
         /// purposes and testing.
         /// </remarks>
@@ -55,13 +56,13 @@ namespace Libplanet.Node
         /// Creates an empty genesis <see cref="Block{T}"/> signed with
         /// <paramref name="privateKey"/>.
         /// </summary>
-        /// <param name="privateKey">The <see cref="PrivateKey"/> to sign the genesis
+        /// <param name="privateKey">The <see cref="IPrivateKey"/> to sign the genesis
         /// <see cref="Block{T}"/> with.</param>
         /// <param name="blockPolicy">The <see cref="IBlockPolicy{T}"/> to use.</param>
         /// <returns>An empty genesis <see cref="Block{T}"/> signed with
         /// <paramref name="privateKey"/>.</returns>
         public static Block<T> CreateGenesisBlock(
-            PrivateKey privateKey,
+            IPrivateKey privateKey,
             IBlockPolicy<T> blockPolicy)
         {
             return new BlockContent<T>(new BlockMetadata()
@@ -180,11 +181,11 @@ namespace Libplanet.Node
                 ?? throw new ArgumentException($"Invalid URI was given: {uri}", nameof(uri));
 
         /// <summary>
-        /// Loads a <see cref="PrivateKey"/> from <paramref name="path"/>.
+        /// Loads a <see cref="IPrivateKey"/> from <paramref name="path"/>.
         /// </summary>
-        /// <param name="path">The location of which a <see cref="PrivateKey"/> is saved.</param>
-        /// <returns>A <see cref="PrivateKey"/> loaded from <paramref name="path"/>.</returns>
-        public static PrivateKey LoadPrivateKey(string path)
+        /// <param name="path">The location of which a <see cref="IPrivateKey"/> is saved.</param>
+        /// <returns>A <see cref="IPrivateKey"/> loaded from <paramref name="path"/>.</returns>
+        public static IPrivateKey LoadPrivateKey(string path)
         {
             using (StreamReader stream = new StreamReader(path, Encoding.UTF8))
             {
@@ -194,14 +195,14 @@ namespace Libplanet.Node
         }
 
         /// <summary>
-        /// Saves a <see cref="PrivateKey"/> from <paramref name="path"/>.
+        /// Saves a <see cref="IPrivateKey"/> from <paramref name="path"/>.
         /// </summary>
-        /// <param name="path">The location of which a <see cref="PrivateKey"/> is to be saved.
+        /// <param name="path">The location of which a <see cref="IPrivateKey"/> is to be saved.
         /// </param>
-        /// <param name="privateKey">The <see cref="PrivateKey"/> to save.</param>
+        /// <param name="privateKey">The <see cref="IPrivateKey"/> to save.</param>
         /// <exception cref="ArgumentException">Thrown when a file already exists
         /// at <paramref name="path"/>.</exception>
-        public static void SavePrivateKey(string path, PrivateKey privateKey)
+        public static void SavePrivateKey(string path, IPrivateKey privateKey)
         {
             if (File.Exists(path))
             {
@@ -212,7 +213,7 @@ namespace Libplanet.Node
             {
                 using (StreamWriter stream = new StreamWriter(path, false, Encoding.UTF8))
                 {
-                    stream.WriteLine(ByteUtil.Hex(privateKey.ByteArray));
+                    stream.WriteLine(ByteUtil.Hex(privateKey.KeyBytes.ToArray()));
                 }
             }
         }

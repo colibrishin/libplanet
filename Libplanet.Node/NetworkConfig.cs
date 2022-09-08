@@ -22,7 +22,7 @@ namespace Libplanet.Node
         /// and <see cref="NodeUtils{T}.DefaultStagePolicy"/>.
         /// An empty genesis <see cref="Block{T}"/> compliant with
         /// <see cref="NodeUtils{T}.DefaultBlockPolicy"/> is created and signed using
-        /// an ephemeral <see cref="PrivateKey"/>.
+        /// an ephemeral <see cref="IPrivateKey"/>.
         /// </summary>
         public NetworkConfig()
         {
@@ -55,12 +55,12 @@ namespace Libplanet.Node
         public AppProtocolVersion AppProtocolVersion { get; set; } = default;
 
         /// <summary>
-        /// The set of <see cref="PublicKey"/>s to trust when a node encounters
+        /// The set of <see cref="IPublicKey"/>s to trust when a node encounters
         /// an <see cref="Libplanet.Net.AppProtocolVersion"/> that is different from
         /// <see cref="NetworkConfig{T}.AppProtocolVersion"/>.  To trust any party,
         /// set this to <see langword="null"/>.  Set to <see langword="null"/> by default.
         /// </summary>
-        public ISet<PublicKey>? TrustedAppProtocolVersionSigners { get; set; } = null;
+        public ISet<IPublicKey>? TrustedAppProtocolVersionSigners { get; set; } = null;
 
         /// <summary>
         /// The event triggered when a node encounters

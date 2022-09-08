@@ -32,9 +32,9 @@ namespace Libplanet.Tx
         /// Creates a <see cref="TxMetadata"/> instance with a <paramref name="publicKey"/>.
         /// Other fields can be set using property setters.
         /// </summary>
-        /// <param name="publicKey">Configures <see cref="PublicKey"/> and <see cref="Signer"/>.
+        /// <param name="publicKey">Configures <see cref="IPublicKey"/> and <see cref="Signer"/>.
         /// </param>
-        public TxMetadata(PublicKey publicKey)
+        public TxMetadata(IPublicKey publicKey)
         {
             PublicKey = publicKey;
         }
@@ -46,7 +46,7 @@ namespace Libplanet.Tx
         /// <param name="metadata">The transaction metadata whose data to copy.</param>
         /// <remarks><see cref="ITxMetadata.Signer"/> from the specified <paramref name="metadata"/>
         /// is ignored.  <see cref="Signer"/> field is automatically derived from
-        /// <see cref="PublicKey"/> instead.</remarks>
+        /// <see cref="IPublicKey"/> instead.</remarks>
         public TxMetadata(ITxMetadata metadata)
         {
             Nonce = metadata.Nonce;
@@ -87,7 +87,7 @@ namespace Libplanet.Tx
         public long Nonce { get; set; }
 
         /// <inheritdoc cref="ITxMetadata.Signer"/>
-        /// <remarks>This is automatically derived from <see cref="PublicKey"/>.</remarks>
+        /// <remarks>This is automatically derived from <see cref="IPublicKey"/>.</remarks>
         public Address Signer => new Address(PublicKey);
 
         /// <inheritdoc cref="ITxMetadata.UpdatedAddresses"/>
@@ -98,7 +98,7 @@ namespace Libplanet.Tx
         public DateTimeOffset Timestamp { get; set; } = DateTimeOffset.UtcNow;
 
         /// <inheritdoc cref="ITxMetadata.PublicKey"/>
-        public PublicKey PublicKey { get; }
+        public IPublicKey PublicKey { get; }
 
         /// <inheritdoc cref="ITxMetadata.GenesisHash"/>
         public BlockHash? GenesisHash { get; set; }
@@ -146,7 +146,7 @@ namespace Libplanet.Tx
                 (UpdatedAddresses.Any()
                     ? $"\n    {string.Join("\n    ", UpdatedAddresses)};\n"
                     : ";\n") +
-                $"  {nameof(PublicKey)} = {PublicKey},\n" +
+                $"  {nameof(IPublicKey)} = {PublicKey},\n" +
                 $"  {nameof(Timestamp)} = {Timestamp},\n" +
                 $"  {nameof(GenesisHash)} = {GenesisHash?.ToString() ?? "(null)"},\n" +
                 "}";
@@ -163,7 +163,7 @@ namespace Libplanet.Tx
                 .Add(NonceKey, Nonce)
                 .Add(SignerKey, Signer.ByteArray)
                 .Add(UpdatedAddressesKey, updatedAddresses)
-                .Add(PublicKeyKey, PublicKey.ToImmutableArray(compress: false))
+                .Add(PublicKeyKey, PublicKey.KeyBytes.ToArray())
                 .Add(
                     TimestampKey,
                     Timestamp.ToString(TimestampFormat, CultureInfo.InvariantCulture));

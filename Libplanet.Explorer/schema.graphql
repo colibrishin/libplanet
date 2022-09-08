@@ -49,7 +49,7 @@ type Block {
 
   # The public key of the Miner. This is used for verifying the signature.
   # It is mandatory since ProtocolVersion 2, so It may be null under that version.
-  publicKey: PublicKey
+  publicKey: IPublicKey
 
   # The previous block, If it's a genesis block (i.e., its Index is 0) this should be null.
   previousBlock: Block
@@ -60,7 +60,7 @@ type Block {
   # The Hash of the resulting states after evaluating transactions and a BlockAction. (if exists)
   stateRootHash: ByteString!
 
-  # The digital signature of the whole block content (except for Hash, which is derived from the signature and other contents). This is made by the Miner's PrivateKey.
+  # The digital signature of the whole block content (except for Hash, which is derived from the signature and other contents). This is made by the Miner's IPrivateKey.
   signature: ByteString
 
   # Transactions belonging to the block.
@@ -75,7 +75,7 @@ scalar ByteString
 
 scalar Address
 
-scalar PublicKey
+scalar IPublicKey
 
 # The `DateTimeOffset` scalar type represents a date, time and offset from UTC. `DateTimeOffset` expects timestamps to be formatted in accordance with the [ISO-8601](https://en.wikipedia.org/wiki/ISO_8601) standard.
 scalar DateTimeOffset
@@ -92,13 +92,13 @@ type Transaction {
   # A Address of the account who signs this transaction.
   signer: Address!
 
-  # A PublicKey of the account who signs this transaction. The Signer address is always corresponding to this for each transaction.
+  # A IPublicKey of the account who signs this transaction. The Signer address is always corresponding to this for each transaction.
   publicKey: ByteString!
 
   # list of addresses whose states would be affected by actions in this transaction.
   updatedAddresses: [Address!]!
 
-  # A digital signature of the content of this Transaction. This is signed by the account who corresponds to PublicKey.
+  # A digital signature of the content of this Transaction. This is signed by the account who corresponds to IPublicKey.
   signature: ByteString!
 
   # The time this transaction is created and signed.

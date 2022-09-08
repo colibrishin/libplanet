@@ -21,8 +21,8 @@ namespace Libplanet.Net.Consensus
         where T : IAction, new()
     {
         private readonly BlockChain<T> _blockChain;
-        private readonly PrivateKey _privateKey;
-        private readonly List<PublicKey> _validators;
+        private readonly IPrivateKey _privateKey;
+        private readonly List<IPublicKey> _validators;
         private readonly TimeSpan _newHeightDelay;
         private readonly ILogger _logger;
         private readonly Dictionary<long, Context<T>> _contexts;
@@ -41,9 +41,9 @@ namespace Libplanet.Net.Consensus
         /// <param name="height">The current height of consensus. this value should be same as the
         /// index of <see cref="BlockChain{T}.Tip"/> + 1.
         /// </param>
-        /// <param name="privateKey">A <see cref="PrivateKey"/> for signing message and blocks.
+        /// <param name="privateKey">A <see cref="IPrivateKey"/> for signing message and blocks.
         /// </param>
-        /// <param name="validators">A list of validator's <see cref="PublicKey"/>,
+        /// <param name="validators">A list of validator's <see cref="IPublicKey"/>,
         /// also including self.
         /// </param>
         /// <param name="newHeightDelay">A time delay in starting the consensus for the next height
@@ -53,8 +53,8 @@ namespace Libplanet.Net.Consensus
             DelegateBroadcastMessage broadcastMessage,
             BlockChain<T> blockChain,
             long height,
-            PrivateKey privateKey,
-            List<PublicKey> validators,
+            IPrivateKey privateKey,
+            List<IPublicKey> validators,
             TimeSpan newHeightDelay)
         {
             BroadcastMessage = broadcastMessage;

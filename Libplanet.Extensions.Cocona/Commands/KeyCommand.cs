@@ -44,7 +44,7 @@ namespace Libplanet.Extensions.Cocona.Commands
         {
             ChangeKeyStorePath(path);
             string passphraseValue = passphrase.Take("Passphrase: ", "Retype passphrase: ");
-            PrivateKey pkey = new PrivateKey();
+            IPrivateKey pkey = new PrivateKey();
             ProtectedPrivateKey ppk = ProtectedPrivateKey.Protect(pkey, passphraseValue);
             Guid keyId = Add(ppk, dryRun);
             if (json)
@@ -124,7 +124,7 @@ namespace Libplanet.Extensions.Cocona.Commands
             }
             else
             {
-                PrivateKey privateKey = ValidateRawHex(key);
+                IPrivateKey privateKey = ValidateRawHex(key);
                 string passphraseValue = passphrase.Take("Passphrase: ", "Retype passphrase: ");
                 ProtectedPrivateKey ppk = ProtectedPrivateKey.Protect(
                     privateKey, passphraseValue);
@@ -151,8 +151,8 @@ namespace Libplanet.Extensions.Cocona.Commands
         )
         {
             ChangeKeyStorePath(path);
-            PrivateKey key = UnprotectKey(keyId, passphrase);
-            byte[] rawKey = publicKey ? key.PublicKey.Format(true) : key.ToByteArray();
+            IPrivateKey key = UnprotectKey(keyId, passphrase);
+            byte[] rawKey = publicKey ? key.PublicKey.KeyBytes.ToArray() : key.KeyBytes.ToArray();
             using Stream stdout = Console.OpenStandardOutput();
             if (bytes)
             {
@@ -229,7 +229,7 @@ namespace Libplanet.Extensions.Cocona.Commands
         )
         {
             ChangeKeyStorePath(storePath);
-            PrivateKey key = UnprotectKey(keyId, passphrase);
+            IPrivateKey key = UnprotectKey(keyId, passphrase);
 
             byte[] message;
             if (path == "-")
@@ -273,13 +273,13 @@ namespace Libplanet.Extensions.Cocona.Commands
             string key
         )
         {
-            PrivateKey privateKey = ValidateRawHex(key);
+            IPrivateKey privateKey = ValidateRawHex(key);
             string addr = privateKey.ToAddress().ToString();
-            string pub = ByteUtil.Hex(privateKey.PublicKey.Format(compress: true));
+            string pub = ByteUtil.Hex(privateKey.PublicKey.KeyBytes.ToArray());
             Utils.PrintTable(("Public Key", "Address"), new[] { (pub, addr) });
         }
 
-        public PrivateKey UnprotectKey(
+        public IPrivateKey UnprotectKey(
             Guid keyId,
             PassphraseParameters passphrase,
             bool ignoreStdin = false
@@ -324,9 +324,9 @@ namespace Libplanet.Extensions.Cocona.Commands
             );
         }
 
-        private PrivateKey ValidateRawHex(string rawKeyHex)
+        private IPrivateKey ValidateRawHex(string rawKeyHex)
         {
-            PrivateKey key;
+            IPrivateKey key;
             try
             {
                 key = PrivateKey.FromString(rawKeyHex);

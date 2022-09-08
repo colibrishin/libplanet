@@ -130,6 +130,6 @@ namespace Libplanet.Blockchain.Policies
         /// </summary>
         /// <returns><see cref="IEnumerable{T}"/> of validator.</returns>
         [Pure]
-        IEnumerable<PublicKey> GetValidators();
+        IEnumerable<IPublicKey> GetValidators();
     }
 }

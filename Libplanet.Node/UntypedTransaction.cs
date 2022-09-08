@@ -106,7 +106,7 @@ namespace Libplanet.Node
         public DateTimeOffset Timestamp => _metadata.Timestamp;
 
         /// <inheritdoc cref="ITxMetadata.PublicKey"/>
-        public PublicKey PublicKey => _metadata.PublicKey;
+        public IPublicKey PublicKey => _metadata.PublicKey;
 
         /// <inheritdoc cref="ITxMetadata.GenesisHash"/>
         public BlockHash? GenesisHash => _metadata.GenesisHash;

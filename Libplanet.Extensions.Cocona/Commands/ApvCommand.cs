@@ -50,7 +50,7 @@ namespace Libplanet.Extensions.Cocona.Commands
                 );
             }
 
-            PrivateKey key = new KeyCommand().UnprotectKey(keyId, passphrase, ignoreStdin: true);
+            IPrivateKey key = new KeyCommand().UnprotectKey(keyId, passphrase, ignoreStdin: true);
             IValue? extraValue = null;
             if (extraFile is string path)
             {
@@ -136,7 +136,7 @@ namespace Libplanet.Extensions.Cocona.Commands
                 foreach (string pubKeyHex in pubKeyHexes)
                 {
                     string opt = $"-p/--public-key=\"{pubKeyHex}\"";
-                    PublicKey pubKey;
+                    IPublicKey pubKey;
                     try
                     {
                         pubKey = new PublicKey(ByteUtil.ParseHex(pubKeyHex));
@@ -173,7 +173,7 @@ namespace Libplanet.Extensions.Cocona.Commands
 
                     // FIXME: The command should take options like --key-id, --key-passphrase, &
                     // --key-passphrase-file:
-                    PublicKey pubKey = keyInstance.UnprotectKey(
+                    IPublicKey pubKey = keyInstance.UnprotectKey(
                         keyId,
                         new PassphraseParameters()
                     ).PublicKey;

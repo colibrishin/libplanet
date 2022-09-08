@@ -18,8 +18,8 @@ namespace Libplanet.Tx
         long Nonce { get; }
 
         /// <summary>
-        /// A <see cref="PublicKey"/> of the account who signs this transaction.
-        /// This is derived from the <see cref="PublicKey"/>.
+        /// A <see cref="IPublicKey"/> of the account who signs this transaction.
+        /// This is derived from the <see cref="IPublicKey"/>.
         /// </summary>
         Address Signer { get; }
 
@@ -36,11 +36,11 @@ namespace Libplanet.Tx
         DateTimeOffset Timestamp { get; }
 
         /// <summary>
-        /// A <see cref="PublicKey"/> of the account who signs this transaction.
+        /// A <see cref="IPublicKey"/> of the account who signs this transaction.
         /// The <see cref="Signer"/> address is always corresponding to this
         /// for each transaction.  This cannot be <see langword="null"/>.
         /// </summary>
-        PublicKey PublicKey { get; }
+        IPublicKey PublicKey { get; }
 
         /// <summary>
         /// A <see cref="HashDigest{SHA256}"/> value of the genesis which this transaction is made

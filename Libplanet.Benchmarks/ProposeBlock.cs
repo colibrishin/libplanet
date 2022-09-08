@@ -11,7 +11,7 @@ namespace Libplanet.Benchmarks
     public class ProposeBlock
     {
         private BlockChain<DumbAction> _blockChain;
-        private PrivateKey _privateKey;
+        private IPrivateKey _privateKey;
 
         public ProposeBlock()
         {

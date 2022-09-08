@@ -75,7 +75,7 @@ namespace Libplanet.Store
         public Address Miner => _metadata.Miner;
 
         /// <inheritdoc cref="IBlockMetadata.PublicKey"/>
-        public PublicKey? PublicKey => _metadata.PublicKey;
+        public IPublicKey? PublicKey => _metadata.PublicKey;
 
         /// <inheritdoc cref="IBlockMetadata.PreviousHash"/>
         public BlockHash? PreviousHash => _metadata.PreviousHash;

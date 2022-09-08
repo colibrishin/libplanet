@@ -26,10 +26,10 @@ namespace Libplanet.Benchmarks
         private const int WaitTimeout = 5 * 1000;
         private readonly NullBlockPolicy<DumbAction> _policy;
         private readonly IStagePolicy<DumbAction> _stagePolicy;
-        private readonly PrivateKey _miner;
+        private readonly IPrivateKey _miner;
         private readonly List<Block<DumbAction>> _blocks;
         private readonly AppProtocolVersion _appProtocolVersion;
-        private PrivateKey[] _keys;
+        private IPrivateKey[] _keys;
         private DefaultStoreFixture[] _fxs;
         private BlockChain<DumbAction>[] _blockChains;
         private Swarm<DumbAction>[] _swarms;
@@ -54,7 +54,7 @@ namespace Libplanet.Benchmarks
         public void InitializeSwarms()
         {
             _keys = TestUtils.AdjacentKeys;
-            var consensusKeys = new PrivateKey[SwarmNumber];
+            var consensusKeys = new IPrivateKey[SwarmNumber];
             _fxs = new DefaultStoreFixture[SwarmNumber];
             _blockChains = new BlockChain<DumbAction>[SwarmNumber];
             _swarms = new Swarm<DumbAction>[SwarmNumber];

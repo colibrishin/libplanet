@@ -10,12 +10,12 @@ namespace Libplanet.Explorer.GraphTypes
     {
         public PublicKeyType()
         {
-            Name = "PublicKey";
+            Name = "IPublicKey";
         }
 
         public override object Serialize(object value)
         {
-            if (value is PublicKey pubKey)
+            if (value is IPublicKey pubKey)
             {
                 return pubKey.ToString();
             }

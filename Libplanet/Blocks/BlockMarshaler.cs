@@ -63,7 +63,7 @@ namespace Libplanet.Blocks
             }
 
             dict = metadata.PublicKey is { } pubKey
-                ? dict.Add(PublicKeyKey, pubKey.Format(compress: true))
+                ? dict.Add(PublicKeyKey, pubKey.KeyBytes.ToArray())
                 : dict.Add(MinerKey, metadata.Miner.ByteArray);
 
             if (metadata.LastCommit is { } commit)

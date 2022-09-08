@@ -29,11 +29,11 @@ To be released.
 
  -  Added `LastCommit` property to `IBlockMetadata`.  [[#PBFT]]
  -  Added `IBlockPolicy.GetValidators()` method.  [[#PBFT]]
- -  Parameter type `PrivateKey privateKey` in
-    `Crypto.ICryptoBackend.Sign(HashDigest<T>, PrivateKey)` is now
+ -  Parameter type `IPrivateKey privateKey` in
+    `Crypto.ICryptoBackend.Sign(HashDigest<T>, IPrivateKey)` is now
     `IPrivateKey`.  [[#PBFT]]
- -  Parameter type `PublicKey publicKey` in
-    `Crypto.ICryptoBackend.Verify(HashDigest<T>, byte[], PublicKey)` is
+ -  Parameter type `IPublicKey publicKey` in
+    `Crypto.ICryptoBackend.Verify(HashDigest<T>, byte[], IPublicKey)` is
     now `IPublicKey`.  [[#PBFT]]
  -  Bumped `BlockMetadata.CurrentProtocolVersion` to 4.  [[#PBFT]]
  -  Changed `IPreEvaluationBlockHeader.PreEvaluationHash` type from
@@ -63,8 +63,8 @@ To be released.
  -  Added `Crypto.IPublicKey` inherited `Crypto.BlsPublicKey` class.
     [[#PBFT]]
  -  Added `Crypto.BlsSignature` class.  [[#PBFT]]
- -  `Crypto.PublicKey` is now inheriting `Crypto.IPrivateKey`.  [[#PBFT]]
- -  `Crypto.PrivateKey` is now inheriting `Crypto.IPublicKey`.  [[#PBFT]]
+ -  `Crypto.IPublicKey` is now inheriting `Crypto.IPrivateKey`.  [[#PBFT]]
+ -  `Crypto.IPrivateKey` is now inheriting `Crypto.IPublicKey`.  [[#PBFT]]
  -  (Libplanet.Net) Added `IReactor` interface.  [[#PBFT]]
  -  (Libplanet.Net) Added `ConsensusReactor` class which inherits
     `IReactor` interface.  [[#PBFT]]
@@ -121,7 +121,7 @@ To be released.
 
 ### Backward-incompatible API changes
 
- -  Renamed `BlockChain<T>.MakeTransaction(PrivateKey, IEnumerable<T>,
+ -  Renamed `BlockChain<T>.MakeTransaction(IPrivateKey, IEnumerable<T>,
     IImmutableSet<Address>, DateTimeOffset?)` method's `actions` parameter to
     `customActions`.  [[#2151], [#2273]]
 
@@ -131,7 +131,7 @@ To be released.
 
 ### Added APIs
 
- -  Added `BlockChain<T>.MakeTransaction(PrivateKey, IAction,
+ -  Added `BlockChain<T>.MakeTransaction(IPrivateKey, IAction,
     IImmutableSet<Address>, DateTimeOffset?)` overloaded method.
     [[#2151], [#2273]]
 
@@ -151,7 +151,7 @@ Version 0.41.1
 
 Released on August 31, 2022.
 
- -  Fixed a bug where `Transaction<T>.Create(long, PrivateKey, BlockHash?,
+ -  Fixed a bug where `Transaction<T>.Create(long, IPrivateKey, BlockHash?,
     IAction, IImmutableSet<Address>?, DateTimeOffset?)` method had thrown
     `ArgumentNullException` with valid arguments.  [[#2268], [#2270]]
 
@@ -326,7 +326,7 @@ Version 0.40.1
 
 Released on August 31, 2022.
 
- -  Fixed a bug where `Transaction<T>.Create(long, PrivateKey, BlockHash?,
+ -  Fixed a bug where `Transaction<T>.Create(long, IPrivateKey, BlockHash?,
     IAction, IImmutableSet<Address>?, DateTimeOffset?)` method had thrown
     `ArgumentNullException` with valid arguments.  [[#2268]]
 
@@ -340,7 +340,7 @@ Released on August 12, 2022.
 
 ### Deprecated APIs
 
- -  `Transaction<T>(long, Address, PublicKey, BlockHash?,
+ -  `Transaction<T>(long, Address, IPublicKey, BlockHash?,
     IImmutableSet<Address>, DateTimeOffset, IEnumerable<T>, byte[])` constructor
     is now deprecated.  Use `Transaction<T>(ITxMetadata, IEnumerable<T>,
     byte[])` constructor or `Transaction<T>.Create()` static method instead.
@@ -364,13 +364,13 @@ Released on August 12, 2022.
     [[#2149], [#2151], [#2175]]
      -  Renamed `Transaction<T>(ITxMetadata, IEnumerable<T>, byte[])`
         constructor's parameter `actions` to `customActions`.
-     -  Renamed `Transaction<T>(long, Address, PublicKey, BlockHash?,
+     -  Renamed `Transaction<T>(long, Address, IPublicKey, BlockHash?,
         IImmutableSet<Address>, DateTimeOffset, IEnumerable<T>, byte[])`
         constructor's parameter `actions` to `customActions`.
-     -  Renamed `Transaction<T>.Create(long, PrivateKey, BlockHash?,
+     -  Renamed `Transaction<T>.Create(long, IPrivateKey, BlockHash?,
         IEnumerable<T>, IImmutableSet<Address>?, DateTimeOffset?)` static
         method's parameter `actions` to `customActions`.
-     -  Renamed `Transaction<T>.CreateUnsigned(long, PrivateKey, BlockHash?,
+     -  Renamed `Transaction<T>.CreateUnsigned(long, IPrivateKey, BlockHash?,
         IEnumerable<T>, IImmutableSet<Address>?, DateTimeOffset?)` static
         method's parameter `actions` to `customActions`.
      -  Renamed `TxMetadata.ToBencodex(IEnumerable<IValue>,
@@ -445,9 +445,9 @@ Released on August 12, 2022.
     methods taking `customActions`.  [[#2149], [#2151], [#2175]]
      -  Added `Transaction<T>(ITxMetadata, IAction, byte[])` overloaded
         constructor.
-     -  Added `Transaction<T>.Create(long, PrivateKey, BlockHash?, IAction,
+     -  Added `Transaction<T>.Create(long, IPrivateKey, BlockHash?, IAction,
         IImmutableSet<Address>?, DateTimeOffset?)` overloaded static method.
-     -  Added `Transaction<T>.CreateUnsigned(long, PrivateKey, BlockHash?,
+     -  Added `Transaction<T>.CreateUnsigned(long, IPrivateKey, BlockHash?,
         IAction, IImmutableSet<Address>?, DateTimeOffset?)` overloaded static
         method.
      -  Added `TxMetadata.ToBencodex(IValue, ImmutableArray<byte>?)` overloaded
@@ -533,7 +533,7 @@ Released on July 18th, 2022.
 
 ### Bug fixes
 
- -  Fixed a bug where `PrivateKey()` constructor had returned an invalid key
+ -  Fixed a bug where `IPrivateKey()` constructor had returned an invalid key
     less than 32 bytes.  [[#1696], [#2091]]
  -  (Libplanet.Net) Invalid `Uri.UserInfo` with multiple colons is now
     rejected by `IceServer(Uri url)` constructor and exception is thrown.
@@ -587,7 +587,7 @@ Released on June 7th, 2022.
 
 ### Behavioral changes
 
- -  Added `PrivateKey(string)` constructor for hexadecimal string.
+ -  Added `IPrivateKey(string)` constructor for hexadecimal string.
     [[#2012], [#2022]]
  -  Allow `0x` prefix for `Address` class constructor.
     `DeriveAddress` method will remove `0x` prefix string.
@@ -698,15 +698,15 @@ Released on May 25th, 2022.
 
 ### Behavioral changes
 
- -  `Transaction<T>(long, Address, PublicKey, BlockHash?,
+ -  `Transaction<T>(long, Address, IPublicKey, BlockHash?,
     IImmutableSet<Address>, DateTimeOffset, IEnumerable<T>, byte[])` constructor
     became to ignore its second parameter `Address signer`.  Instead,
     `Transaction<T>.Signer` property is now automatically derived from its
-    `PublicKey`.  [[#1164], [#1978]]
+    `IPublicKey`.  [[#1164], [#1978]]
 
 ### Bug fixes
 
- -  Fixed `InvalidOperationException` thrown by `PublicKey.Verify()` method
+ -  Fixed `InvalidOperationException` thrown by `IPublicKey.Verify()` method
     if `signature` is a `default(ImmutableArray<byte>)`.  Instead, it silently
     returns `false` now.  [[#1978]]
  -  Fixed `NullReferenceException` thrown by `ByteUtil.Hex(in
@@ -907,7 +907,7 @@ Released on April 19th, 2022.
  -  Inner logic of `ByteUtil.CalculateHashCode(byte[] bytes)` has modified.
     [[#1866], [#1891]]
  -  (Libplanet.Net) `IMessageCodec.Encode()` now requires a *matching*
-    `PrivateKey` to be provided for `Peer`.  [[#1904], [#1905]]
+    `IPrivateKey` to be provided for `Peer`.  [[#1904], [#1905]]
 
 ### Dependencies
 
@@ -2086,9 +2086,9 @@ Version 0.19.2
 
 Released on November 3, 2021.
 
- -  `PrivateKey(IReadOnlyList<byte>)` overloaded constructor no more accepts
+ -  `IPrivateKey(IReadOnlyList<byte>)` overloaded constructor no more accepts
     a list shorter or longer than 32 bytes.  [[#1571], [#1572]]
- -  `PrivateKey.FromString()` method no more accept a hexadecimal digits
+ -  `IPrivateKey.FromString()` method no more accept a hexadecimal digits
     shorter or longer than 64 characters.  [[#1571], [#1572]]
  -  Fixed a bug where `HashAlgorithmType.Digest(byte[])` and
     `HashAlgorithmType.Digest(ImmutableArray<byte>)` methods had returned
@@ -2223,9 +2223,9 @@ Version 0.18.4
 
 Released on November 2, 2021.
 
- -  `PrivateKey(IReadOnlyList<byte>)` overloaded constructor no more accepts
+ -  `IPrivateKey(IReadOnlyList<byte>)` overloaded constructor no more accepts
     a list shorter or longer than 32 bytes.  [[#1571]]
- -  `PrivateKey.FromString()` method no more accept a hexadecimal digits
+ -  `IPrivateKey.FromString()` method no more accept a hexadecimal digits
     shorter or longer than 64 characters.  [[#1571]]
 
 [#1571]: https://github.com/planetarium/libplanet/pull/1571
@@ -2268,7 +2268,7 @@ Version 0.18.1
 
 Released on October 21, 2021.
 
- -  Fixed a bug where `PublicKey.Verify()` method had thrown exceptions
+ -  Fixed a bug where `IPublicKey.Verify()` method had thrown exceptions
     for some invalid inputs.  [[#1520]]
  -  `BaseStore.GetBlock<T>()` method now throws `InvalidOperationException`
     when it fails to load a requested block's transactions.  [[#1500], [#1532]]
@@ -2385,9 +2385,9 @@ Released on October 13, 2021.
         ImmutableArray<byte>?, BlockHash)` overloaded constructor.
         [[#1164], [#1492]]
      -  Added `Block<T>.Signature` property.
-     -  Added `Block<T>.PublicKey` property.
+     -  Added `Block<T>.IPublicKey` property.
      -  Added `BlockHeader.Signature` property.
-     -  Added `BlockHeader.PublicKey` property.
+     -  Added `BlockHeader.IPublicKey` property.
      -  Added `InvalidBlockPublicKeyException` class.
      -  Added `InvalidBlockSignatureException` class.
  -  `IStateStore` now requires implementations to be trie.
@@ -2411,7 +2411,7 @@ Released on October 13, 2021.
         with `TrieStateStore.PruneStates(IImmutableSet<HashDigest<SHA256>>)`
         method.
  -  The types of `BlockChain<T>.MineBlock()` overloaded methods' `miner`
-    parameter became `PrivateKey` (were `Address`).  [[#1457], [#1507]]
+    parameter became `IPrivateKey` (were `Address`).  [[#1457], [#1507]]
 
 ### Backward-incompatible network protocol changes
 
@@ -2438,7 +2438,7 @@ Released on October 13, 2021.
  -  Added `Block<T>(PreEvaluationBlock<T>, HashDigest<SHA256>)` overloaded
     constructor.  [[#1146], [#1164], [#1492]]
  -  Added `Block<T>.HashAlgorithm` property.  [[#1492]]
- -  Added `Block<T>.PublicKey` property.  [[#1457], [#1507]]
+ -  Added `Block<T>.IPublicKey` property.  [[#1457], [#1507]]
  -  Added `Block<T>.Signature` property.  [[#1457], [#1507]]
  -  Added `Block<T>(PreEvaluationBlock<T>, HashDigest<SHA256>,
     ImmutableArray<byte>?)` overloaded constructor.
@@ -2446,7 +2446,7 @@ Released on October 13, 2021.
  -  Added `Block<T>(IBlockHeader, IEnumerable<Transaction<T>>)` overloaded
     constructor.  [[#1164], [#1492]]
  -  Added `BlockHeader.HashAlgorithm` property.  [[#1492]]
- -  Added `BlockHeader.PublicKey` property.  [[#1457], [#1507]]
+ -  Added `BlockHeader.IPublicKey` property.  [[#1457], [#1507]]
  -  Added `BlockHeader.Signature` property.  [[#1457], [#1507]]
  -  Added `BlockHeader(PreEvaluationBlockHeader, HashDigest<SHA256>,
     ImmutableArray<byte>?)` overloaded constructor.
@@ -2508,12 +2508,12 @@ Released on October 13, 2021.
     blocks with the protocol version 2 or later must have public keys.
     If a block lacks public key, `InvalidBlockPublicKeyException` is thrown.
     [[#1457], [#1507]]
- -  `PublicKey.ToString()` method now returns its hexadecimal representation
+ -  `IPublicKey.ToString()` method now returns its hexadecimal representation
     in compressed form.  [[#1507]]
 
 ### Bug fixes
 
- -  Fixed `NullReferenceException` that `PublicKey.Verify()` method had thrown
+ -  Fixed `NullReferenceException` that `IPublicKey.Verify()` method had thrown
     with a non-null empty `signature`.  [[#1507]]
  -  Fixed `TxExecution` not updating during preload.  [[#1508], [#1509]]
 
@@ -2542,14 +2542,14 @@ Released on September 28, 2021.
     interface.  [[#1442]]
  -  Return type for `BlockDemandTable.Add()` is now `void`.  [[#1435], [#1443]]
  -  Added `BlockInsufficientTxsException`.  [[#1445]]
- -  `PrivateKey()` constructor's parameter type became `IReadOnlyList<byte>`
+ -  `IPrivateKey()` constructor's parameter type became `IReadOnlyList<byte>`
     (was `byte[]`).  [[#1464]]
- -  `PrivateKey.ByteArray` property's type became `ImmutableArray<byte>`
-    (was `byte[]`).  To get a mutable one, use `PrivateKey.ToByteArray()`
+ -  `IPrivateKey.ByteArray` property's type became `ImmutableArray<byte>`
+    (was `byte[]`).  To get a mutable one, use `IPrivateKey.ToByteArray()`
     method instead.  [[#1464]]
- -  `PublicKey()` constructor's parameter type became `IReadOnlyList<byte>`
+ -  `IPublicKey()` constructor's parameter type became `IReadOnlyList<byte>`
     (was `byte[]`).  [[#1464]]
- -  `PublicKey.Verify()` method's both parameter types became
+ -  `IPublicKey.Verify()` method's both parameter types became
     `IReadOnlyList<byte>` (were both `byte[]`).  [[#1464]]
  -  `HashDigest<T>.DeriveFrom()` method's parameter type became
     `IReadOnlyList<byte>` (was `byte[]`).  [[#1464]]
@@ -2625,14 +2625,14 @@ Released on September 28, 2021.
 ### Added APIs
 
  -  `IBlockExcerpt.ExcerptEquals` extension method added.  [[#1440]]
- -  Added `PrivateKey.FromString()` method.  [[#1475]]
- -  Added `PrivateKey.Sign(ImmutableArray<byte>)` overloaded method.  [[#1464]]
- -  Added `PrivateKey.Decrypt(ImmutableArray<byte>)` overloaded method.
+ -  Added `IPrivateKey.FromString()` method.  [[#1475]]
+ -  Added `IPrivateKey.Sign(ImmutableArray<byte>)` overloaded method.  [[#1464]]
+ -  Added `IPrivateKey.Decrypt(ImmutableArray<byte>)` overloaded method.
     [[#1464]]
- -  Added `PrivateKey.ToByteArray()` method.  [[#1464]]
- -  Added `PublicKey.Encrypt(ImmutableArray<byte>)` overloaded method.
+ -  Added `IPrivateKey.ToByteArray()` method.  [[#1464]]
+ -  Added `IPublicKey.Encrypt(ImmutableArray<byte>)` overloaded method.
     [[#1464]]
- -  Added `PublicKey.ToImmutableArray()` method.  [[#1464]]
+ -  Added `IPublicKey.ToImmutableArray()` method.  [[#1464]]
  -  Added `Nonce(ImmutableArray<byte>)` overloaded constructor.  [[#1464]]
  -  Added `HashAlgorithmType.Digest(IEnumerable<byte[]>)` overloaded method.
     [[#1480]]
@@ -3726,9 +3726,9 @@ Released on October 27, 2020.
  -  Added `options` optional parameter to `Swarm<T>()` constructor.
     [[#926]]
  -  `ICryptoBackend` became to `ICryptoBackend<T>`.  [[#932]]
- -  `ICryptoBackend.Verify(HashDigest<SHA256>, byte[], PublicKey)` became to
-    `ICryptoBackend<T>.Verify(HashDigest<T>, byte[], PublicKey)` [[#932]]
- -  Added `ICryptoBackend<T>.Sign(HashDigest<T>, PrivateKey)` method.
+ -  `ICryptoBackend.Verify(HashDigest<SHA256>, byte[], IPublicKey)` became to
+    `ICryptoBackend<T>.Verify(HashDigest<T>, byte[], IPublicKey)` [[#932]]
+ -  Added `ICryptoBackend<T>.Sign(HashDigest<T>, IPrivateKey)` method.
     [[#932]]
  -  `DefaultCryptoBackend` became to `DefaultCryptoBackend<T>`.  [[#932]]
  -  Added `ImmutableArray<byte>`-typed `preEvaluationHash` parameter to
@@ -3763,10 +3763,10 @@ Released on October 27, 2020.
     [[#946]]
  -  Removed `Peer.AppProtocolVersion` property.  [[#949]]
  -  Removed `Peer.IsCompatibleWith()` method.  [[#949]]
- -  Replaced `Peer(PublicKey, AppProtocolVersion)` constructor with
-    `Peer(PublicKey)` constructor.  [[#949]]
- -  Replaced `BoundPeer(PublicKey, DnsEndPoint, AppProtocolVersion)` constructor
-    with `Peer(PublicKey, DnsEndPoint)` constructor.  [[#949]]
+ -  Replaced `Peer(IPublicKey, AppProtocolVersion)` constructor with
+    `Peer(IPublicKey)` constructor.  [[#949]]
+ -  Replaced `BoundPeer(IPublicKey, DnsEndPoint, AppProtocolVersion)` constructor
+    with `Peer(IPublicKey, DnsEndPoint)` constructor.  [[#949]]
  -  Extracted `IStore`'s some methods dedicated to block states into
     `IBlockStatesStore`.  [[#950]]
      -  `ListStateKeys()` method.
@@ -4200,7 +4200,7 @@ Released on April 27, 2020.
     differentVersionPeerEncountered = null` parameter became replaced by
     `DifferentAppProtocolVersionEncountered
     differentAppProtocolVersionEncountered = null` parameter.  [[#266], [#815]]
- -  Added `IEnumerable<PublicKey> trustedAppProtocolVersionSigners = null`
+ -  Added `IEnumerable<IPublicKey> trustedAppProtocolVersionSigners = null`
     parameter to `Swarm()` constructor.  [[#266], [#815]]
  -  Removed `DifferentProtocolVersionEventArgs` class.  [[#266], [#815]]
  -  Removed `createdAt` parameter from `Swarm()` constructor.  [[#838]]
@@ -4226,7 +4226,7 @@ Released on April 27, 2020.
 
 ### Added APIs
 
- -  Added `AddressExtensions.ToAddress(this PrivateKey)` overloaded extension
+ -  Added `AddressExtensions.ToAddress(this IPrivateKey)` overloaded extension
     method.  [[#825]]
  -  Added `BlockHashDownloadState` class, a subclass of `PreloadState`.
     [[#707], [#798]]
@@ -5058,7 +5058,7 @@ Released on August 22, 2019.
     the `Transaction<T>` more than once.  [[#413]]
  -  `BlockChain<T>.Swap()` became to omit common block finding when `render` is
     `false`.  [[#423]]
- -  `PrivateKey(byte[])` constructor became to check validity.  [[#438]]
+ -  `IPrivateKey(byte[])` constructor became to check validity.  [[#438]]
 
 ### Bug fixes
 
@@ -5203,7 +5203,7 @@ Released on July 8, 2019.
  -  Added `IncompleteBlockStatesException` class.  [[#272], [#285]]
  -  Added `completeStates` option to `BlockChain<T>.GetStates()` method.
     [[#272], [#285]]
- -  Added `BlockChain<T>.MakeTransaction(PrivateKey, IEnumerable<T>,
+ -  Added `BlockChain<T>.MakeTransaction(IPrivateKey, IEnumerable<T>,
     IImmutableSet<Address>, DateTimeOffset?)` method.  [[#294]]
  -  Added `BlockChain<T>.GetNextTxNonce()` method which counts staged
     transactions too during nonce computation.  [[#270], [#294]]
@@ -5503,7 +5503,7 @@ Version 0.2.0
 
 Released on April 5, 2019.
 
- -  `PrivateKey.Decrypt()` now throws an `InvalidCiphertextException`
+ -  `IPrivateKey.Decrypt()` now throws an `InvalidCiphertextException`
     instead of returning `null` when `cipherText` is invalid.  [[#140]]
  -  `Transaction<T>`'s `Sender`–`Recipient` model was replaced by
     `Signer`–`UpdatedAddresses` model.   Unlike cryptocurrencies,

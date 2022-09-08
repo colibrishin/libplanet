@@ -36,10 +36,10 @@ namespace Libplanet.Net.Consensus
         /// <param name="blockChain">A blockchain that will be committed, which
         /// will be voted by consensus, and used for proposing a block.
         /// </param>
-        /// <param name="privateKey">A <see cref="PrivateKey"/> for using in signing a block,
+        /// <param name="privateKey">A <see cref="IPrivateKey"/> for using in signing a block,
         /// message.
         /// </param>
-        /// <param name="validatorPeers">A list of validator's <see cref="PublicKey"/>, including
+        /// <param name="validatorPeers">A list of validator's <see cref="IPublicKey"/>, including
         /// itself.
         /// </param>
         /// <param name="newHeightDelay">A time delay in starting the consensus for the next height
@@ -48,7 +48,7 @@ namespace Libplanet.Net.Consensus
         public ConsensusReactor(
             ITransport consensusTransport,
             BlockChain<T> blockChain,
-            PrivateKey privateKey,
+            IPrivateKey privateKey,
             ImmutableList<BoundPeer> validatorPeers,
             TimeSpan newHeightDelay)
         {

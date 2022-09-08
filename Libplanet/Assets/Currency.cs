@@ -23,7 +23,7 @@ namespace Libplanet.Assets
     /// <example>
     /// Here is how US Dollar can be represented using <see cref="Currency"/>:
     /// <code>
-    /// var USMint = new PrivateKey();
+    /// var USMint = new IPrivateKey();
     /// var USD = Currency.Uncapped(ticker: "USD", decimalPlaces: 2, minter: USMint.ToAddress());
     /// var twentyThreeBucks = 23 * USD;
     /// // Or alternatively: USD * 23;

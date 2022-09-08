@@ -94,7 +94,7 @@ namespace Libplanet.Tx
         /// this constructor is only useful when all details of
         /// a <see cref="Transaction{T}"/> need to be manually adjusted.
         /// For the most cases, the fa&#xe7;ade factory <see
-        /// cref="Create(long, PrivateKey, BlockHash?, IEnumerable{T},
+        /// cref="Create(long, IPrivateKey, BlockHash?, IEnumerable{T},
         /// IImmutableSet{Address}, DateTimeOffset?)"/> is more useful.</para>
         /// </summary>
         /// <param name="nonce">The number of previous
@@ -104,8 +104,8 @@ namespace Libplanet.Tx
         /// <param name="signer">Ignored.  Left only for backward compatibility.  It will be
         /// completely gone in the future.  See also <paramref name="publicKey"/> parameter's
         /// description.</param>
-        /// <param name="publicKey">A <see cref="PublicKey"/> used for signing this transaction.
-        /// This cannot be <see langword="null"/>.  This goes to the <see cref="PublicKey"/>
+        /// <param name="publicKey">A <see cref="IPublicKey"/> used for signing this transaction.
+        /// This cannot be <see langword="null"/>.  This goes to the <see cref="IPublicKey"/>
         /// property, and <see cref="Signer"/> property is also derived from this value.</param>
         /// <param name="genesisHash">A <see cref="HashDigest{SHA256}"/> value
         /// of the genesis which this <see cref="Transaction{T}"/> is made from.
@@ -134,7 +134,7 @@ namespace Libplanet.Tx
         public Transaction(
             long nonce,
             Address signer,
-            PublicKey publicKey,
+            IPublicKey publicKey,
             BlockHash? genesisHash,
             IImmutableSet<Address> updatedAddresses,
             DateTimeOffset timestamp,
@@ -219,7 +219,7 @@ namespace Libplanet.Tx
         /// <summary>
         /// A digital signature of the content of this
         /// <see cref="Transaction{T}"/>.  This is signed by the account
-        /// who corresponds to <see cref="PublicKey"/>.
+        /// who corresponds to <see cref="IPublicKey"/>.
         /// This cannot be <c>null</c>.
         /// </summary>
         /// <returns>A new <see cref="byte"/> array of this transaction's
@@ -276,7 +276,7 @@ namespace Libplanet.Tx
         public DateTimeOffset Timestamp => _metadata.Timestamp;
 
         /// <inheritdoc cref="ITxMetadata.PublicKey"/>
-        public PublicKey PublicKey => _metadata.PublicKey;
+        public IPublicKey PublicKey => _metadata.PublicKey;
 
         /// <inheritdoc cref="ITxMetadata.GenesisHash"/>
         public BlockHash? GenesisHash => _metadata.GenesisHash;
@@ -291,7 +291,7 @@ namespace Libplanet.Tx
         /// <returns>A decoded <see cref="Transaction{T}"/> object.</returns>
         /// <exception cref="InvalidTxSignatureException">Thrown when its
         /// <see cref="Signature"/> is invalid or not signed by
-        /// the account who corresponds to <see cref="PublicKey"/>.
+        /// the account who corresponds to <see cref="IPublicKey"/>.
         /// </exception>
         /// <seealso cref="Serialize(bool)"/>
         public static Transaction<T> Deserialize(byte[] bytes, bool validate = true)
@@ -319,7 +319,7 @@ namespace Libplanet.Tx
         }
 
         /// <summary>
-        /// Almost same as <see cref="Create(long, PrivateKey, BlockHash?, IEnumerable{T},
+        /// Almost same as <see cref="Create(long, IPrivateKey, BlockHash?, IEnumerable{T},
         /// IImmutableSet{Address}?, DateTimeOffset?)"/> except that this factory method takes
         /// a <paramref name="systemAction"/> instead of user-defined custom actions.
         /// </summary>
@@ -336,7 +336,7 @@ namespace Libplanet.Tx
         /// <returns>A created signed <see cref="Transaction{T}"/>.</returns>
         public static Transaction<T> Create(
             long nonce,
-            PrivateKey privateKey,
+            IPrivateKey privateKey,
             BlockHash? genesisHash,
             IAction systemAction,
             IImmutableSet<Address>? updatedAddresses = null,
@@ -361,7 +361,7 @@ namespace Libplanet.Tx
 
         /// <summary>
         /// A fa&#xe7;ade factory to create a new <see cref="Transaction{T}"/>.
-        /// Unlike the <see cref="Transaction(long, Address, PublicKey, BlockHash?,
+        /// Unlike the <see cref="Transaction(long, Address, IPublicKey, BlockHash?,
         /// IImmutableSet{Address}, DateTimeOffset, IEnumerable{T}, byte[])"/>
         /// constructor, it automatically fills the following values from:
         /// <list type="table">
@@ -374,7 +374,7 @@ namespace Libplanet.Tx
         /// <description><paramref name="privateKey"/></description>
         /// </item>
         /// <item>
-        /// <term><see cref="PublicKey"/></term>
+        /// <term><see cref="IPublicKey"/></term>
         /// <description><paramref name="privateKey"/></description>
         /// </item>
         /// <item>
@@ -416,9 +416,9 @@ namespace Libplanet.Tx
         /// <see cref="Transaction{T}"/>s committed by the <see cref="Signer"/>
         /// of this transaction.  This goes to the
         /// <see cref="Transaction{T}.Nonce"/> property.</param>
-        /// <param name="privateKey">A <see cref="PrivateKey"/> of the account
+        /// <param name="privateKey">A <see cref="IPrivateKey"/> of the account
         /// who creates and signs a new transaction.  This key is used to fill
-        /// the <see cref="Signer"/>, <see cref="PublicKey"/>, and
+        /// the <see cref="Signer"/>, <see cref="IPublicKey"/>, and
         /// <see cref="Signature"/> properties, but this in itself is not
         /// included in the transaction.</param>
         /// <param name="genesisHash">A <see cref="HashDigest{SHA256}"/> value
@@ -448,7 +448,7 @@ namespace Libplanet.Tx
         /// </exception>
         public static Transaction<T> Create(
             long nonce,
-            PrivateKey privateKey,
+            IPrivateKey privateKey,
             BlockHash? genesisHash,
             IEnumerable<T> customActions,
             IImmutableSet<Address>? updatedAddresses = null,
@@ -477,7 +477,7 @@ namespace Libplanet.Tx
         }
 
         /// <summary>
-        /// Almost same as <see cref="CreateUnsigned(long, PublicKey, BlockHash?, IEnumerable{T},
+        /// Almost same as <see cref="CreateUnsigned(long, IPublicKey, BlockHash?, IEnumerable{T},
         /// IImmutableSet{Address}?, DateTimeOffset?)"/> except that this factory method takes
         /// a <paramref name="systemAction"/> instead of user-defined custom actions.
         /// </summary>
@@ -492,7 +492,7 @@ namespace Libplanet.Tx
         /// <returns>A created unsigned <see cref="Transaction{T}"/>.</returns>
         public static Transaction<T> CreateUnsigned(
             long nonce,
-            PublicKey publicKey,
+            IPublicKey publicKey,
             BlockHash? genesisHash,
             IAction systemAction,
             IImmutableSet<Address>? updatedAddresses = null,
@@ -515,7 +515,7 @@ namespace Libplanet.Tx
 
         /// <summary>
         /// A fa&#xe7;ade factory to create a new <see cref="Transaction{T}"/>.
-        /// Unlike the <see cref="Transaction(long, Address, PublicKey, BlockHash?,
+        /// Unlike the <see cref="Transaction(long, Address, IPublicKey, BlockHash?,
         /// IImmutableSet{Address}, DateTimeOffset, IEnumerable{T}, byte[])"/>
         /// constructor, it automatically fills the following values from:
         /// <list type="table">
@@ -528,7 +528,7 @@ namespace Libplanet.Tx
         /// <description><paramref name="publicKey"/></description>
         /// </item>
         /// <item>
-        /// <term><see cref="PublicKey"/></term>
+        /// <term><see cref="IPublicKey"/></term>
         /// <description><paramref name="publicKey"/></description>
         /// </item>
         /// <item>
@@ -568,9 +568,9 @@ namespace Libplanet.Tx
         /// <see cref="Transaction{T}"/>s committed by the <see cref="Signer"/>
         /// of this transaction.  This goes to the
         /// <see cref="Transaction{T}.Nonce"/> property.</param>
-        /// <param name="publicKey">A <see cref="PublicKey"/> of the account
+        /// <param name="publicKey">A <see cref="IPublicKey"/> of the account
         /// who creates a new transaction.  This key is used to fill
-        /// the <see cref="Signer"/> and <see cref="PublicKey"/> properties,
+        /// the <see cref="Signer"/> and <see cref="IPublicKey"/> properties,
         /// but this in itself is not included in the transaction.</param>
         /// <param name="genesisHash">A <see cref="HashDigest{SHA256}"/> value
         /// of the genesis which this <see cref="Transaction{T}"/> is made from.
@@ -598,7 +598,7 @@ namespace Libplanet.Tx
         /// is passed to <paramref name="customActions"/>.</exception>
         public static Transaction<T> CreateUnsigned(
             long nonce,
-            PublicKey publicKey,
+            IPublicKey publicKey,
             BlockHash? genesisHash,
             IEnumerable<T> customActions,
             IImmutableSet<Address>? updatedAddresses = null,
@@ -694,7 +694,7 @@ namespace Libplanet.Tx
         /// </summary>
         /// <exception cref="InvalidTxSignatureException">Thrown when its
         /// <see cref="Transaction{T}.Signature"/> is invalid or not signed by
-        /// the account who corresponds to its <see cref="PublicKey"/>.
+        /// the account who corresponds to its <see cref="IPublicKey"/>.
         /// </exception>
         public void Validate()
         {

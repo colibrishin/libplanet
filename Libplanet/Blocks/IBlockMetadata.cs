@@ -39,7 +39,7 @@ namespace Libplanet.Blocks
         /// the previous protocol versions, the type of this is nullable.
         /// </para>
         /// </summary>
-        PublicKey? PublicKey { get; }
+        IPublicKey? PublicKey { get; }
 
         /// <summary>
         /// The previous block's hash.  If it's a genesis block (i.e., its <see cref="Index"/> is 0)

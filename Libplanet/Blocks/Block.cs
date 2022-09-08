@@ -105,7 +105,7 @@ namespace Libplanet.Blocks
         public Address Miner => _preEvaluationBlock.Miner;
 
         /// <inheritdoc cref="IBlockMetadata.PublicKey"/>
-        public PublicKey? PublicKey => _preEvaluationBlock.PublicKey;
+        public IPublicKey? PublicKey => _preEvaluationBlock.PublicKey;
 
         /// <inheritdoc cref="IBlockMetadata.PreviousHash"/>
         public BlockHash? PreviousHash => _preEvaluationBlock.PreviousHash;

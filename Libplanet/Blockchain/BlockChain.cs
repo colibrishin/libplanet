@@ -346,7 +346,7 @@ namespace Libplanet.Blockchain
 
         public static Block<T> ProposeGenesisBlock(
             IEnumerable<T> actions = null,
-            PrivateKey privateKey = null,
+            IPrivateKey privateKey = null,
             DateTimeOffset? timestamp = null,
             IAction blockAction = null,
             Predicate<Currency> nativeTokenPredicate = null)
@@ -767,7 +767,7 @@ namespace Libplanet.Blockchain
         /// Creates a new <see cref="Transaction{T}"/> with a system action and stage it.
         /// It's available only if the genesis block exists.
         /// </summary>
-        /// <param name="privateKey">A <see cref="PrivateKey"/> of the account who creates and
+        /// <param name="privateKey">A <see cref="IPrivateKey"/> of the account who creates and
         /// signs a new transaction.</param>
         /// <param name="systemAction">A system action to include to a new transaction.</param>
         /// <param name="updatedAddresses"><see cref="Address"/>es whose states affected by
@@ -777,7 +777,7 @@ namespace Libplanet.Blockchain
         /// <returns>A created new <see cref="Transaction{T}"/> signed by the given
         /// <paramref name="privateKey"/>.</returns>
         public Transaction<T> MakeTransaction(
-            PrivateKey privateKey,
+            IPrivateKey privateKey,
             IAction systemAction,
             IImmutableSet<Address> updatedAddresses = null,
             DateTimeOffset? timestamp = null)
@@ -802,7 +802,7 @@ namespace Libplanet.Blockchain
         /// Creates a new <see cref="Transaction{T}"/> with custom actions and stage it.
         /// It's available only if the genesis block exists.
         /// </summary>
-        /// <param name="privateKey">A <see cref="PrivateKey"/> of the account who creates and
+        /// <param name="privateKey">A <see cref="IPrivateKey"/> of the account who creates and
         /// signs a new transaction.</param>
         /// <param name="customActions">A list of custom actions to include to a new transaction.
         /// </param>
@@ -813,7 +813,7 @@ namespace Libplanet.Blockchain
         /// <returns>A created new <see cref="Transaction{T}"/> signed by the given
         /// <paramref name="privateKey"/>.</returns>
         public Transaction<T> MakeTransaction(
-            PrivateKey privateKey,
+            IPrivateKey privateKey,
             IEnumerable<T> customActions,
             IImmutableSet<Address> updatedAddresses = null,
             DateTimeOffset? timestamp = null)

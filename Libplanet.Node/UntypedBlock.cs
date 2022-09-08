@@ -89,7 +89,7 @@ namespace Libplanet.Node
         public Address Miner => _header.Miner;
 
         /// <inheritdoc cref="IBlockMetadata.PublicKey"/>
-        public PublicKey? PublicKey => _header.PublicKey;
+        public IPublicKey? PublicKey => _header.PublicKey;
 
         /// <inheritdoc cref="IBlockMetadata.PreviousHash"/>
         public BlockHash? PreviousHash => _header.PreviousHash;

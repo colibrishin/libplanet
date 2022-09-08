@@ -33,7 +33,7 @@ namespace Libplanet.Explorer.GraphTypes
             Field<NonNullGraphType<ByteStringType>>(
                 name: "PublicKey",
                 description: "A PublicKey of the account who signed this transaction.",
-                resolve: ctx => ctx.Source.PublicKey.Format(true)
+                resolve: ctx => ctx.Source.PublicKey.KeyBytes.ToArray()
             );
             Field<NonNullGraphType<ListGraphType<NonNullGraphType<AddressType>>>>(
                 name: "UpdatedAddresses",

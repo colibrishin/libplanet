@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics.Contracts;
+using System.Linq;
 using System.Runtime.Serialization;
 using Libplanet.Crypto;
 using Libplanet.Serialization;
@@ -18,7 +19,7 @@ namespace Libplanet.Blocks
         /// <param name="message">A message that describes the error.</param>
         /// <param name="invalidPublicKey">The invalid public key tried to be used
         /// in the block.</param>
-        public InvalidBlockPublicKeyException(string message, PublicKey? invalidPublicKey)
+        public InvalidBlockPublicKeyException(string message, IPublicKey? invalidPublicKey)
             : base(
                 message +
                 (invalidPublicKey is { } pubKey ? $"\nInvalid public key: {pubKey}" : string.Empty)
@@ -51,14 +52,14 @@ namespace Libplanet.Blocks
         /// The invalid public key tried to be used in the block.
         /// </summary>
         [Pure]
-        public PublicKey? InvalidPublicKey { get; }
+        public IPublicKey? InvalidPublicKey { get; }
 
         public override void GetObjectData(SerializationInfo info, StreamingContext context)
         {
             base.GetObjectData(info, context);
             if (InvalidPublicKey is { } pubKey)
             {
-                info.AddValue(nameof(InvalidPublicKey), pubKey.Format(true));
+                info.AddValue(nameof(InvalidPublicKey), pubKey.KeyBytes.ToArray());
             }
         }
     }
