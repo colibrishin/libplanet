@@ -25,7 +25,7 @@ namespace Libplanet.Net.Tests.Transports
 
         protected ILogger Logger { get; set; }
 
-        protected Func<PrivateKey, AppProtocolVersion, IImmutableSet<PublicKey>,
+        protected Func<PrivateKey, AppProtocolVersion, IImmutableSet<IPublicKey>,
             string, int?, IEnumerable<IceServer>, DifferentAppProtocolVersionEncountered,
             TimeSpan?, ITransport>
             TransportConstructor { get; set; }
@@ -427,7 +427,7 @@ namespace Libplanet.Net.Tests.Transports
         private ITransport CreateTransport(
             PrivateKey privateKey = null,
             AppProtocolVersion appProtocolVersion = default,
-            IImmutableSet<PublicKey> trustedAppProtocolVersionSigners = null,
+            IImmutableSet<IPublicKey> trustedAppProtocolVersionSigners = null,
             string host = null,
             int? listenPort = null,
             IEnumerable<IceServer> iceServers = null,
@@ -446,7 +446,7 @@ namespace Libplanet.Net.Tests.Transports
             return TransportConstructor(
                 privateKey,
                 appProtocolVersion,
-                trustedAppProtocolVersionSigners ?? ImmutableHashSet<PublicKey>.Empty,
+                trustedAppProtocolVersionSigners ?? ImmutableHashSet<IPublicKey>.Empty,
                 host,
                 listenPort,
                 iceServers ?? Enumerable.Empty<IceServer>(),

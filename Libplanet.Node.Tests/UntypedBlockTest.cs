@@ -16,9 +16,9 @@ namespace Libplanet.Node.Tests
     public class UntypedBlockTest
     {
         private static readonly Codec Codec = new Codec();
-        private readonly PrivateKey _signerKey;
+        private readonly IPrivateKey _signerKey;
         private readonly Transaction<NullAction>[] _txs;
-        private readonly PrivateKey _minerKey;
+        private readonly IPrivateKey _minerKey;
         private readonly BlockContent<NullAction> _content;
         private readonly PreEvaluationBlock<NullAction> _preEval;
         private readonly Block<NullAction> _block;

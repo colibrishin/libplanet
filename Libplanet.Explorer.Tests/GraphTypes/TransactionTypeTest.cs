@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
 using GraphQL;
@@ -44,7 +45,7 @@ namespace Libplanet.Explorer.Tests.GraphTypes
             Assert.Null(result.Errors);
             Assert.Equal(transaction.Id.ToHex(), resultData["id"]);
             Assert.Equal(
-                ByteUtil.Hex(transaction.PublicKey.Format(true)),
+                ByteUtil.Hex(transaction.PublicKey.KeyBytes.ToArray()),
                 resultData["publicKey"]);
             Assert.Equal(transaction.Signer.ToString(), resultData["signer"]);
             Assert.Equal(ByteUtil.Hex(transaction.Signature), resultData["signature"]);

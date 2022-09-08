@@ -61,13 +61,13 @@ namespace Libplanet.Node.Tests
                     () => NodeUtils<DumbAction>.LoadPrivateKey(tempFilePath));
 
                 // Try overwriting an existing file.
-                PrivateKey privateKey = new PrivateKey();
+                IPrivateKey privateKey = new PrivateKey();
                 NodeUtils<DumbAction>.SavePrivateKey(tempFilePath, privateKey);
                 Assert.Throws<ArgumentException>(
                     () => NodeUtils<DumbAction>.SavePrivateKey(tempFilePath, privateKey));
 
                 // Load from a saved file.
-                PrivateKey loadedPrivateKey = NodeUtils<DumbAction>.LoadPrivateKey(tempFilePath);
+                IPrivateKey loadedPrivateKey = NodeUtils<DumbAction>.LoadPrivateKey(tempFilePath);
                 Assert.Equal(privateKey, loadedPrivateKey);
             }
             finally

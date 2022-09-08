@@ -57,7 +57,7 @@ namespace Libplanet.Net.Tests.Transports
         private NetMQTransport CreateNetMQTransport(
             PrivateKey privateKey,
             AppProtocolVersion appProtocolVersion,
-            IImmutableSet<PublicKey> trustedAppProtocolVersionSigners,
+            IImmutableSet<IPublicKey> trustedAppProtocolVersionSigners,
             int workers,
             string host,
             int? listenPort,

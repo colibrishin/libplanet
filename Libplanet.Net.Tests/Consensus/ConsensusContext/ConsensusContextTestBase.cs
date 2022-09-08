@@ -28,7 +28,7 @@ namespace Libplanet.Net.Tests.Consensus.ConsensusContext
         public ConsensusContextTestBase(
             ITestOutputHelper output,
             PrivateKey? privateKey = null,
-            List<PublicKey>? validators = null)
+            List<IPublicKey>? validators = null)
         {
             const string outputTemplate =
                 "{Timestamp:HH:mm:ss:ffffffZ} - {Message}";

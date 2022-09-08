@@ -16,7 +16,7 @@ namespace Libplanet.Net.Tests.Consensus.ConsensusContext
     public class ConsensusContextTest : ConsensusContextTestBase
     {
         private static readonly PrivateKey PrivateKeyPeer1 = TestUtils.Peer1Priv;
-        private static readonly List<PublicKey> Validators = new List<PublicKey>()
+        private static readonly List<IPublicKey> Validators = new List<IPublicKey>()
             { TestUtils.Peer0Priv.PublicKey, PrivateKeyPeer1.PublicKey, };
 
         private readonly ILogger _logger;

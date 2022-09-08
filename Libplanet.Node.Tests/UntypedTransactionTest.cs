@@ -12,8 +12,8 @@ namespace Libplanet.Node.Tests
 {
     public class UntypedTransactionTest
     {
-        private readonly PrivateKey _key1;
-        private readonly PrivateKey _key2;
+        private readonly IPrivateKey _key1;
+        private readonly IPrivateKey _key2;
         private readonly TxMetadata _meta;
         private readonly IValue[] _actionValues;
         private readonly ImmutableArray<byte> _sig;

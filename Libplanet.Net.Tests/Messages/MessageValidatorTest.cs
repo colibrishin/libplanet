@@ -61,11 +61,11 @@ namespace Libplanet.Net.Tests.Messages
             var trustedApv2 = AppProtocolVersion.Sign(trustedSigner, version2, extra2);
             var unknownApv1 = AppProtocolVersion.Sign(unknownSigner, version1, extra1);
             var unknownApv2 = AppProtocolVersion.Sign(unknownSigner, version1, extra2);
-            ImmutableHashSet<PublicKey>? trustedApvSigners1 =
-                new HashSet<PublicKey>() { trustedSigner.PublicKey }.ToImmutableHashSet();
-            ImmutableHashSet<PublicKey>? trustedApvSigners2 =
-                new HashSet<PublicKey>() { }.ToImmutableHashSet();
-            ImmutableHashSet<PublicKey>? trustedApvSigners3 = null;
+            ImmutableHashSet<IPublicKey>? trustedApvSigners1 =
+                new HashSet<IPublicKey>() { trustedSigner.PublicKey }.ToImmutableHashSet();
+            ImmutableHashSet<IPublicKey>? trustedApvSigners2 =
+                new HashSet<IPublicKey>() { }.ToImmutableHashSet();
+            ImmutableHashSet<IPublicKey>? trustedApvSigners3 = null;
             DifferentAppProtocolVersionEncountered callback = (p, pv, lv) => { called = true; };
             var peer = new BoundPeer(trustedSigner.PublicKey, new DnsEndPoint("0.0.0.0", 0));
             var trustedPing1 = new PingMsg() { Remote = peer, Version = trustedApv1 };

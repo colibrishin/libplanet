@@ -335,7 +335,7 @@ Actual (C# array lit):   new byte[{actual.LongLength}] {{ {actualRepr} }}";
         }
 
         public static PreEvaluationBlock<T> ProposeGenesis<T>(
-            PublicKey miner = null,
+            IPublicKey miner = null,
             IReadOnlyList<Transaction<T>> transactions = null,
             DateTimeOffset? timestamp = null,
             int protocolVersion = Block<T>.CurrentProtocolVersion
@@ -374,7 +374,7 @@ Actual (C# array lit):   new byte[{actual.LongLength}] {{ {actualRepr} }}";
         }
 
         public static Block<T> ProposeGenesisBlock<T>(
-            PrivateKey miner,
+            IPrivateKey miner,
             IReadOnlyList<Transaction<T>> transactions = null,
             DateTimeOffset? timestamp = null,
             int protocolVersion = Block<T>.CurrentProtocolVersion,
@@ -394,7 +394,7 @@ Actual (C# array lit):   new byte[{actual.LongLength}] {{ {actualRepr} }}";
         public static PreEvaluationBlock<T> ProposeNext<T>(
             Block<T> previousBlock,
             IReadOnlyList<Transaction<T>> txs = null,
-            PublicKey miner = null,
+            IPublicKey miner = null,
             TimeSpan? blockInterval = null,
             int protocolVersion = Block<T>.CurrentProtocolVersion,
             BlockCommit? lastCommit = null
@@ -420,7 +420,7 @@ Actual (C# array lit):   new byte[{actual.LongLength}] {{ {actualRepr} }}";
 
         public static Block<T> ProposeNextBlock<T>(
             Block<T> previousBlock,
-            PrivateKey miner,
+            IPrivateKey miner,
             IReadOnlyList<Transaction<T>> txs = null,
             TimeSpan? blockInterval = null,
             int protocolVersion = Block<T>.CurrentProtocolVersion,

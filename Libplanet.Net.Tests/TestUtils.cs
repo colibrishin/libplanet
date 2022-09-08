@@ -75,7 +75,7 @@ namespace Libplanet.Net.Tests
             Peer3,
         };
 
-        public static readonly List<PublicKey> Validators = new List<PublicKey>()
+        public static readonly List<IPublicKey> Validators = new List<IPublicKey>()
         {
             Peer0.PublicKey,
             Peer1.PublicKey,
@@ -190,7 +190,7 @@ namespace Libplanet.Net.Tests
             string host = "localhost",
             int port = 18192,
             PrivateKey? privateKey = null,
-            List<PublicKey>? validators = null,
+            List<IPublicKey>? validators = null,
             DelegateWatchConsensusMessage? watchConsensusMessage = null)
         {
             privateKey ??= new PrivateKey();
@@ -198,7 +198,7 @@ namespace Libplanet.Net.Tests
             {
                 new BoundPeer(privateKey.PublicKey, new DnsEndPoint(host, port)),
             };
-            validators ??= new List<PublicKey>()
+            validators ??= new List<IPublicKey>()
             {
                 privateKey.PublicKey,
             };
