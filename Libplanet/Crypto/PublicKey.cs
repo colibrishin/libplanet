@@ -54,6 +54,8 @@ namespace Libplanet.Crypto
 
         public ImmutableArray<byte> KeyBytes => Format(false).ToImmutableArray();
 
+        public ImmutableArray<byte> CompressedKeyBytes => Format(true).ToImmutableArray();
+
         internal ECPublicKeyParameters KeyParam { get; }
 
         public static bool operator ==(PublicKey left, PublicKey right) => left.Equals(right);
