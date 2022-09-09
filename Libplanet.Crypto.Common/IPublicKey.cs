@@ -15,6 +15,11 @@ namespace Libplanet.Crypto.Common
         ImmutableArray<byte> KeyBytes { get; }
 
         /// <summary>
+        /// The compressed <see cref="byte"/> representation of public key.
+        /// </summary>
+        ImmutableArray<byte> CompressedKeyBytes { get; }
+
+        /// <summary>
         /// Verifies message with base public key method. See base verify method for detailed
         /// description about signing and possibly thrown exceptions.
         /// </summary>

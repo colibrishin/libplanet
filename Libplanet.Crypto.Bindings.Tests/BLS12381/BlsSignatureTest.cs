@@ -4,11 +4,10 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
-using Libplanet.Crypto;
+using Libplanet.Crypto.Bindings.BLS12381;
 using Xunit;
-using static Libplanet.Tests.TestUtils;
 
-namespace Libplanet.Tests.Crypto
+namespace Libplanet.Crypto.Bindings.Tests.BLS12381
 {
     public class BlsSignatureTest
     {
@@ -119,7 +118,7 @@ namespace Libplanet.Tests.Crypto
                 "c753d7a26bcb9d7f0124a012afff5792e846dadc25ac9dc9ad3d610a6186d9992e5960c3532" +
                 "36085c7649a9865bd77aeafb7ad71bf68d4e56c67d"
             );
-            AssertBytesEqual(
+            Assert.Equal(
                 new byte[96]
                 {
                     0xb8, 0xcc, 0x8a, 0x2b, 0x0e, 0x0e, 0xdd, 0xd0, 0xc9, 0xdf, 0x5c, 0x57, 0x9b,

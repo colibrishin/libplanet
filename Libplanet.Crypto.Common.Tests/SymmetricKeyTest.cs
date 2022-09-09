@@ -1,11 +1,8 @@
 using System.Collections.Immutable;
 using System.Text;
-using Libplanet.Crypto;
 using Xunit;
 
-using static Libplanet.Tests.TestUtils;
-
-namespace Libplanet.Tests.Crypto
+namespace Libplanet.Crypto.Common.Tests
 {
     public class SymmetricKeyTest
     {

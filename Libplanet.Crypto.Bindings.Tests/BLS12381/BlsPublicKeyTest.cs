@@ -3,11 +3,12 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
-using Libplanet.Crypto;
+using Libplanet.Crypto.Bindings.BLS12381;
+using Libplanet.Crypto.Common;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace Libplanet.Tests.Crypto
+namespace Libplanet.Crypto.Bindings.Tests.BLS12381
 {
     public class BlsPublicKeyTest
     {
@@ -107,7 +108,7 @@ namespace Libplanet.Tests.Crypto
         {
             var publicKey = new BlsPublicKey(_key1);
             IPublicKey pub = publicKey;
-            TestUtils.AssertBytesEqual(_key1, pub.KeyBytes.ToArray());
+            Assert.Equal(_key1, pub.KeyBytes.ToArray());
         }
 
         [Fact]

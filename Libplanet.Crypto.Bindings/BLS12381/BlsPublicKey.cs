@@ -69,6 +69,8 @@ namespace Libplanet.Crypto.Bindings.BLS12381
 
         public ImmutableArray<byte> KeyBytes => ToImmutableArray();
 
+        public ImmutableArray<byte> CompressedKeyBytes => ToImmutableArray();
+
         public static bool operator ==(BlsPublicKey left, BlsPublicKey right) =>
             left.Equals(right);
 

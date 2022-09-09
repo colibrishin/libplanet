@@ -2,11 +2,11 @@ using System;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
-using Libplanet.Crypto;
+using Libplanet.Crypto.Common.Utils;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace Libplanet.Tests.Crypto
+namespace Libplanet.Crypto.Common.Tests
 {
     public class PublicKeyTest
     {
@@ -113,7 +113,7 @@ namespace Libplanet.Tests.Crypto
         {
             var publicKey = new PublicKey(_key1);
             IPublicKey pub = publicKey;
-            TestUtils.AssertBytesEqual(_key1, pub.KeyBytes.ToArray());
+            Assert.Equal(_key1, pub.KeyBytes.ToArray());
         }
 
         [Fact]
@@ -269,7 +269,7 @@ namespace Libplanet.Tests.Crypto
             var bs = Encoding.ASCII.GetBytes("hello world");
 
             var encrypted = pubKey.Encrypt(bs);
-            TestUtils.AssertBytesEqual(bs, prvKey.Decrypt(encrypted));
+            Assert.Equal(bs, prvKey.Decrypt(encrypted));
 
             ImmutableArray<byte> immutable = bs.ToImmutableArray();
             var encryptedImmutable = pubKey.Encrypt(immutable);

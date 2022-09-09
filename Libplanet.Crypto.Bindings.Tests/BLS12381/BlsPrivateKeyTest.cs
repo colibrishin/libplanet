@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Security.Cryptography;
-using Libplanet.Crypto;
+using Libplanet.Crypto.Bindings.BLS12381;
+using Libplanet.Crypto.Common;
 using Xunit;
-using static Libplanet.Tests.TestUtils;
 
-namespace Libplanet.Tests.Crypto
+namespace Libplanet.Crypto.Bindings.Tests.BLS12381
 {
     public class BlsPrivateKeyTest
     {
@@ -70,7 +70,7 @@ namespace Libplanet.Tests.Crypto
         {
             var privateKey = new BlsPrivateKey(PrivKey1);
             IPrivateKey pk = privateKey;
-            AssertBytesEqual(PrivKey1, pk.KeyBytes.ToArray());
+            Assert.Equal(PrivKey1, pk.KeyBytes.ToArray());
         }
 
         [Fact]
@@ -98,8 +98,7 @@ namespace Libplanet.Tests.Crypto
             BlsPrivateKey actual = BlsPrivateKey.FromString(
                 "04ee188b27836eb385f9876107847b5e65cd999204718a62f4c92a94c43ee236"
             );
-            AssertBytesEqual(PrivKey1, actual.ToByteArray()
-            );
+            Assert.Equal(PrivKey1, actual.ToByteArray());
         }
 
         [Fact]
@@ -203,7 +202,7 @@ namespace Libplanet.Tests.Crypto
             var pubKey = pk.PublicKey;
             var wrongPubKey = new BlsPrivateKey().PublicKey;
 
-            AssertBytesEqual(pk.Sign(_payload), pk.Sign(_payload));
+            Assert.Equal(pk.Sign(_payload), pk.Sign(_payload));
             Assert.True(pubKey.Verify(_payload, pk.Sign(_payload)));
             Assert.False(pubKey.Verify(_payload.Skip(1).ToArray(), pk.Sign(_payload)));
             Assert.Throws<CryptographicException>(
@@ -250,8 +249,7 @@ namespace Libplanet.Tests.Crypto
             BlsPrivateKey actual = new BlsPrivateKey(
                 "04ee188b27836eb385f9876107847b5e65cd999204718a62f4c92a94c43ee236"
             );
-            AssertBytesEqual(PrivKey1, actual.ToByteArray()
-            );
+            Assert.Equal(PrivKey1, actual.ToByteArray());
         }
     }
 }
