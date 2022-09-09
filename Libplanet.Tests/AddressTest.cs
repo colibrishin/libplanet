@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.Serialization.Formatters.Binary;
 using Bencodex.Types;
-using Libplanet.Crypto;
+using Libplanet.Crypto.Common;
 using Xunit;
 
 namespace Libplanet.Tests

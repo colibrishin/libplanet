@@ -5,7 +5,7 @@ using Bencodex.Types;
 using Libplanet.Action;
 using Libplanet.Action.Sys;
 using Libplanet.Assets;
-using Libplanet.Crypto;
+using Libplanet.Crypto.Common;
 using Libplanet.Tests.Common.Action;
 using Libplanet.Tx;
 using Xunit;

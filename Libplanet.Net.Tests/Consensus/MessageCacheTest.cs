@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using Libplanet.Crypto;
+using Libplanet.Crypto.Common;
 using Libplanet.Net.Consensus;
 using Libplanet.Net.Messages;
 using Xunit;

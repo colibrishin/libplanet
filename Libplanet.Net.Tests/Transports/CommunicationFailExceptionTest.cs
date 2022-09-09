@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Runtime.Serialization.Formatters.Binary;
-using Libplanet.Crypto;
+using Libplanet.Crypto.Common;
 using Libplanet.Net.Messages;
 using Libplanet.Net.Transports;
 using Xunit;

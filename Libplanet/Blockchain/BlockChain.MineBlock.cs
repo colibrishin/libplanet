@@ -9,7 +9,7 @@ using Bencodex.Types;
 using Libplanet.Action;
 using Libplanet.Blockchain.Policies;
 using Libplanet.Blocks;
-using Libplanet.Crypto;
+using Libplanet.Crypto.Common;
 using Libplanet.Tx;
 using static Libplanet.Blocks.BlockMarshaler;
 

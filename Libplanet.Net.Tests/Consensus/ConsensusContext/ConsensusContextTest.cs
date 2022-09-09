@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Libplanet.Blocks;
 using Libplanet.Consensus;
-using Libplanet.Crypto;
+using Libplanet.Crypto.Common;
 using Libplanet.Net.Consensus;
 using Libplanet.Net.Messages;
 using Nito.AsyncEx;

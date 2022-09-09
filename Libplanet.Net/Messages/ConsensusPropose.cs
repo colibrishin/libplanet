@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Libplanet.Blocks;
-using Libplanet.Crypto;
+using Libplanet.Crypto.Common;
 using Libplanet.Net.Consensus;
 
 namespace Libplanet.Net.Messages

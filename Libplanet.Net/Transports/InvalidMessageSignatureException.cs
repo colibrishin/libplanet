@@ -1,7 +1,7 @@
 using System;
 using System.Linq;
 using System.Runtime.Serialization;
-using Libplanet.Crypto;
+using Libplanet.Crypto.Common;
 using Libplanet.Net.Messages;
 using Libplanet.Serialization;
 

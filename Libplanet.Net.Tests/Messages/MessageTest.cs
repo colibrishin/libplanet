@@ -3,7 +3,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Net;
 using Libplanet.Blocks;
-using Libplanet.Crypto;
+using Libplanet.Crypto.Common;
 using Libplanet.Net.Messages;
 using Libplanet.Net.Transports;
 using Libplanet.Tests.Common.Action;

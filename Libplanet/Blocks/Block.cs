@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Security.Cryptography;
 using Libplanet.Action;
-using Libplanet.Crypto;
+using Libplanet.Crypto.Common;
 using Libplanet.Tx;
 
 namespace Libplanet.Blocks

@@ -4,7 +4,7 @@ using System.Security.Cryptography;
 using Libplanet.Action;
 using Libplanet.Blocks;
 using Libplanet.Consensus;
-using Libplanet.Crypto;
+using Libplanet.Crypto.Common;
 using Libplanet.Tests.Common.Action;
 using Libplanet.Tests.Tx;
 using Libplanet.Tx;

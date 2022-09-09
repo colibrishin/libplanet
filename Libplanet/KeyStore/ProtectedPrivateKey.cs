@@ -7,7 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text.Json;
-using Libplanet.Crypto;
+using Libplanet.Crypto.Common;
 using Libplanet.KeyStore.Ciphers;
 using Libplanet.KeyStore.Kdfs;
 using Org.BouncyCastle.Crypto.Digests;

@@ -5,7 +5,7 @@ using System.Security.Cryptography;
 using Bencodex;
 using Libplanet.Action;
 using Libplanet.Blocks;
-using Libplanet.Crypto;
+using Libplanet.Crypto.Common;
 using Libplanet.Store;
 using Libplanet.Store.Trie;
 using Libplanet.Tx;

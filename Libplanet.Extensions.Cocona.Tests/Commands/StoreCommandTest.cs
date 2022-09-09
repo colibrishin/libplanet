@@ -3,7 +3,7 @@ using System.Collections.Immutable;
 using System.IO;
 using Cocona;
 using Libplanet.Blocks;
-using Libplanet.Crypto;
+using Libplanet.Crypto.Common;
 using Libplanet.Extensions.Cocona.Commands;
 using Libplanet.RocksDBStore.Tests;
 using Libplanet.Tests;

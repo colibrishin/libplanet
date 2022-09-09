@@ -2,7 +2,7 @@ using System;
 using System.Collections.Immutable;
 using System.Security.Cryptography;
 using Libplanet.Blocks;
-using Libplanet.Crypto;
+using Libplanet.Crypto.Common;
 using Libplanet.Tx;
 
 namespace Libplanet.Tests.Fixtures

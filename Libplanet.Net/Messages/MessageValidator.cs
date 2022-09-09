@@ -2,7 +2,7 @@ using System;
 using System.Collections.Immutable;
 using System.Globalization;
 using System.Linq;
-using Libplanet.Crypto;
+using Libplanet.Crypto.Common;
 using Libplanet.Net.Transports;
 
 namespace Libplanet.Net.Messages

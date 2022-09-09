@@ -7,7 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Libplanet.Action;
 using Libplanet.Blockchain;
-using Libplanet.Crypto;
+using Libplanet.Crypto.Common;
 using Libplanet.Net.Messages;
 using Libplanet.Net.Transports;
 using Serilog;

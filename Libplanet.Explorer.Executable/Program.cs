@@ -13,7 +13,7 @@ using Libplanet.Assets;
 using Libplanet.Blockchain;
 using Libplanet.Blockchain.Policies;
 using Libplanet.Blocks;
-using Libplanet.Crypto;
+using Libplanet.Crypto.Common;
 using Libplanet.Explorer.Executable.Exceptions;
 using Libplanet.Explorer.Interfaces;
 using Libplanet.Explorer.Store;

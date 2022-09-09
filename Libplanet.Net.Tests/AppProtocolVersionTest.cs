@@ -2,7 +2,7 @@
 using System;
 using System.Collections.Immutable;
 using Bencodex;
-using Libplanet.Crypto;
+using Libplanet.Crypto.Common;
 using Xunit;
 
 namespace Libplanet.Net.Tests

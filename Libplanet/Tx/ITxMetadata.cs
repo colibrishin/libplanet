@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Immutable;
 using Libplanet.Blocks;
-using Libplanet.Crypto;
+using Libplanet.Crypto.Common;
 
 namespace Libplanet.Tx
 {

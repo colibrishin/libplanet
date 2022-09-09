@@ -7,7 +7,7 @@ using GraphQL.Types;
 using Libplanet.Action;
 using Libplanet.Blockchain;
 using Libplanet.Blocks;
-using Libplanet.Crypto;
+using Libplanet.Crypto.Common;
 using Libplanet.Explorer.GraphTypes;
 using Libplanet.Explorer.Interfaces;
 using Libplanet.Store;

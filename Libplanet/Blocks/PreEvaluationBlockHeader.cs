@@ -5,7 +5,7 @@ using System.Security.Cryptography;
 using Bencodex;
 using Bencodex.Types;
 using Libplanet.Consensus;
-using Libplanet.Crypto;
+using Libplanet.Crypto.Common;
 
 namespace Libplanet.Blocks
 {

@@ -6,7 +6,7 @@ using System.Linq;
 using Libplanet.Action;
 using Libplanet.Assets;
 using Libplanet.Blocks;
-using Libplanet.Crypto;
+using Libplanet.Crypto.Common;
 using Libplanet.Tx;
 
 namespace Libplanet.Blockchain.Policies

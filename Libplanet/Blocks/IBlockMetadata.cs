@@ -1,6 +1,6 @@
 using System;
 using System.Security.Cryptography;
-using Libplanet.Crypto;
+using Libplanet.Crypto.Common;
 
 namespace Libplanet.Blocks
 {

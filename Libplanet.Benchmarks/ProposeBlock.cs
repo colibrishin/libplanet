@@ -2,7 +2,7 @@ using BenchmarkDotNet.Attributes;
 using Libplanet.Blockchain;
 using Libplanet.Blockchain.Policies;
 using Libplanet.Blocks;
-using Libplanet.Crypto;
+using Libplanet.Crypto.Common;
 using Libplanet.Tests.Common.Action;
 using Libplanet.Tests.Store;
 

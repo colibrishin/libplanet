@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
 using System.Security.Cryptography;
-using Libplanet.Crypto;
+using Libplanet.Crypto.Common;
 using Libplanet.Store.Trie;
 
 namespace Libplanet.Blocks

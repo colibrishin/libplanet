@@ -3,7 +3,7 @@ using System.Collections.Immutable;
 using System.Security.Cryptography;
 using BenchmarkDotNet.Attributes;
 using Libplanet.Blocks;
-using Libplanet.Crypto;
+using Libplanet.Crypto.Common;
 using Libplanet.Store;
 using Libplanet.Tests;
 using Libplanet.Tests.Common.Action;

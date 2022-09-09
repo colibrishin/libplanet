@@ -1,7 +1,7 @@
 #nullable disable
 using System;
 using System.Net;
-using Libplanet.Crypto;
+using Libplanet.Crypto.Common;
 using Libplanet.Net.Messages;
 using NetMQ;
 using NetMQ.Sockets;

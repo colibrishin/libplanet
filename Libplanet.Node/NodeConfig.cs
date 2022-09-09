@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using Libplanet.Action;
 using Libplanet.Blockchain;
 using Libplanet.Blockchain.Renderers;
-using Libplanet.Crypto;
+using Libplanet.Crypto.Common;
 using Libplanet.Net;
 using Libplanet.Net.Consensus;
 using Libplanet.Store;

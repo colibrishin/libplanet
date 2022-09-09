@@ -1,6 +1,6 @@
 using System;
 using Libplanet.Consensus;
-using Libplanet.Crypto;
+using Libplanet.Crypto.Common;
 using Libplanet.Tests.Store;
 using Xunit;
 

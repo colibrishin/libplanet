@@ -2,7 +2,7 @@ using System.Linq;
 using Bencodex.Types;
 using Libplanet.Action;
 using Libplanet.Assets;
-using Libplanet.Crypto;
+using Libplanet.Crypto.Common;
 using Libplanet.Tests.Common.Action;
 using Serilog;
 using Xunit;

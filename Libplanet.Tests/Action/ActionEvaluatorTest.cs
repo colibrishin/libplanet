@@ -10,7 +10,7 @@ using Libplanet.Assets;
 using Libplanet.Blockchain;
 using Libplanet.Blockchain.Policies;
 using Libplanet.Blocks;
-using Libplanet.Crypto;
+using Libplanet.Crypto.Common;
 using Libplanet.Store;
 using Libplanet.Store.Trie;
 using Libplanet.Tests.Blocks;

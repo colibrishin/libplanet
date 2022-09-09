@@ -6,7 +6,7 @@ using GraphQL.Execution;
 using GraphQL.Types;
 using Libplanet.Action;
 using Libplanet.Blocks;
-using Libplanet.Crypto;
+using Libplanet.Crypto.Common;
 using Libplanet.Explorer.GraphTypes;
 using Libplanet.Store;
 using Xunit;

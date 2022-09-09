@@ -3,11 +3,10 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
-using Libplanet.Crypto;
+using Libplanet.Crypto.Common.Utils;
 using Xunit;
-using static Libplanet.Tests.TestUtils;
 
-namespace Libplanet.Tests.Crypto
+namespace Libplanet.Crypto.Common.Tests
 {
     public class PrivateKeyTest
     {
@@ -63,7 +62,7 @@ namespace Libplanet.Tests.Crypto
             PrivateKey actual = PrivateKey.FromString(
                 "e07107ca4b0d19147fa1152a0f2c7884705d59cbb6318e2f901bd28dd9ff78e3"
             );
-            AssertBytesEqual(
+            Assert.Equal(
                 new byte[]
                 {
                     0xe0, 0x71, 0x07, 0xca, 0x4b, 0x0d, 0x19, 0x14, 0x7f, 0xa1, 0x15,
@@ -179,7 +178,7 @@ namespace Libplanet.Tests.Crypto
             var pubKey = pk.PublicKey;
             var wrongPubKey = new PrivateKey().PublicKey;
 
-            AssertBytesEqual(pk.Sign(_payload), pk.Sign(_payload));
+            Assert.Equal(pk.Sign(_payload), pk.Sign(_payload));
             Assert.True(pubKey.Verify(_payload, pk.Sign(_payload)));
             Assert.False(pubKey.Verify(_payload.Skip(1).ToArray(), pk.Sign(_payload)));
             Assert.False(pubKey.Verify(_payload, pk.Sign(_payload).Skip(1).ToArray()));
@@ -332,7 +331,7 @@ namespace Libplanet.Tests.Crypto
             PrivateKey actual = new PrivateKey(
                 "e07107ca4b0d19147fa1152a0f2c7884705d59cbb6318e2f901bd28dd9ff78e3"
             );
-            AssertBytesEqual(
+            Assert.Equal(
                 new byte[]
                 {
                     0xe0, 0x71, 0x07, 0xca, 0x4b, 0x0d, 0x19, 0x14, 0x7f, 0xa1, 0x15,

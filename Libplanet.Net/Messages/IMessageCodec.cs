@@ -1,5 +1,5 @@
 using System;
-using Libplanet.Crypto;
+using Libplanet.Crypto.Common;
 using Libplanet.Net.Transports;
 
 namespace Libplanet.Net.Messages

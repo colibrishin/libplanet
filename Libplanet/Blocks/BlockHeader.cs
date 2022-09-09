@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Immutable;
 using System.Security.Cryptography;
-using Libplanet.Crypto;
+using Libplanet.Crypto.Common;
 
 namespace Libplanet.Blocks
 {

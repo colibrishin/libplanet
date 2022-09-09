@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using global::Cocona;
-using Libplanet.Crypto;
+using Libplanet.Crypto.Common;
 using Libplanet.KeyStore;
 
 namespace Libplanet.Extensions.Cocona.Commands

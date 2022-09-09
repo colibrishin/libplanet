@@ -4,7 +4,7 @@ using System.Linq;
 using Bencodex;
 using Bencodex.Types;
 using Libplanet.Blocks;
-using Libplanet.Crypto;
+using Libplanet.Crypto.Common;
 using Libplanet.Tx;
 using Xunit;
 

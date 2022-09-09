@@ -98,7 +98,7 @@ namespace Libplanet.Crypto.Common
         {
         }
 
-        internal PrivateKey(byte[] unverifiedKey, bool informedConsent)
+        public PrivateKey(byte[] unverifiedKey, bool informedConsent)
             : this(GenerateKeyFromBytes(unverifiedKey))
         {
             // The `informedConsent` parameter mainly purposes to prevent this overload from

@@ -1,6 +1,6 @@
 using System;
 using System.Linq;
-using Libplanet.Crypto;
+using Libplanet.Crypto.Common;
 using Libplanet.KeyStore;
 using Xunit;
 

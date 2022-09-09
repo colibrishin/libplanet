@@ -6,7 +6,7 @@ using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
 using Bencodex.Types;
-using Libplanet.Crypto;
+using Libplanet.Crypto.Common;
 using Libplanet.Serialization;
 using Org.BouncyCastle.Crypto.Digests;
 

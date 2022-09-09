@@ -7,7 +7,7 @@ using System.Text.Json;
 using Bencodex;
 using Bencodex.Types;
 using global::Cocona;
-using Libplanet.Crypto;
+using Libplanet.Crypto.Common;
 using Libplanet.KeyStore;
 using Libplanet.Net;
 using Libplanet.Net.Transports;

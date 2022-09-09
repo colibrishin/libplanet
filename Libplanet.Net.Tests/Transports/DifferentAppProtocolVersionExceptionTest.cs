@@ -2,7 +2,7 @@ using System;
 using System.Collections.Immutable;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
-using Libplanet.Crypto;
+using Libplanet.Crypto.Common;
 using Xunit;
 
 namespace Libplanet.Net.Transports.Tests

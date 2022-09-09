@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using Bencodex;
 using Libplanet.Blocks;
-using Libplanet.Crypto;
+using Libplanet.Crypto.Common;
 using Libplanet.Tests.Common.Action;
 using Xunit;
 

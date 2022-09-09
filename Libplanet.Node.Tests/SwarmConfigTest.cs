@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Net;
-using Libplanet.Crypto;
+using Libplanet.Crypto.Common;
 using Libplanet.Net;
 using Xunit;
 

@@ -4,7 +4,7 @@ using System.Security.Cryptography;
 using Bencodex;
 using Libplanet.Blocks;
 using Libplanet.Consensus;
-using Libplanet.Crypto;
+using Libplanet.Crypto.Common;
 using Libplanet.Tests.Fixtures;
 using Xunit;
 using static Libplanet.ByteUtil;
