@@ -210,29 +210,29 @@ namespace Libplanet.Net.Tests.Consensus.ConsensusContext
                 }
             }
 
-            consensusContext.StateChanged +=
+            consensusContext.ContextEventOccurred +=
                 (sender, tuple) =>
                 {
-                    if (tuple.Height == 1 && tuple.Step == Step.EndCommit)
+                    if (tuple.ContextEventType == ContextEventType.StateChanged)
                     {
-                        heightOneEnded.Set();
+                        if (tuple.Height == 1 && tuple.Step == Step.EndCommit)
+                        {
+                            heightOneEnded.Set();
+                        }
+
+                        if (tuple.Height == 2 && tuple.Step == Step.EndCommit)
+                        {
+                            heightTwoEnded.Set();
+                        }
+
+                        if (tuple.Height == 3 && tuple.Step == Step.PreVote)
+                        {
+                            heightThreePreVote.Set();
+                        }
                     }
 
-                    if (tuple.Height == 2 && tuple.Step == Step.EndCommit)
-                    {
-                        heightTwoEnded.Set();
-                    }
-
-                    if (tuple.Height == 3 && tuple.Step == Step.PreVote)
-                    {
-                        heightThreePreVote.Set();
-                    }
-                };
-
-            consensusContext.MessageConsumed +=
-                (sender, message) =>
-                {
-                    if (message.Height == 2 && message.Message is ConsensusPropose propose)
+                    if (tuple.ContextEventType == ContextEventType.MessageConsumed &&
+                        tuple.Height == 2 && tuple.ConsensusMessage is ConsensusPropose propose)
                     {
                         proposedBlock = BlockMarshaler.UnmarshalBlock<DumbAction>(
                             (Dictionary)codec.Decode(propose!.Payload));

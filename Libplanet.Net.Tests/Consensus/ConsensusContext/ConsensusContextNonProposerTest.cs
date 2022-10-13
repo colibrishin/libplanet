@@ -152,6 +152,38 @@ namespace Libplanet.Net.Tests.Consensus.ConsensusContext
                 }
             }
 
+            consensusContext.ContextEventOccurred += (sender, state) =>
+            {
+                if (state.ContextEventType == ContextEventType.StateChanged &&
+                    state.Height == 2)
+                {
+                    if (state.Step == Step.PreVote)
+                    {
+                        heightTwoStepChangedToPreVote.Set();
+                    }
+                    else if (state.Step == Step.PreCommit)
+                    {
+                        heightTwoStepChangedToPreCommit.Set();
+                    }
+                    else if (state.Step == Step.EndCommit)
+                    {
+                        heightTwoStepChangedToEndCommit.Set();
+                    }
+                }
+                else if (state.ContextEventType == ContextEventType.StateChanged &&
+                         state.Height == 3)
+                {
+                    if (state.Step == Step.Propose)
+                    {
+                        heightThreeStepChangedToPropose.Set();
+                    }
+                    else if (state.Step == Step.PreVote)
+                    {
+                        heightThreeStepChangedToPreVote.Set();
+                    }
+                }
+            };
+
             blockChain.Append(blockChain.ProposeBlock(TestUtils.Peer1Priv));
 
             blockChain.Store.PutLastCommit(TestUtils.CreateLastCommit(
@@ -167,36 +199,6 @@ namespace Libplanet.Net.Tests.Consensus.ConsensusContext
             {
                 throw new NullException(propose);
             }
-
-            consensusContext.StateChanged += (sender, state) =>
-            {
-                if (state.Height == 2)
-                {
-                    if (state.Step == Step.PreVote)
-                    {
-                        heightTwoStepChangedToPreVote.Set();
-                    }
-                    else if (state.Step == Step.PreCommit)
-                    {
-                        heightTwoStepChangedToPreCommit.Set();
-                    }
-                    else if (state.Step == Step.EndCommit)
-                    {
-                        heightTwoStepChangedToEndCommit.Set();
-                    }
-                }
-                else if (state.Height == 3)
-                {
-                    if (state.Step == Step.Propose)
-                    {
-                        heightThreeStepChangedToPropose.Set();
-                    }
-                    else if (state.Step == Step.PreVote)
-                    {
-                        heightThreeStepChangedToPreVote.Set();
-                    }
-                }
-            };
 
             foreach ((PrivateKey privateKey, BoundPeer peer)
                      in TestUtils.PrivateKeys.Zip(
@@ -303,28 +305,29 @@ namespace Libplanet.Net.Tests.Consensus.ConsensusContext
 
             // Do a consensus for height #1. (Genesis doesn't have last commit.)
             consensusContext.NewHeight(blockChain.Tip.Index + 1);
-            consensusContext.StateChanged +=
+            consensusContext.ContextEventOccurred +=
                 (sender, tuple) =>
                 {
-                    if (tuple.Height == 1 && tuple.Step == Step.EndCommit)
+                    if (tuple.ContextEventType == ContextEventType.StateChanged &&
+                        tuple.Height == 1 && tuple.Step == Step.EndCommit)
                     {
                         heightOneEnded.Set();
                     }
-                };
-            consensusContext.MessageConsumed +=
-                (sender, message) =>
-                {
-                    if (message.Height == 1 && message.Message is ConsensusPropose)
-                    {
-                        heightOneProposeSent.Set();
-                    }
 
-                    if (message.Height == 2 &&
-                        message.Message is ConsensusPropose propose)
+                    if (tuple.ContextEventType == ContextEventType.MessageConsumed)
                     {
-                        proposedBlock = BlockMarshaler.UnmarshalBlock<DumbAction>(
-                            (Dictionary)codec.Decode(propose!.Payload));
-                        heightTwoProposeSent.Set();
+                        if (tuple.Height == 1 && tuple.ConsensusMessage is ConsensusPropose)
+                        {
+                            heightOneProposeSent.Set();
+                        }
+
+                        if (tuple.Height == 2 &&
+                            tuple.ConsensusMessage is ConsensusPropose propose)
+                        {
+                            proposedBlock = BlockMarshaler.UnmarshalBlock<DumbAction>(
+                                (Dictionary)codec.Decode(propose!.Payload));
+                            heightTwoProposeSent.Set();
+                        }
                     }
                 };
 

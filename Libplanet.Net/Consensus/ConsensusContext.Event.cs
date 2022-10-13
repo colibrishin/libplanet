@@ -1,6 +1,5 @@
 using System;
 using Libplanet.Action;
-using Libplanet.Net.Messages;
 
 namespace Libplanet.Net.Consensus
 {
@@ -8,47 +7,61 @@ namespace Libplanet.Net.Consensus
         where T : IAction, new()
     {
         /// <inheritdoc cref="Context{T}.ExceptionOccurred"/>
-        internal event EventHandler<(long Height, Exception)>? ExceptionOccurred;
-
-        /// <inheritdoc cref="Context{T}.TimeoutOccurred"/>
-        internal event EventHandler<
-                (long Height, int Round, Step Step, TimeSpan TimeSpan)>?
-            TimeoutOccurred;
-
-        /// <inheritdoc cref="Context{T}.TimeoutProcessed"/>
-        internal event EventHandler<(long Height, int Round)>? TimeoutProcessed;
-
-        /// <inheritdoc cref="Context{T}.StateChanged"/>
-        internal event EventHandler<
-                (long Height, int MessageLogSize, int Round, Step Step)>?
-            StateChanged;
-
-        /// <inheritdoc cref="Context{T}.MessageConsumed"/>
-        internal event EventHandler<(long Height, ConsensusMessage Message)>?
-            MessageConsumed;
-
-        /// <inheritdoc cref="Context{T}.MutationConsumed"/>
-        internal event EventHandler<(long Height, System.Action)>? MutationConsumed;
+        internal event EventHandler<ContextEventArgs>? ContextEventOccurred;
 
         private void AttachEventHandlers(Context<T> context)
         {
             context.ExceptionOccurred += (sender, exception) =>
-                ExceptionOccurred?.Invoke(this, exception);
+                ContextEventOccurred?.Invoke(
+                    this,
+                    new ContextEventArgs(
+                        ContextEventType.ExceptionOccurred,
+                        height: exception.Height,
+                        exception: exception.Exception));
 
             context.TimeoutOccurred += (sender, timeoutWait) =>
-                TimeoutOccurred?.Invoke(this, timeoutWait);
+                ContextEventOccurred?.Invoke(
+                    this,
+                    new ContextEventArgs(
+                        ContextEventType.TimeoutOccurred,
+                        height: timeoutWait.Height,
+                        round: timeoutWait.Round,
+                        step: timeoutWait.Step,
+                        timeSpan: timeoutWait.TimeSpan));
 
             context.TimeoutProcessed += (sender, timeoutStart) =>
-                TimeoutProcessed?.Invoke(this, timeoutStart);
+                ContextEventOccurred?.Invoke(
+                    this,
+                    new ContextEventArgs(
+                        ContextEventType.TimeoutProcessed,
+                        height: timeoutStart.Height,
+                        round: timeoutStart.Round));
 
             context.StateChanged += (sender, state) =>
-                StateChanged?.Invoke(this, state);
+                ContextEventOccurred?.Invoke(
+                    this,
+                    new ContextEventArgs(
+                        ContextEventType.StateChanged,
+                        height: state.Height,
+                        messageLogSize: state.MessageLogSize,
+                        round: state.Round,
+                        step: state.Step));
 
             context.MessageConsumed += (sender, message) =>
-                MessageConsumed?.Invoke(this, message);
+                ContextEventOccurred?.Invoke(
+                    this,
+                    new ContextEventArgs(
+                        ContextEventType.MessageConsumed,
+                        height: message.Height,
+                        consensusMessage: message.Message));
 
             context.MutationConsumed += (sender, action) =>
-                MutationConsumed?.Invoke(this, action);
+                ContextEventOccurred?.Invoke(
+                    this,
+                    new ContextEventArgs(
+                        ContextEventType.MutationConsumed,
+                        height: action.Height,
+                        action: action.Action));
         }
     }
 }

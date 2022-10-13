@@ -1,5 +1,6 @@
 using System;
 using Libplanet.Consensus;
+using Libplanet.Net.Consensus;
 using Libplanet.Net.Messages;
 using Nito.AsyncEx;
 using Serilog;
@@ -37,10 +38,11 @@ namespace Libplanet.Net.Tests.Consensus.ConsensusContext
             var timeoutProcessed = new AsyncAutoResetEvent();
 
             consensusContext.NewHeight(blockChain.Tip.Index + 1);
-            consensusContext.TimeoutProcessed +=
+            consensusContext.ContextEventOccurred +=
                 (sender, tuple) =>
                 {
-                    if (tuple.Height == 1)
+                    if (tuple.ContextEventType == ContextEventType.TimeoutProcessed &&
+                        tuple.Height == 1)
                     {
                         timeoutProcessed.Set();
                     }
