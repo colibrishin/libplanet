@@ -120,6 +120,13 @@ namespace Libplanet.Net.Consensus
                             "Cannot propose a null block.",
                             message);
                     }
+
+                    if (!propose.Proposal.Verify())
+                    {
+                        throw new InvalidBlockProposeMessageException(
+                            "Proposal has invalid signature.",
+                            message);
+                    }
                 }
 
                 if (message is ConsensusPreVoteMsg vote &&
