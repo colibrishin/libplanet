@@ -401,8 +401,8 @@ namespace Libplanet.Net.Consensus
             if (_messageLog.GetPropose(round) is ConsensusProposeMsg propose)
             {
                 var block = BlockMarshaler.UnmarshalBlock<T>(
-                    (Dictionary)_codec.Decode(propose.Payload));
-                return (block, propose.ValidRound);
+                    (Dictionary)_codec.Decode(propose.Proposal.Block));
+                return (block, propose.Proposal.ValidRound);
             }
 
             return (null, null);

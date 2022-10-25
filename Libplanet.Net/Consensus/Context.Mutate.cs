@@ -30,16 +30,23 @@ namespace Libplanet.Net.Consensus
                     "Starting round {NewRound} and is a proposer. (context: {Context})",
                     round,
                     ToString());
-                Block<T> proposal = _validValue ?? GetValue();
+                Block<T> proposalValue = _validValue ?? GetValue();
+                Proposal proposal = new ProposalMetaData(
+                    Height,
+                    Round,
+                    _codec.Encode(proposalValue.MarshalBlock()),
+                    proposalValue.Timestamp,
+                    _privateKey.PublicKey,
+                    _validRound
+                ).Sign(_privateKey);
 
                 BroadcastMessage(
                     new ConsensusProposeMsg(
                         _privateKey.PublicKey,
                         Height,
                         Round,
-                        proposal.Hash,
-                        _codec.Encode(proposal.MarshalBlock()),
-                        _validRound));
+                        proposalValue.Hash,
+                        proposal));
             }
             else
             {
