@@ -144,6 +144,45 @@ namespace Libplanet.Net.Tests.Consensus.Context
         }
 
         [Fact(Timeout = Timeout)]
+        public async Task ThrowInvalidProposalSignature()
+        {
+            var (_, blockChain, context) = TestUtils.CreateDummyContext(
+                startStep: Step.Default);
+
+            var codec = new Codec();
+            var block = blockChain.ProposeBlock(TestUtils.Peer1Priv);
+            Exception? exceptionThrown = null;
+            var exceptionOccurred = new AsyncAutoResetEvent();
+            context.ExceptionOccurred += (sender, he) =>
+            {
+                exceptionThrown = he.Exception;
+                exceptionOccurred.Set();
+            };
+
+            _ = context.MessageConsumerTask(default);
+            _ = context.MutationConsumerTask(default);
+
+            var invalidProposal = new ProposalMetaData(
+                1,
+                0,
+                codec.Encode(block.MarshalBlock()),
+                block.Timestamp,
+                TestUtils.Peer1Priv.PublicKey,
+                -1).Sign(null);
+
+            context.ProduceMessage(
+                new ConsensusProposeMsg(
+                    TestUtils.Peer1Priv.PublicKey,
+                    1,
+                    0,
+                    block.Hash,
+                    invalidProposal));
+            await exceptionOccurred.WaitAsync();
+
+            Assert.True(exceptionThrown is InvalidBlockProposeMessageException);
+        }
+
+        [Fact(Timeout = Timeout)]
         public async void ThrowNilPropose()
         {
             var codec = new Codec();
