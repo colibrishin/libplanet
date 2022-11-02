@@ -109,6 +109,14 @@ namespace Libplanet.Net
 
         private void ProcessBlockHeader(BlockHeaderMsg message)
         {
+            if (!SynchronizationRunning)
+            {
+                _logger.Debug(
+                    "{MessageName} was sent however a consensus is in progress. ignoring...",
+                    nameof(Messages.BlockHeaderMsg));
+                return;
+            }
+
             if (!(message.Remote is BoundPeer peer))
             {
                 _logger.Debug(

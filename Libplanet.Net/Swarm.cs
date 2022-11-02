@@ -42,6 +42,7 @@ namespace Libplanet.Net
         private CancellationTokenSource _workerCancellationTokenSource;
         private CancellationToken _cancellationToken;
 
+        private bool _syncInternalValue;
         private bool _disposed;
 
         /// <summary>
@@ -92,6 +93,7 @@ namespace Libplanet.Net
             BlockHeaderReceived = new AsyncAutoResetEvent();
             BlockAppended = new AsyncAutoResetEvent();
             BlockReceived = new AsyncAutoResetEvent();
+            ConsensusStaled = new AsyncAutoResetEvent();
 
             _runningMutex = new AsyncLock();
 
@@ -155,6 +157,8 @@ namespace Libplanet.Net
                     consensusReactorOption.LastCommitClearThreshold ?? 30,
                     consensusReactorOption.ContextTimeoutOptions);
             }
+
+            _syncInternalValue = !(_consensusReactor is { });
         }
 
         internal Swarm(
@@ -174,6 +178,7 @@ namespace Libplanet.Net
             BlockHeaderReceived = new AsyncAutoResetEvent();
             BlockAppended = new AsyncAutoResetEvent();
             BlockReceived = new AsyncAutoResetEvent();
+            ConsensusStaled = new AsyncAutoResetEvent();
 
             _runningMutex = new AsyncLock();
             _appProtocolVersion = appProtocolVersion;
@@ -192,6 +197,8 @@ namespace Libplanet.Net
             Transport = transport;
             Transport.ProcessMessageHandler.Register(ProcessMessageHandlerAsync);
             PeerDiscovery = new KademliaProtocol(RoutingTable, Transport, Address);
+
+            _syncInternalValue = true;
         }
 
         ~Swarm()
@@ -260,12 +267,30 @@ namespace Libplanet.Net
         // FIXME: Should have a unit test.
         internal AsyncAutoResetEvent BlockAppended { get; }
 
+        internal AsyncAutoResetEvent ConsensusStaled { get; }
+
         // FIXME: We need some sort of configuration method for it.
         internal int FindNextHashesChunkSize { get; set; } = 500;
 
         internal AsyncAutoResetEvent BlockDownloadStarted { get; } = new AsyncAutoResetEvent();
 
         internal SwarmOptions Options { get; }
+
+        // FIXME: This is too primal, easily mistaken way to handle synchronization.
+        internal bool SynchronizationRunning
+        {
+            get => !ConsensusRunning || _syncInternalValue;
+
+            private set
+            {
+                if (!ConsensusRunning)
+                {
+                    return;
+                }
+
+                _syncInternalValue = value;
+            }
+        }
 
         /// <summary>
         /// Waits until this <see cref="Swarm{T}"/> instance gets started to run.
@@ -419,7 +444,11 @@ namespace Libplanet.Net
                 );
                 if (_consensusReactor is { })
                 {
-                    tasks.Add(_consensusReactor.StartAsync(_cancellationToken));
+                    tasks.Add(ConsensusWatchAsync(
+                        dialTimeout,
+                        Options.TipLifespan,
+                        2,
+                        _cancellationToken));
                 }
 
                 _logger.Debug("Swarm started.");
