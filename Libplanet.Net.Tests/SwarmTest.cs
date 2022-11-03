@@ -143,6 +143,55 @@ namespace Libplanet.Net.Tests
         }
 
         [Fact(Timeout = Timeout)]
+        public async Task RestartSyncWhileConsensusByTipGap()
+        {
+            var keyA = new PrivateKey();
+            var keyB = new PrivateKey();
+
+            Swarm<DumbAction> swarmA = CreateConsensusSwarm(
+                keyA,
+                options: new SwarmOptions()
+                {
+                    TipLifespan = TimeSpan.FromSeconds(1),
+                });
+            Swarm<DumbAction> swarmB = CreateSwarm(keyB);
+
+            try
+            {
+                await StartAsync(swarmA);
+                await StartAsync(swarmB);
+                Assert.False(swarmA.SynchronizationRunning);
+                Assert.True(swarmB.SynchronizationRunning);
+
+                BlockChain<DumbAction> chainB = swarmB.BlockChain;
+
+                await BootstrapAsync(swarmA, swarmB.AsPeer);
+
+                foreach (var i in Enumerable.Range(0, 3))
+                {
+                    chainB.Append(chainB.ProposeBlock(
+                        keyB,
+                        lastCommit: CreateLastCommit(chainB.Tip.Hash, chainB.Tip.Index, 0)));
+                }
+
+                await swarmA.ConsensusStaled.WaitAsync();
+                Assert.True(swarmA.SynchronizationRunning);
+                await swarmA.BlockAppended.WaitAsync();
+                await AssertThatEventually(
+                    () => !swarmA.SynchronizationRunning,
+                    10_000,
+                    100,
+                    _output,
+                    "Consensus should be started again.");
+            }
+            finally
+            {
+                await StopAsync(swarmA);
+                await StopAsync(swarmB);
+            }
+        }
+
+        [Fact(Timeout = Timeout)]
         public async Task StopAsyncTest()
         {
             Swarm<DumbAction> swarm = CreateSwarm();
