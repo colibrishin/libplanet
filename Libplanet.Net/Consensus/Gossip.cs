@@ -161,6 +161,7 @@ namespace Libplanet.Net.Consensus
         {
             _cancellationTokenSource?.Cancel();
             await _transport.StopAsync(waitFor, ctx);
+            Running = false;
         }
 
         /// <inheritdoc/>
