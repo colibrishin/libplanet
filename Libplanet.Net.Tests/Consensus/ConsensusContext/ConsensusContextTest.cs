@@ -94,16 +94,10 @@ namespace Libplanet.Net.Tests.Consensus.ConsensusContext
         [Fact(Timeout = Timeout)]
         public void Ctor()
         {
-            var validators = new List<PublicKey>()
-            {
-                TestUtils.Peer0Priv.PublicKey, TestUtils.Peer1Priv.PublicKey,
-            };
-
             var (_, _, consensusContext) = TestUtils.CreateDummyConsensusContext(
                 TimeSpan.FromSeconds(1),
                 TestUtils.Policy,
-                TestUtils.Peer1Priv,
-                validators);
+                TestUtils.Peer1Priv);
 
             Assert.Equal(Step.Null, consensusContext.Step);
             Assert.Equal("No context", consensusContext.ToString());
@@ -380,6 +374,51 @@ namespace Libplanet.Net.Tests.Consensus.ConsensusContext
                 !x.Validator.Equals(TestUtils.Peer0Priv.PublicKey)));
 
             Assert.Equal(expectedVotes, actualVotesWithoutInvalid);
+        }
+
+        [Fact(Timeout = Timeout)]
+        public void Commit()
+        {
+            var stepChangedToPreVote = new AsyncAutoResetEvent();
+            var stepChangedToPreCommit = new AsyncAutoResetEvent();
+            var stepChangedToEndCommit = new AsyncAutoResetEvent();
+
+            var (_, blockChain, consensusContext) = TestUtils.CreateDummyConsensusContext(
+                TimeSpan.FromSeconds(1),
+                TestUtils.Policy,
+                TestUtils.Peer1Priv);
+
+            consensusContext.StateChanged += (sender, eventArgs) =>
+            {
+                if (eventArgs.Height == 2 && eventArgs.Step == Step.PreVote)
+                {
+                    stepChangedToPreVote.Set();
+                }
+
+                if (eventArgs.Height == 2 && eventArgs.Step == Step.PreCommit)
+                {
+                    stepChangedToPreCommit.Set();
+                }
+
+                if (eventArgs.Height == 2 && eventArgs.Step == Step.EndCommit)
+                {
+                    stepChangedToEndCommit.Set();
+                }
+            };
+
+            // Height 1 does not have lastCommit, so skipping height 1.
+            var block1 = blockChain.ProposeBlock(TestUtils.Peer1Priv, lastCommit: null);
+            blockChain.Append(block1);
+
+            var block2 = blockChain.ProposeBlock(
+                TestUtils.Peer2Priv,
+                lastCommit:
+                TestUtils.CreateLastCommit(blockChain.Tip.Hash, blockChain.Tip.Index, 0));
+            consensusContext.Commit(
+                TestUtils.CreateLastCommit(block2.Hash, block2.Index, 0), block2);
+
+            Assert.Equal(blockChain.Tip, block2);
+            Assert.NotNull(blockChain.Store.GetLastCommit(2));
         }
     }
 }
