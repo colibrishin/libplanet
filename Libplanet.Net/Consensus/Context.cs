@@ -84,7 +84,7 @@ namespace Libplanet.Net.Consensus
         private readonly Codec _codec;
         private readonly ValidatorSet _validatorSet;
         private readonly Channel<ConsensusMsg> _messageRequests;
-        private readonly Channel<System.Action> _mutationRequests;
+        private readonly Channel<Func<object?>> _mutationRequests;
         private readonly MessageLog _messageLog;
 
         private readonly PrivateKey _privateKey;
@@ -174,7 +174,7 @@ namespace Libplanet.Net.Consensus
             _blockChain = blockChain;
             _codec = new Codec();
             _messageRequests = Channel.CreateUnbounded<ConsensusMsg>();
-            _mutationRequests = Channel.CreateUnbounded<System.Action>();
+            _mutationRequests = Channel.CreateUnbounded<Func<object?>>();
             _messageLog = new MessageLog(height, validators);
             _preVoteTimeoutFlags = new HashSet<int>();
             _hasTwoThirdsPreVoteFlags = new HashSet<int>();

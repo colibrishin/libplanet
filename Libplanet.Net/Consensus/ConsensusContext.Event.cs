@@ -24,7 +24,7 @@ namespace Libplanet.Net.Consensus
         internal event EventHandler<(long Height, ConsensusMsg Message)>? MessageConsumed;
 
         /// <inheritdoc cref="Context{T}.MutationConsumed"/>
-        internal event EventHandler<(long Height, System.Action)>? MutationConsumed;
+        internal event EventHandler<(long Height, Func<object?>)>? MutationConsumed;
 
         private void AttachEventHandlers(Context<T> context)
         {

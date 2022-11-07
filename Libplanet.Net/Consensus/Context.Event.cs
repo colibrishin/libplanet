@@ -42,6 +42,6 @@ namespace Libplanet.Net.Consensus
         /// <summary>
         /// An event that is invoked when a queued <see cref="System.Action"/> is consumed.
         /// </summary>
-        internal event EventHandler<System.Action>? MutationConsumed;
+        internal event EventHandler<Func<object?>>? MutationConsumed;
     }
 }
