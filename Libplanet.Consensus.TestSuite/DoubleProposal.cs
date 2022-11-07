@@ -1,10 +1,8 @@
 using System;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using Libplanet.Blocks;
 using Libplanet.Net.Consensus;
-using Libplanet.Net.Messages;
 using Libplanet.Net.Tests;
 using Libplanet.Tests.Common.Action;
 using static Libplanet.Consensus.TestSuite.MockConsensusReactorUtilities;
@@ -15,10 +13,8 @@ namespace Libplanet.Consensus.TestSuite
     {
         internal static Block<DumbAction> conflictingBlock;
 
-        internal static long conflictingBlockCount = 0;
-
         // A case where is one node locked a block that is not voted by majority.
-        public static async Task HeightCase(MockConsensusReactor[] reactors)
+        public static async Task<bool> HeightCase(MockConsensusReactor[] reactors)
         {
             Console.WriteLine("[-] Next height case triggered. Do a consensus for next height.");
             if (reactors[2].consensusContext.Step != Step.EndCommit)
@@ -29,31 +25,35 @@ namespace Libplanet.Consensus.TestSuite
                 // FIXME: Proposer proposes a block from height 1 and other nodes will PreVote
                 // NIL for proposal. This will catch that moment for waiting for next Propose
                 // properly.
-                await GenerateOneTimeWatchStep(
+                await GenerateWeakOneTimeWatchStep(
                     reactors,
                     Step.PreCommit,
-                    TimeSpan.FromSeconds(25));
+                    TimeSpan.FromSeconds(23));
             }
 
-            Console.WriteLine("[-] Wait for alive nodes to be aligned to propose step.");
-
-            await GenerateOneTimeWatchStep(
-                reactors,
-                Step.Propose,
-                TimeSpan.FromSeconds(10));
-
-            Console.WriteLine("[-] Starts a new height");
+            var aliveNodes = reactors.Where(
+                x => x.BlockChain.Tip.Index == 1).ToArray();
+            Console.WriteLine("[-] Wait for alive nodes aligned to Propose step.");
 
             await GenerateWeakOneTimeWatchStep(
-                reactors,
-                Step.EndCommit,
-                TimeSpan.FromSeconds(10));
+                aliveNodes,
+                Step.Propose,
+                TimeSpan.FromSeconds(8));
 
-            if (reactors.Sum(
-                    x => x.consensusContext.Step == Step.EndCommit ? 1 : 0) == 3)
+            Console.WriteLine("[-] Processing a new height");
+
+            await GenerateOneTimeWatchStep(
+                aliveNodes,
+                Step.EndCommit,
+                TimeSpan.FromSeconds(8));
+
+            if (reactors.Sum(x =>
+                        x.consensusContext.Step == Step.EndCommit ? 1 : 0) == aliveNodes.Length)
             {
                 Console.WriteLine("[+] One node is faulty, but consensus is still working.");
             }
+
+            return true;
         }
 
         // A case where nodes are divided into two groups and failed to PreCommit.
@@ -62,14 +62,17 @@ namespace Libplanet.Consensus.TestSuite
             Console.WriteLine(
                 "[-] Next round case triggered. Do a consensus for next round.");
 
-            await GenerateOneTimeWatchStep(reactors, Step.Propose, TimeSpan.FromSeconds(10));
+            await GenerateWeakOneTimeWatchStep(
+                reactors,
+                Step.Propose,
+                TimeSpan.FromSeconds(8));
 
             Console.WriteLine("[-] Starts a new round");
 
             await GenerateOneTimeWatchStep(
                 reactors,
                 Step.EndCommit,
-                TimeSpan.FromSeconds(10));
+                TimeSpan.FromSeconds(8));
 
             if (reactors.Sum(
                     x => x.consensusContext.Step == Step.EndCommit ? 1 : 0) != 4)
@@ -82,13 +85,13 @@ namespace Libplanet.Consensus.TestSuite
         }
 
         public static async Task DoublePropose(
-            MockConsensusReactor[] reactors)
+            MockConsensusReactor[] reactors,
+            Block<DumbAction> block)
         {
             await Startup(reactors);
 
-            conflictingBlock =
-                reactors[1].BlockChain.ProposeBlock(TestUtils.Peer1Priv, lastCommit: null);
-            Console.WriteLine("[-] Conflicting valid propose: {0}", conflictingBlock.Hash);
+            conflictingBlock = block;
+            Console.WriteLine("[-] Conflicting propose: {0}", conflictingBlock.Hash);
 
             reactors[0].NewHeight(1);
             reactors[2].NewHeight(1);
@@ -124,28 +127,12 @@ namespace Libplanet.Consensus.TestSuite
                 }
             }
 
-            await HeightCase(reactors);
-            Console.WriteLine("[!] Failed to reach consensus in double propose.");
-        }
+            if (await HeightCase(reactors))
+            {
+                return;
+            }
 
-        public static void CountConflicts(Message message)
-        {
-            if(message is ConsensusPreVoteMsg consensusPreVoteMsg)
-            {
-                if (conflictingBlock.Hash.Equals(consensusPreVoteMsg.BlockHash))
-                {
-                    Console.WriteLine("[-] Conflicting pre-vote: {0}", consensusPreVoteMsg.BlockHash);
-                    conflictingBlockCount++;
-                }
-            }
-            else if(message is ConsensusPreCommitMsg consensusPreCommitMsg)
-            {
-                if (conflictingBlock.Hash.Equals(consensusPreCommitMsg.BlockHash))
-                {
-                    Console.WriteLine("[-] Conflicting pre-commit: {0}", consensusPreCommitMsg.BlockHash);
-                    conflictingBlockCount++;
-                }
-            }
+            Console.WriteLine("[!] Failed to reach consensus in double propose.");
         }
     }
 }

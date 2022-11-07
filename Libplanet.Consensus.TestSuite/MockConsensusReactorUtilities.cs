@@ -73,11 +73,8 @@ namespace Libplanet.Consensus.TestSuite
         {
             foreach (var reactor in reactors)
             {
-                if (reactor.Running)
-                {
-                    _ = reactor.StopAsync(Program.cancellationTokenSource.Token);
-                    await reactor.gossip.StopAsync(TimeSpan.Zero, Program.cancellationTokenSource.Token);
-                }
+                _ = reactor.StopAsync(Program.cancellationTokenSource.Token);
+                await reactor.gossip.StopAsync(TimeSpan.Zero, Program.cancellationTokenSource.Token);
                 reactor.Dispose();
             }
             while (reactors.Sum(x => !x.Running ? 1 : 0) != reactors.Length)
@@ -130,7 +127,7 @@ namespace Libplanet.Consensus.TestSuite
             {
                 if (reactor.consensusContext.Step == step)
                 {
-                    Console.WriteLine("[-] Step {0} reached", step);
+                    Console.WriteLine("[-] Node {0} Step {1} reached", reactor.KeyId, step);
                     return;
                 }
                 await Task.Delay(50, cancellationToken);

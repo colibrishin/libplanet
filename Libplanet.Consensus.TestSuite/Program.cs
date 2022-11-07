@@ -1,17 +1,9 @@
 using System;
-using System.Collections.Immutable;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Libplanet.Blockchain;
 using Libplanet.Blocks;
-using Libplanet.Net;
-using Libplanet.Net.Consensus;
-using Libplanet.Net.Messages;
-using Libplanet.Net.Protocols;
 using Libplanet.Net.Tests;
 using Libplanet.Tests.Common.Action;
-using Nito.AsyncEx;
 using static Libplanet.Consensus.TestSuite.MockConsensusReactorUtilities;
 
 namespace Libplanet.Consensus.TestSuite
@@ -29,27 +21,60 @@ namespace Libplanet.Consensus.TestSuite
         public static async Task TestCases()
         {
             var proposeTestReactors =
-                CreateReactor(4, DoubleProposal.CountConflicts);
+                CreateReactor(4, null);
 
             Console.WriteLine("[@] Double proposal test");
             try
             {
-                await DoubleProposal.DoublePropose(proposeTestReactors);
+                Console.WriteLine("[-] Starts valid double proposal test");
+
+                Block<DumbAction> validConflictingBlock =
+                    proposeTestReactors[1]
+                        .BlockChain.ProposeBlock(
+                            TestUtils.Peer1Priv,
+                            lastCommit: null);
+                await DoubleProposal.DoublePropose(proposeTestReactors, validConflictingBlock);
+                await Cleanup(proposeTestReactors);
+
+                proposeTestReactors = CreateReactor(4, null);
+                Console.WriteLine("[-] Starts invalid double proposal test");
+
+                Block<DumbAction> invalidConflictingBlock =
+                    proposeTestReactors[1]
+                        .BlockChain.ProposeBlock(
+                            TestUtils.Peer1Priv,
+                            lastCommit: TestUtils.CreateLastCommit(
+                                proposeTestReactors[1].BlockChain.Tip.Hash,
+                                0,
+                                0));
+                await DoubleProposal.DoublePropose(proposeTestReactors, invalidConflictingBlock);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.ToString());
+                return;
             }
             finally
             {
                 await Cleanup(proposeTestReactors);
             }
 
+            var restartTestReactors =
+                CreateReactor(4, null);
+
             Console.WriteLine("[@] Restart consensus test");
             try
             {
-                proposeTestReactors = CreateReactor(4, null);
-                await NodeAllRestart.ConsensusRestart(proposeTestReactors);
+                await NodeAllRestart.ConsensusRestart(restartTestReactors);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.ToString());
+                return;
             }
             finally
             {
-                await Cleanup(proposeTestReactors);
+                await Cleanup(restartTestReactors);
             }
         }
     }
