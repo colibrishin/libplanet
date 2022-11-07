@@ -408,12 +408,14 @@ namespace Libplanet.Net.Consensus
         /// Gets the proposed block and valid round of the given round.
         /// </summary>
         /// <param name="round">A round to get.</param>
+        /// <param name="blockHash">A <see cref="BlockHash"/> to be used for finding designated
+        /// proposal.</param>
         /// <returns>Returns a tuple of proposer and valid round.  If proposal for the round
         /// does not exist, returns <see langword="null"/> instead.
         /// </returns>
-        private (Block<T>, int)? GetProposal(int round)
+        private (Block<T>, int)? GetProposal(int round, BlockHash? blockHash)
         {
-            ConsensusProposalMsg? proposal = _messageLog.GetProposal(round);
+            ConsensusProposalMsg? proposal = _messageLog.GetProposal(round, blockHash);
             if (proposal is { } p)
             {
                 var block = BlockMarshaler.UnmarshalBlock<T>(

@@ -32,7 +32,7 @@ namespace Libplanet.Net.Consensus
 
         private long _height;
         private ValidatorSet _validators;
-        private Dictionary<int, ConsensusProposalMsg> _proposals;
+        private Dictionary<int, HashSet<ConsensusProposalMsg>> _proposals;
         private Dictionary<int, Dictionary<PublicKey, ConsensusPreVoteMsg>> _preVotes;
         private Dictionary<int, Dictionary<PublicKey, ConsensusPreCommitMsg>> _preCommits;
 
@@ -46,7 +46,7 @@ namespace Libplanet.Net.Consensus
 
             _height = height;
             _validators = validators;
-            _proposals = new Dictionary<int, ConsensusProposalMsg>();
+            _proposals = new Dictionary<int, HashSet<ConsensusProposalMsg>>();
             _preVotes = new Dictionary<int, Dictionary<PublicKey, ConsensusPreVoteMsg>>();
             _preCommits = new Dictionary<int, Dictionary<PublicKey, ConsensusPreCommitMsg>>();
             _lock = new object();
@@ -136,19 +136,13 @@ namespace Libplanet.Net.Consensus
                 }
                 else if (message is ConsensusProposalMsg proposal2)
                 {
-                    if (_proposals.ContainsKey(proposal2.Round))
+                    if (!_proposals.ContainsKey(proposal2.Round))
                     {
-                        _logger.Debug(
-                            "There is already a proposal for given proposal message's " +
-                            "round {Round}",
-                            proposal2.Round);
-                        return false;
+                        _proposals[proposal2.Round] = new HashSet<ConsensusProposalMsg>();
                     }
-                    else
-                    {
-                        _proposals[proposal2.Round] = proposal2;
-                        return true;
-                    }
+
+                    _proposals[proposal2.Round].Add(proposal2);
+                    return true;
                 }
                 else if (message is ConsensusPreVoteMsg preVote)
                 {
@@ -210,16 +204,24 @@ namespace Libplanet.Net.Consensus
         /// Gets the <see cref="ConsensusProposalMsg"/> for given <paramref name="round"/>.
         /// </summary>
         /// <param name="round">The round to search.</param>
+        /// <param name="blockHash">A <see cref="BlockHash"/> to be used for finding designated
+        /// proposal.</param>
         /// <returns>The <see cref="ConsensusProposalMsg"/> for given <paramref name="round"/>
         /// if found, otherwise <see langword="null"/>.
         /// </returns>
-        internal ConsensusProposalMsg? GetProposal(int round)
+        internal ConsensusProposalMsg? GetProposal(int round, BlockHash? blockHash)
         {
             lock (_lock)
             {
-                return _proposals.ContainsKey(round)
-                    ? _proposals[round]
-                    : null;
+                if (blockHash is { } && _proposals.ContainsKey(round))
+                {
+                    var proposal = _proposals[round]
+                        .Where(x =>
+                            x.Proposal.BlockHash.Equals(blockHash)).ToArray();
+                    return proposal.Any() ? proposal.First() : null;
+                }
+
+                return null;
             }
         }
 
@@ -271,7 +273,10 @@ namespace Libplanet.Net.Consensus
 
                 if (_proposals.ContainsKey(round))
                 {
-                    validators.Add(_proposals[round].Validator);
+                    foreach (var validator in _proposals[round].Select(p => p.Validator))
+                    {
+                        validators.Add(validator);
+                    }
                 }
 
                 return validators

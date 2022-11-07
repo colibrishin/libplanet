@@ -20,7 +20,11 @@ namespace Libplanet.Net.Consensus
                 Height,
                 lastCommit);
             _lastCommit = lastCommit;
-            ProduceMutation(() => StartRound(0));
+            ProduceMutation(() =>
+            {
+                StartRound(0);
+                return null;
+            });
 
             // FIXME: Exceptions inside tasks should be handled properly.
             _ = MessageConsumerTask(_cancellationTokenSource.Token);
@@ -104,7 +108,7 @@ namespace Libplanet.Net.Consensus
         /// Adds a mutating <see cref="System.Action"/> to the mutation queue.
         /// </summary>
         /// <param name="mutation">A <see cref="System.Action"/> to be processed.</param>
-        private void ProduceMutation(System.Action mutation)
+        private void ProduceMutation(Func<object?> mutation)
         {
             _mutationRequests.Writer.WriteAsync(mutation);
         }
@@ -121,16 +125,18 @@ namespace Libplanet.Net.Consensus
                 {
                     ProcessHeightOrRoundUponRules(message);
                 }
+
+                return message;
             });
             MessageConsumed?.Invoke(this, message);
         }
 
         private async Task ConsumeMutation(CancellationToken cancellationToken)
         {
-            System.Action mutation = await _mutationRequests.Reader.ReadAsync(cancellationToken);
+            Func<object?> mutation = await _mutationRequests.Reader.ReadAsync(cancellationToken);
             (int MessageLogSize, int Round, Step Step) prevState =
                 (_messageLog.GetTotalCount(), Round, Step);
-            mutation();
+            object? result = mutation();
             (int MessageLogSize, int Round, Step Step) nextState =
                 (_messageLog.GetTotalCount(), Round, Step);
             if (prevState != nextState)
@@ -148,7 +154,19 @@ namespace Libplanet.Net.Consensus
                 StateChanged?.Invoke(
                     this, (nextState.MessageLogSize, nextState.Round, nextState.Step));
 
-                ProduceMutation(() => ProcessGenericUponRules());
+                ProduceMutation(() =>
+                {
+                    if (result is ConsensusMsg message)
+                    {
+                        ProcessGenericUponRules(message);
+                    }
+                    else
+                    {
+                        ProcessGenericUponRules(null);
+                    }
+
+                    return null;
+                });
             }
 
             MutationConsumed?.Invoke(this, mutation);
@@ -167,7 +185,11 @@ namespace Libplanet.Net.Consensus
                 "TimeoutPropose has occurred in {Timeout}. {Info}",
                 timeout,
                 ToString());
-            ProduceMutation(() => ProcessTimeoutPropose(round));
+            ProduceMutation(() =>
+            {
+                ProcessTimeoutPropose(round);
+                return null;
+            });
         }
 
         /// <summary>
@@ -183,7 +205,11 @@ namespace Libplanet.Net.Consensus
                 "TimeoutPreVote has occurred in {Timeout}. {Info}",
                 timeout,
                 ToString());
-            ProduceMutation(() => ProcessTimeoutPreVote(round));
+            ProduceMutation(() =>
+            {
+                ProcessTimeoutPreVote(round);
+                return null;
+            });
         }
 
         /// <summary>
@@ -199,7 +225,11 @@ namespace Libplanet.Net.Consensus
                 "TimeoutPreCommit has occurred in {Timeout}. {Info}",
                 timeout,
                 ToString());
-            ProduceMutation(() => ProcessTimeoutPreCommit(round));
+            ProduceMutation(() =>
+            {
+                ProcessTimeoutPreCommit(round);
+                return null;
+            });
         }
     }
 }
