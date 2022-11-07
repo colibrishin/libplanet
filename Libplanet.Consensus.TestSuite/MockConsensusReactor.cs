@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -26,22 +27,25 @@ namespace Libplanet.Consensus.TestSuite
         public delegate void MessageChecker(Message message);
 
         internal ConsensusContext<DumbAction> consensusContext;
-        internal BlockChain<DumbAction> blockChain;
+        internal BlockChain<DumbAction> BlockChain;
         internal MemoryStoreFixture fx;
         internal MemoryStore store;
         internal List<BoundPeer> validatorPeers;
         internal ITransport transport;
         internal Gossip gossip;
         internal int KeyId;
-        internal MessageChecker checkingMethod;
+        internal MessageChecker CheckingMethod;
 
-        public MockConsensusReactor(int keyId, MessageChecker messageChecker)
+        public MockConsensusReactor(
+            int keyId,
+            MessageChecker messageChecker,
+            BlockChain<DumbAction>? blockChain = null)
         {
             KeyId = keyId;
             fx = new MemoryStoreFixture(TestUtils.Policy.BlockAction);
             store = new MemoryStore();
 
-            blockChain = new BlockChain<DumbAction>(
+            BlockChain = blockChain ?? new BlockChain<DumbAction>(
                 TestUtils.Policy,
                 new VolatileStagePolicy<DumbAction>(),
                 store,
@@ -72,12 +76,14 @@ namespace Libplanet.Consensus.TestSuite
 
             consensusContext = new ConsensusContext<DumbAction>(
                 AddMessage,
-                blockChain,
+                BlockChain,
                 TestUtils.PrivateKeys[keyId],
                 TimeSpan.FromSeconds(10),
-                blockChain.Policy.GetValidators,
+                BlockChain.Policy.GetValidators,
                 30L,
                 new ContextTimeoutOption());
+
+            CheckingMethod = messageChecker;
         }
 
         /// <summary>
@@ -146,12 +152,12 @@ namespace Libplanet.Consensus.TestSuite
                 case ConsensusMsg consensusMessage:
                     consensusContext.HandleMessage(consensusMessage);
                     Console.WriteLine(
-                        "Received consensus message node Id {0} : {1}, {2}, {3}",
+                        "[->] Received consensus message node Id {0} : {1}, {2}, {3}",
                         KeyId,
                         consensusMessage,
                         consensusMessage.Height,
                         consensusMessage.BlockHash);
-                    checkingMethod(consensusMessage);
+                    CheckingMethod(consensusMessage);
                     break;
             }
         }
