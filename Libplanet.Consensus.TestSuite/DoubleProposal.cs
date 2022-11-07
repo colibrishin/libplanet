@@ -17,78 +17,59 @@ namespace Libplanet.Consensus.TestSuite
 
         internal static long conflictingBlockCount = 0;
 
+        // A case where is one node locked a block that is not voted by majority.
         public static async Task HeightCase(MockConsensusReactor[] reactors)
         {
             Console.WriteLine("[-] Next height case triggered. Do a consensus for next height.");
-            var tmpCts = new CancellationTokenSource();
-
             if (reactors[2].consensusContext.Step != Step.EndCommit)
             {
                 Console.WriteLine(
                     "[-] Next proposer is faulty node. skipping proposer with timeout...");
 
-                var timeoutTasks = Enumerable.Range(0, 4)
-                    .Select(x => WatchStep(reactors[x],
-                        Step.Propose,
-                        tmpCts.Token))
-                    .ToArray();
-                await WeaklyWaitForSeconds(timeoutTasks, TimeSpan.FromSeconds(30), tmpCts);
+                // FIXME: Proposer proposes a block from height 1 and other nodes will PreVote
+                // NIL for proposal. This will catch that moment for waiting for next Propose
+                // properly.
+                await GenerateOneTimeWatchStep(
+                    reactors,
+                    Step.PreCommit,
+                    TimeSpan.FromSeconds(25));
             }
 
             Console.WriteLine("[-] Wait for alive nodes to be aligned to propose step.");
 
-            tmpCts = new CancellationTokenSource();
-            var nextHeightStartedTasks = Enumerable.Range(0, 4)
-                .Select(x =>
-                {
-                    if (reactors[x].consensusContext.Step == Step.EndCommit)
-                    {
-                        return WatchStep(reactors[x],
-                            Step.Propose,
-                            tmpCts.Token);
-                    }
-                    return Task.CompletedTask;
-                })
-                .ToArray();
-            await WaitForSeconds(nextHeightStartedTasks, TimeSpan.FromSeconds(10), tmpCts);
+            await GenerateOneTimeWatchStep(
+                reactors,
+                Step.Propose,
+                TimeSpan.FromSeconds(10));
 
             Console.WriteLine("[-] Starts a new height");
 
-            tmpCts = new CancellationTokenSource();
-            var nextHeightTasks = Enumerable.Range(0, 4)
-                .Select(x => WatchStep(reactors[x],
-                    Step.EndCommit,
-                    tmpCts.Token))
-                .ToArray();
-            await WeaklyWaitForSeconds(nextHeightTasks, TimeSpan.FromSeconds(20), tmpCts);
+            await GenerateWeakOneTimeWatchStep(
+                reactors,
+                Step.EndCommit,
+                TimeSpan.FromSeconds(10));
 
-            if (reactors.Sum(x => x.consensusContext.Step == Step.EndCommit ? 1 : 0) == 3)
+            if (reactors.Sum(
+                    x => x.consensusContext.Step == Step.EndCommit ? 1 : 0) == 3)
             {
                 Console.WriteLine("[+] One node is faulty, but consensus is still working.");
             }
         }
 
+        // A case where nodes are divided into two groups and failed to PreCommit.
         public static async Task<bool> RoundCase(MockConsensusReactor[] reactors)
         {
-            Console.WriteLine("[-] Next round case triggered. Do a consensus for next round.");
+            Console.WriteLine(
+                "[-] Next round case triggered. Do a consensus for next round.");
 
-            var tmpCts = new CancellationTokenSource();
-            var nextRoundWaiter = Enumerable.Range(0, 4)
-                .Select(x => WatchStep(reactors[x],
-                    Step.Propose,
-                    tmpCts.Token))
-                .ToArray();
-            await WeaklyWaitForSeconds(nextRoundWaiter, TimeSpan.FromSeconds(20), tmpCts);
+            await GenerateOneTimeWatchStep(reactors, Step.Propose, TimeSpan.FromSeconds(10));
 
             Console.WriteLine("[-] Starts a new round");
 
-            tmpCts = new CancellationTokenSource();
-            var nextRoundTasks = Enumerable.Range(0, 4)
-                .Select(x => WatchStep(reactors[x],
-                    Step.EndCommit,
-                    tmpCts.Token))
-                .ToArray();
-            await WaitForSeconds(nextRoundTasks, TimeSpan.FromSeconds(8), tmpCts);
+            await GenerateOneTimeWatchStep(
+                reactors,
+                Step.EndCommit,
+                TimeSpan.FromSeconds(10));
 
             if (reactors.Sum(
                     x => x.consensusContext.Step == Step.EndCommit ? 1 : 0) != 4)
@@ -103,18 +84,11 @@ namespace Libplanet.Consensus.TestSuite
         public static async Task DoublePropose(
             MockConsensusReactor[] reactors)
         {
-            var tmpCts = new CancellationTokenSource();
-            var reactorTasks = Enumerable.Range(0, 4)
-                .Select(x => WatchStep(reactors[x],
-                    Step.EndCommit,
-                    tmpCts.Token))
-                .ToArray();
-
             await Startup(reactors);
 
             conflictingBlock =
                 reactors[1].BlockChain.ProposeBlock(TestUtils.Peer1Priv, lastCommit: null);
-            Console.WriteLine("[-] Conflicting propose: {0}", conflictingBlock.Hash);
+            Console.WriteLine("[-] Conflicting valid propose: {0}", conflictingBlock.Hash);
 
             reactors[0].NewHeight(1);
             reactors[2].NewHeight(1);
@@ -125,8 +99,7 @@ namespace Libplanet.Consensus.TestSuite
                 .consensusContext.BroadcastMessage(
                     TestUtils.CreateConsensusPropose(conflictingBlock, TestUtils.PrivateKeys[1]));
 
-            tmpCts = new CancellationTokenSource();
-            await WaitForSeconds(reactorTasks, TimeSpan.FromSeconds(8), tmpCts);
+            await GenerateOneTimeWatchStep(reactors, Step.EndCommit, TimeSpan.FromSeconds(10));
 
             Console.WriteLine("=======================================");
 
@@ -138,7 +111,7 @@ namespace Libplanet.Consensus.TestSuite
             if (reactors.Sum(
                     x => x.consensusContext.Step == Step.EndCommit ? 1 : 0) == 4)
             {
-                Console.WriteLine("[+] Proposed block is voted early and conflicting block is discarded.");
+                Console.WriteLine("[+] One of the block has +2/3 committed.");
                 return;
             }
 

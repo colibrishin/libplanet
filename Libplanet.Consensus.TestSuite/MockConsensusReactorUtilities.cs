@@ -89,6 +89,38 @@ namespace Libplanet.Consensus.TestSuite
             Program.cancellationTokenSource = new CancellationTokenSource();
         }
 
+        private static (Task[], CancellationTokenSource) GenerateWatchStepPair(
+            MockConsensusReactor[] reactors,
+            Step step)
+        {
+            var tmpCts = new CancellationTokenSource();
+            var tasks = Enumerable.Range(0, reactors.Length)
+                .Select(x => WatchStep(reactors[x],
+                    step,
+                    tmpCts.Token))
+                .ToArray();
+
+            return (tasks, tmpCts);
+        }
+
+        public static async Task GenerateOneTimeWatchStep(
+            MockConsensusReactor[] reactors,
+            Step step,
+            TimeSpan timeout)
+        {
+            (Task[] tasks, CancellationTokenSource tmpCts) = GenerateWatchStepPair(reactors, step);
+            await WaitForSeconds(tasks, timeout, tmpCts);
+        }
+
+        public static async Task GenerateWeakOneTimeWatchStep(
+            MockConsensusReactor[] reactors,
+            Step step,
+            TimeSpan timeout)
+        {
+            (Task[] tasks, CancellationTokenSource tmpCts) = GenerateWatchStepPair(reactors, step);
+            await WeaklyWaitForSeconds(tasks, timeout, tmpCts);
+        }
+
         public static async Task WatchStep(
             MockConsensusReactor reactor,
             Step step,

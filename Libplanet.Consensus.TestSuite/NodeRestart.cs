@@ -16,13 +16,10 @@ namespace Libplanet.Consensus.TestSuite
             reactors[2].NewHeight(2);
             reactors[3].NewHeight(2);
 
-            var tmpCts = new CancellationTokenSource();
-            var reactorTasks = Enumerable.Range(0, 4)
-                .Select(x => WatchStep(reactors[x],
-                    Step.EndCommit,
-                    tmpCts.Token))
-                .ToArray();
-            await WaitForSeconds(reactorTasks, TimeSpan.FromSeconds(8), tmpCts);
+            await GenerateOneTimeWatchStep(
+                reactors,
+                Step.EndCommit,
+                TimeSpan.FromSeconds(10));
 
             if (reactors.Sum(x => x.consensusContext.Step == Step.EndCommit ? 1 : 0) < 3)
             {
@@ -33,13 +30,6 @@ namespace Libplanet.Consensus.TestSuite
         public static async Task ConsensusRestart(
             MockConsensusReactor[] reactors)
         {
-            var tmpCts = new CancellationTokenSource();
-            var reactorTasks = Enumerable.Range(0, 4)
-                .Select(x => WatchStep(reactors[x],
-                    Step.EndCommit,
-                    tmpCts.Token))
-                .ToArray();
-
             await Startup(reactors);
 
             reactors[0].NewHeight(1);
@@ -47,9 +37,13 @@ namespace Libplanet.Consensus.TestSuite
             reactors[2].NewHeight(1);
             reactors[3].NewHeight(1);
 
-            await WaitForSeconds(reactorTasks, TimeSpan.FromSeconds(8), tmpCts);
+            await GenerateOneTimeWatchStep(
+                reactors,
+                Step.EndCommit,
+                TimeSpan.FromSeconds(10));
 
-            if (reactors.Sum(x => x.consensusContext.Step == Step.EndCommit ? 1 : 0) < 3)
+            if (reactors.Sum(
+                    x => x.consensusContext.Step == Step.EndCommit ? 1 : 0) < 3)
             {
                 throw new Exception("[!] Failed to reach consensus for preparation.");
             }

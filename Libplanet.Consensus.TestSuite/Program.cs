@@ -28,7 +28,8 @@ namespace Libplanet.Consensus.TestSuite
 
         public static async Task TestCases()
         {
-            var proposeTestReactors = CreateReactor(4, DoubleProposal.CountConflicts);
+            var proposeTestReactors =
+                CreateReactor(4, DoubleProposal.CountConflicts);
 
             Console.WriteLine("[@] Double proposal test");
             try
