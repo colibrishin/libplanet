@@ -114,7 +114,7 @@ namespace Libplanet.Net.Consensus
         /// <summary>
         /// Checks the current state to mutate <see cref="Step"/> and/or schedule timeouts.
         /// </summary>
-        private void ProcessGenericUponRules()
+        private void ProcessGenericUponRules(ConsensusMsg? message)
         {
             if (Step == Step.Default || Step == Step.EndCommit)
             {
@@ -122,7 +122,7 @@ namespace Libplanet.Net.Consensus
                 return;
             }
 
-            (Block<T> Block, int ValidRound)? propose = GetProposal(Round);
+            (Block<T> Block, int ValidRound)? propose = GetProposal(Round, message?.BlockHash);
             if (propose is { } p1 &&
                 p1.ValidRound == -1 &&
                 Step == Step.Propose)
@@ -259,7 +259,7 @@ namespace Libplanet.Net.Consensus
 
             int round = message.Round;
             if ((message is ConsensusProposalMsg || message is ConsensusPreCommitMsg) &&
-                GetProposal(round) is (Block<T> block4, _) &&
+                GetProposal(round, message.BlockHash) is (Block<T> block4, _) &&
                 HasTwoThirdsPreCommit(
                     round, preCommit => block4.Hash.Equals(preCommit.BlockHash)) &&
                 IsValid(block4))
