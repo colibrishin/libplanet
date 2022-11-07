@@ -23,6 +23,8 @@ namespace Libplanet.Consensus.TestSuite
 {
     public class MockConsensusReactor
     {
+        public delegate void MessageChecker(Message message);
+
         internal ConsensusContext<DumbAction> consensusContext;
         internal BlockChain<DumbAction> blockChain;
         internal MemoryStoreFixture fx;
@@ -31,8 +33,9 @@ namespace Libplanet.Consensus.TestSuite
         internal ITransport transport;
         internal Gossip gossip;
         internal int KeyId;
+        internal MessageChecker checkingMethod;
 
-        public MockConsensusReactor(int keyId)
+        public MockConsensusReactor(int keyId, MessageChecker messageChecker)
         {
             KeyId = keyId;
             fx = new MemoryStoreFixture(TestUtils.Policy.BlockAction);
@@ -103,9 +106,9 @@ namespace Libplanet.Consensus.TestSuite
             await task;
         }
 
-        public void NewHeight()
+        public void NewHeight(long height)
         {
-            consensusContext.NewHeight(blockChain.Tip.Index + 1);
+            consensusContext.NewHeight(height);
         }
 
         /// <summary>
@@ -148,6 +151,7 @@ namespace Libplanet.Consensus.TestSuite
                         consensusMessage,
                         consensusMessage.Height,
                         consensusMessage.BlockHash);
+                    checkingMethod(consensusMessage);
                     break;
             }
         }

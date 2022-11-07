@@ -3,8 +3,10 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Libplanet.Blocks;
 using Libplanet.Net;
 using Libplanet.Net.Consensus;
+using Libplanet.Net.Messages;
 using Libplanet.Net.Protocols;
 using Libplanet.Net.Tests;
 using Libplanet.Tests.Common.Action;
@@ -20,6 +22,9 @@ namespace Libplanet.Consensus.TestSuite
         internal static CancellationTokenSource taskCancellation =
             new CancellationTokenSource();
 
+        internal static Block<DumbAction> conflictingBlock;
+        internal static long conflictingBlockCount = 0;
+
         public static void Maina()
         {
             Task.WaitAny(TestCases());
@@ -28,7 +33,7 @@ namespace Libplanet.Consensus.TestSuite
         public static async Task TestCases()
         {
             Console.WriteLine("Double proposal test");
-            var proposeTestReactors = CreateReactor(4);
+            var proposeTestReactors = CreateReactor(4, CountConflicts);
             try
             {
                 await DoublePropose(proposeTestReactors);
@@ -42,7 +47,7 @@ namespace Libplanet.Consensus.TestSuite
             Console.WriteLine("Restart consensus test");
             try
             {
-                proposeTestReactors = CreateReactor(4);
+                proposeTestReactors = CreateReactor(4, null);
                 await ConsensusRestart(proposeTestReactors);
             }
             catch (Exception e)
@@ -52,10 +57,10 @@ namespace Libplanet.Consensus.TestSuite
             }
         }
 
-        public static MockConsensusReactor[] CreateReactor(int count)
+        public static MockConsensusReactor[] CreateReactor(int count, MockConsensusReactor.MessageChecker messageChecker)
         {
             return Enumerable.Range(0, count)
-                .Select(x => new MockConsensusReactor(x))
+                .Select(x => new MockConsensusReactor(x, messageChecker))
                 .ToArray();
         }
 
@@ -70,18 +75,18 @@ namespace Libplanet.Consensus.TestSuite
 
             await Startup(reactors);
 
-            var block =
+            conflictingBlock =
                 reactors[1].blockChain.ProposeBlock(TestUtils.Peer1Priv, lastCommit: null);
-            Console.WriteLine("Conflicting propose: {0}", block.Hash);
+            Console.WriteLine("Conflicting propose: {0}", conflictingBlock.Hash);
 
-            reactors[0].NewHeight();
-            reactors[2].NewHeight();
-            reactors[3].NewHeight();
+            reactors[0].NewHeight(1);
+            reactors[2].NewHeight(1);
+            reactors[3].NewHeight(1);
 
-            reactors[1].NewHeight();
+            reactors[1].NewHeight(1);
             reactors[1]
                 .consensusContext.BroadcastMessage(
-                    TestUtils.CreateConsensusPropose(block, TestUtils.PrivateKeys[1]));
+                    TestUtils.CreateConsensusPropose(conflictingBlock, TestUtils.PrivateKeys[1]));
 
             await TaskCanceller(TimeSpan.FromSeconds(8)).ConfigureAwait(false);
             try
@@ -105,6 +110,31 @@ namespace Libplanet.Consensus.TestSuite
             {
                 throw new Exception("Failed to reach consensus in double propose.");
             }
+
+            if (conflictingBlockCount > 0)
+            {
+                throw new Exception("Some node votes for conflicting block.");
+            }
+        }
+
+        public static void CountConflicts(Message message)
+        {
+            if(message is ConsensusPreVoteMsg consensusPreVoteMsg)
+            {
+                if (conflictingBlock.Hash.Equals(consensusPreVoteMsg.BlockHash))
+                {
+                    Console.WriteLine("Conflicting pre-vote: {0}", consensusPreVoteMsg.BlockHash);
+                    conflictingBlockCount++;
+                }
+            }
+            else if(message is ConsensusPreCommitMsg consensusPreCommitMsg)
+            {
+                if (conflictingBlock.Hash.Equals(consensusPreCommitMsg.BlockHash))
+                {
+                    Console.WriteLine("Conflicting pre-commit: {0}", consensusPreCommitMsg.BlockHash);
+                    conflictingBlockCount++;
+                }
+            }
         }
 
         public static async Task ConsensusRestart(
@@ -118,10 +148,10 @@ namespace Libplanet.Consensus.TestSuite
 
             await Startup(reactors);
 
-            reactors[0].NewHeight();
-            reactors[1].NewHeight();
-            reactors[2].NewHeight();
-            reactors[3].NewHeight();
+            reactors[0].NewHeight(1);
+            reactors[1].NewHeight(1);
+            reactors[2].NewHeight(1);
+            reactors[3].NewHeight(1);
 
             await TaskCanceller(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
             try
@@ -149,10 +179,10 @@ namespace Libplanet.Consensus.TestSuite
                 Console.WriteLine(e.ToString());
             }
 
-            reactors[0].NewHeight();
-            reactors[1].NewHeight();
-            reactors[2].NewHeight();
-            reactors[3].NewHeight();
+            reactors[0].NewHeight(2);
+            reactors[1].NewHeight(2);
+            reactors[2].NewHeight(2);
+            reactors[3].NewHeight(2);
 
             await TaskCanceller(TimeSpan.FromSeconds(8)).ConfigureAwait(false);
             try
