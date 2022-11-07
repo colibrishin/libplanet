@@ -87,7 +87,7 @@ namespace Libplanet.Net.Tests.Consensus.Context
         }
 
         [Fact]
-        public void CannotAddMultipleProposalsPerRound()
+        public void CanAddMultipleProposalsPerRound()
         {
             var block = _blockChain.ProposeBlock(
                 TestUtils.Peer0Priv,
@@ -112,7 +112,7 @@ namespace Libplanet.Net.Tests.Consensus.Context
                 -1).Sign(TestUtils.Peer2Priv));
 
             Assert.True(_messageLog.Add(proposal0));
-            Assert.False(_messageLog.Add(proposal1));
+            Assert.True(_messageLog.Add(proposal1));
         }
 
         [Fact]
