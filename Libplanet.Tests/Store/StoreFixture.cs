@@ -167,23 +167,23 @@ namespace Libplanet.Tests.Store
 
         public PrivateKey Miner { get; }
 
-        public Block<DumbAction> GenesisBlock { get; }
+        public Block<DumbAction> GenesisBlock { get; protected set; }
 
-        public Block<DumbAction> Block1 { get; }
+        public Block<DumbAction> Block1 { get; protected set; }
 
-        public Block<DumbAction> Block2 { get; }
+        public Block<DumbAction> Block2 { get; protected set; }
 
-        public Block<DumbAction> Block3 { get; }
+        public Block<DumbAction> Block3 { get; protected set; }
 
-        public Block<DumbAction> Block4 { get; }
+        public Block<DumbAction> Block4 { get; protected set; }
 
-        public Block<DumbAction> Block5 { get; }
+        public Block<DumbAction> Block5 { get; protected set; }
 
-        public Transaction<DumbAction> Transaction1 { get; }
+        public Transaction<DumbAction> Transaction1 { get; protected set; }
 
-        public Transaction<DumbAction> Transaction2 { get; }
+        public Transaction<DumbAction> Transaction2 { get; protected set; }
 
-        public Transaction<DumbAction> Transaction3 { get; }
+        public Transaction<DumbAction> Transaction3 { get; protected set; }
 
         public IStore Store { get; set; }
 
