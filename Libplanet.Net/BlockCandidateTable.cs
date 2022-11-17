@@ -18,11 +18,13 @@ namespace Libplanet.Net
     public class BlockCandidateTable<T>
         where T : IAction, new()
     {
-        private readonly ConcurrentDictionary<BlockHeader, SortedList<long, Block<T>>> _blocks;
+        private readonly
+            ConcurrentDictionary<BlockHeader, (SortedList<long, Block<T>>, BlockCommit)> _blocks;
 
         public BlockCandidateTable()
         {
-            _blocks = new ConcurrentDictionary<BlockHeader, SortedList<long, Block<T>>>();
+            _blocks =
+                new ConcurrentDictionary<BlockHeader, (SortedList<long, Block<T>>, BlockCommit)>();
         }
 
         public long Count
@@ -38,7 +40,11 @@ namespace Libplanet.Net
         /// <param name="blockHeader">This is the header of the <see cref="BlockChain{T}"/>
         /// tip at the time of downloading the blocks.</param>
         /// <param name="blocks">List of downloaded <see cref="Block{T}"/>.</param>
-        public void Add(BlockHeader blockHeader, IEnumerable<Block<T>> blocks)
+        /// <param name="topCommit">aa.</param>
+        public void Add(
+            BlockHeader blockHeader,
+            IEnumerable<Block<T>> blocks,
+            BlockCommit topCommit)
         {
             if (_blocks.ContainsKey(blockHeader))
             {
@@ -49,7 +55,7 @@ namespace Libplanet.Net
             {
                 var sortedBlocks =
                     new SortedList<long, Block<T>>(blocks.ToDictionary(i => i.Index));
-                _blocks.TryAdd(blockHeader, sortedBlocks);
+                _blocks.TryAdd(blockHeader, (sortedBlocks, topCommit));
             }
             catch (ArgumentException e)
             {
@@ -69,12 +75,12 @@ namespace Libplanet.Net
         /// <param name="thisRoundTip">Canonical <see cref="BlockChain{T}"/>'s
         /// tip of this round.</param>
         /// <returns><see cref="Block{T}"/>s by <paramref name="thisRoundTip"/>.</returns>
-        public SortedList<long, Block<T>>? GetCurrentRoundCandidate(
+        public (SortedList<long, Block<T>>, BlockCommit)? GetCurrentRoundCandidate(
             BlockHeader thisRoundTip)
         {
             return _blocks.TryGetValue(thisRoundTip, out var blocks)
                 ? blocks
-                : null;
+                : ((SortedList<long, Block<T>>, BlockCommit)?)null;
         }
 
         public bool TryRemove(BlockHeader header)

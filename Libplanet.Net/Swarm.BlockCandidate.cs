@@ -20,11 +20,11 @@ namespace Libplanet.Net
                 if (BlockCandidateTable.Any())
                 {
                     BlockHeader tipHeader = BlockChain.Tip.Header;
-                    SortedList<long, Block<T>> blocks =
+                    (SortedList<long, Block<T>> Blocks, BlockCommit BlockCommit)? blocks =
                         BlockCandidateTable.GetCurrentRoundCandidate(tipHeader);
                     if (!(blocks is null))
                     {
-                        var latest = blocks.Last();
+                        var latest = blocks.Value.Blocks.Last();
                         _logger.Debug(
                             "{MethodName} has started. Excerpt: #{BlockIndex} {BlockHash} " +
                             "Count of {BlockCandidateTable}: {Count}",
@@ -34,7 +34,7 @@ namespace Libplanet.Net
                             nameof(BlockCandidateTable),
                             BlockCandidateTable.Count);
                         _ = BlockCandidateProcess(
-                            blocks,
+                            blocks.Value,
                             cancellationToken);
                         BlockAppended.Set();
                     }
@@ -50,7 +50,7 @@ namespace Libplanet.Net
         }
 
         private bool BlockCandidateProcess(
-            SortedList<long, Block<T>> candidate,
+            (SortedList<long, Block<T>> Block, BlockCommit BlockCommit) candidate,
             CancellationToken cancellationToken)
         {
             BlockChain<T> synced = null;
@@ -109,7 +109,7 @@ namespace Libplanet.Net
 
         private BlockChain<T> AppendPreviousBlocks(
             BlockChain<T> blockChain,
-            SortedList<long, Block<T>> candidate,
+            (SortedList<long, Block<T>> Blocks, BlockCommit BlockCommit) candidate,
             bool evaluateActions)
         {
              BlockChain<T> workspace = blockChain;
@@ -118,8 +118,8 @@ namespace Libplanet.Net
              bool renderBlocks = true;
 
              Block<T> oldTip = workspace.Tip;
-             Block<T> newTip = candidate.Last().Value;
-             List<Block<T>> blocks = candidate.Values.ToList();
+             Block<T> newTip = candidate.Blocks.Last().Value;
+             List<Block<T>> blocks = candidate.Blocks.Values.ToList();
              Block<T> branchpoint = FindBranchpoint(oldTip, newTip, blocks);
 
              if (oldTip is null || branchpoint.Equals(oldTip))
@@ -168,14 +168,17 @@ namespace Libplanet.Net
                  blocks = blocks.Skip(1).ToList();
              }
 
+             List<BlockCommit> commits = blocks.Select(x => x.LastCommit).Skip(1).ToList();
+             commits.Add(candidate.BlockCommit);
+
              try
              {
-                 foreach (var block in blocks)
+                 foreach (var block in blocks.Zip(commits, (block, commit) => (block, commit)))
                  {
                      // TODO: Block should be appended with commits.
                      workspace.Append(
-                         block,
-                         null,
+                         block.block,
+                         block.commit,
                          evaluateActions: evaluateActions,
                          renderBlocks: renderBlocks,
                          renderActions: renderActions);
@@ -385,7 +388,10 @@ namespace Libplanet.Net
                 hashes.Select(pair => pair.Item2),
                 cancellationToken);
             var blocks = await blocksAsync.ToArrayAsync(cancellationToken);
-            BlockCandidateTable.Add(tip.Header, blocks);
+            Block<T> topBlock = blocks.Single(b => b.Index == blocks.Max(x => x.Index));
+            BlockCommit commit = await GetCommitAsync(peer, topBlock.Hash, _cancellationToken);
+            BlockCandidateTable.Add(tip.Header, blocks, commit);
+
             return true;
         }
     }

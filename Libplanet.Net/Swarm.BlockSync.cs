@@ -77,6 +77,7 @@ namespace Libplanet.Net
             var totalBlocksToDownload = 0L;
             Block<T> tempTip = BlockChain.Tip;
             var blocks = new List<Block<T>>();
+            BlockCommit topCommit = null;
 
             try
             {
@@ -203,6 +204,19 @@ namespace Libplanet.Net
                 }
 
                 blocks.Insert(0, branchpoint);
+                Block<T> topBlock = blocks.Single(b => b.Index == blocks.Max(x => x.Index));
+                Task<BlockCommit>[] commitTasks = peersWithBlockExcerpt
+                    .Select(response => response.Item1)
+                    .Select(peer => GetCommitAsync(peer, topBlock.Hash, _cancellationToken))
+                    .ToArray();
+
+                // FIXME: If fastest node replies with a pong, then this would fails.
+                await Task.WhenAny(commitTasks);
+
+                topCommit = commitTasks
+                    .Where(x => x.IsCompletedSuccessfully && !x.IsFaulted)
+                    .Select(x => x.Result)
+                    .Single();
             }
             catch (Exception e)
             {
@@ -213,9 +227,9 @@ namespace Libplanet.Net
             }
             finally
             {
-                if (blocks.Count != 0)
+                if (blocks.Count != 0 && topCommit is { })
                 {
-                    BlockCandidateTable.Add(BlockChain.Tip.Header, blocks);
+                    BlockCandidateTable.Add(BlockChain.Tip.Header, blocks, topCommit);
                     BlockReceived.Set();
                 }
 
