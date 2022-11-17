@@ -179,6 +179,10 @@ namespace Libplanet.Net.Messages
                     return new HaveMessage(dataframes);
                 case Message.MessageType.WantMessage:
                     return new WantMessage(dataframes);
+                case Message.MessageType.GetBlockCommit:
+                    return new GetCommitMsg(dataframes);
+                case Message.MessageType.BlockCommit:
+                    return new CommitMsg(dataframes);
                 default:
                     throw new InvalidCastException($"Given type {type} is not a valid message.");
             }

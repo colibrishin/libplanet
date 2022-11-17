@@ -60,7 +60,7 @@ namespace Libplanet.Net.Messages
             /// <summary>
             /// Message containing serialized blocks.
             /// </summary>
-            Blocks = 0x45,
+            Blocks = 0x09,
 
             /// <summary>
             /// Message containing serialized transaction.
@@ -129,6 +129,16 @@ namespace Libplanet.Net.Messages
             /// List of message IDs that the peer want to have.
             /// </summary>
             WantMessage = 0x44,
+
+            /// <summary>
+            /// BlockCommit message.
+            /// </summary>
+            BlockCommit = 0x45,
+
+            /// <summary>
+            /// Get BlockCommit message.
+            /// </summary>
+            GetBlockCommit = 0x46,
         }
 
         public enum MessageFrame
