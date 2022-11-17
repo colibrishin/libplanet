@@ -71,6 +71,10 @@ namespace Libplanet.Net
                     break;
                 }
 
+                case GetCommitMsg getCommit:
+                    await TransferBlockCommitAsync(getCommit);
+                    break;
+
                 case GetBlocksMsg getBlocks:
                     await TransferBlocksAsync(getBlocks);
                     break;
@@ -105,6 +109,32 @@ namespace Libplanet.Net
                         message
                     );
             }
+        }
+
+        private async Task TransferBlockCommitAsync(GetCommitMsg getCommit)
+        {
+            BlockCommit blockCommit = BlockChain.GetBlockCommit(getCommit.BlockHash);
+
+            // If the blockCommit is requested for the genesis block, or designated block does not
+            // exist in store, GetBlockCommit could return null.
+            if (blockCommit == null)
+            {
+                await Transport.ReplyMessageAsync(
+                    new PongMsg()
+                    {
+                        Identity = getCommit.Identity,
+                    },
+                    _cancellationToken);
+
+                return;
+            }
+
+            await Transport.ReplyMessageAsync(
+                new CommitMsg(blockCommit)
+                {
+                    Identity = getCommit.Identity,
+                },
+                _cancellationToken);
         }
 
         private void ProcessBlockHeader(BlockHeaderMsg message)

@@ -840,6 +840,31 @@ namespace Libplanet.Net
             throw new InvalidMessageException(errorMessage, parsedMessage);
         }
 
+        internal async Task<BlockCommit> GetCommitAsync(
+            BoundPeer peer,
+            BlockHash blockHash,
+            CancellationToken cancellationToken)
+        {
+            var request = new GetCommitMsg(blockHash);
+            Message parsedMessage = await Transport.SendMessageAsync(
+                    peer,
+                    request,
+                    timeout: Options.TimeoutOptions.GetBlockHashesTimeout,
+                    cancellationToken: cancellationToken
+            );
+
+            if (parsedMessage is CommitMsg blockCommitMsg)
+            {
+                return blockCommitMsg.BlockCommit;
+            }
+
+            string errorMessage =
+                    $"The response of {nameof(GetCommitAsync)} is expected to be " +
+                    $"{nameof(CommitMsg)}, not {parsedMessage.GetType().Name}: {parsedMessage}";
+
+            throw new InvalidMessageException(errorMessage, parsedMessage);
+        }
+
         internal async IAsyncEnumerable<Block<T>> GetBlocksAsync(
             BoundPeer peer,
             IEnumerable<BlockHash> blockHashes,
