@@ -1439,8 +1439,8 @@ namespace Libplanet.Tests.Blockchain
             var emptyLocator = new BlockLocator(new BlockHash[0]);
             var locator = new BlockLocator(new[] { b4.Hash, b3.Hash, b1.Hash });
 
-            using (var emptyFx = new MemoryStoreFixture(_policy.BlockAction))
-            using (var forkFx = new MemoryStoreFixture(_policy.BlockAction))
+            using (var emptyFx = new PoWDefaultStoreFixture(true, _policy.BlockAction))
+            using (var forkFx = new PoWDefaultStoreFixture(true, _policy.BlockAction))
             {
                 var genesisBlock = BlockChain<DumbAction>.ProposeGenesisBlock();
                 var emptyChain = new BlockChain<DumbAction>(
