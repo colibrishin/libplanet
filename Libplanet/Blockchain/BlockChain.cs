@@ -1233,6 +1233,17 @@ namespace Libplanet.Blockchain
                     throw ibe;
                 }
 
+                InvalidBlockCommitException ibce = ValidateBlockCommit(block, blockCommit);
+
+                if (!(ibce is null))
+                {
+                    _logger.Error(
+                        ibce,
+                        "Failed to append block {BlockHash} due to invalid blockCommit.",
+                        block.Hash);
+                    throw ibce;
+                }
+
                 var nonceDeltas = new Dictionary<Address, long>();
 
                 foreach (Transaction<T> tx1 in block.Transactions.OrderBy(tx => tx.Nonce))
@@ -1310,8 +1321,6 @@ namespace Libplanet.Blockchain
                         Store.PutTxIdBlockHashIndex(tx.Id, block.Hash);
                     }
 
-                    // FIXME: Checks given BlockCommit is belong to block. Also BlockCommit is not
-                    // stored if value is null in temporary measure.
                     // Note: Genesis block is not committed by PBFT consensus, so it has no its
                     // blockCommit.
                     if (block.Index != 0 && blockCommit is { })
@@ -1538,6 +1547,51 @@ namespace Libplanet.Blockchain
             {
                 _rwlock.ExitUpgradeableReadLock();
             }
+        }
+
+#pragma warning disable SA1202
+        public InvalidBlockCommitException ValidateBlockCommit(
+            Block<T> block,
+            BlockCommit blockCommit)
+#pragma warning restore SA1202
+        {
+            // To allow the PoW block to be appended, we skips the validation.
+            if ((block.Index == 0 && blockCommit == null) ||
+                block.ProtocolVersion <= BlockMetadata.PoWProtocolVersion)
+            {
+                return null;
+            }
+
+            if (block.Index != 0 && blockCommit == null)
+            {
+                return new InvalidBlockCommitException(
+                    $"Block #{block.Hash} BlockCommit is required except for the genesis block.");
+            }
+
+            if (block.Index != blockCommit.Height)
+            {
+                return new InvalidBlockCommitException(
+                    "BlockCommit has height value that is not same with block index. " +
+                    $"Block index is {block.Index}, however, BlockCommit height is " +
+                    $"{blockCommit.Height}.");
+            }
+
+            if (!block.Hash.Equals(blockCommit.BlockHash))
+            {
+                return new InvalidBlockCommitException(
+                    $"BlockCommit has different block. Block hash is {block.Hash}, " +
+                    $"however, BlockCommit block hash is {blockCommit.BlockHash}.");
+            }
+
+            // FIXME: When the dynamic validator set is possible, the functionality of this
+            // condition should be checked once more.
+            if (!Policy.GetValidatorSet(block.Index).ValidateBlockCommitValidators(blockCommit))
+            {
+                return new InvalidBlockCommitException(
+                    "BlockCommit has different validator set with policy's validator set.");
+            }
+
+            return null;
         }
 
 #pragma warning disable SA1202
