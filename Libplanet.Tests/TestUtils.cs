@@ -355,7 +355,7 @@ Actual (C# array lit):   new byte[{actual.LongLength}] {{ {actualRepr} }}";
         public static BlockCommit CreateBlockCommit<T>(Block<T> block)
             where T : IAction, new() =>
                 block.Index > 0 &&
-                block.ProtocolVersion > BlockMetadata.PoWProtocolVersion
+                block.ProtocolVersion >= BlockMetadata.PoWProtocolVersion
                     ? CreateBlockCommit(block.Hash, block.Index, 0)
                     : null;
 
