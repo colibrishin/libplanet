@@ -234,7 +234,6 @@ namespace Libplanet.Net.Tests
                 IBlockPolicy<DumbAction>? policy = null,
                 PrivateKey? privateKey = null,
                 ConsensusContext<DumbAction>.DelegateBroadcastMessage? broadcastMessage = null,
-                long blockCommitClearThreshold = 30,
                 ContextTimeoutOption? contextTimeoutOptions = null)
         {
             policy ??= Policy;
