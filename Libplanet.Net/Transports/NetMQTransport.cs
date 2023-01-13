@@ -793,13 +793,12 @@ namespace Libplanet.Net.Transports
                 dealer.Options.DisableTimeWait = true;
                 _logger.Debug("Trying to connect {RequestId}.", request.Id);
                 dealer.Connect(request.Peer.ToNetMQAddress());
-                long incrementedSocketCount = Interlocked.Increment(ref _socketCount);
                 _logger
                     .ForContext("Tag", "Metric")
                     .ForContext("Subtag", "SocketCount")
                     .Debug(
                     "{SocketCount} sockets open for processing request {Message} {RequestId}.",
-                    incrementedSocketCount,
+                    Interlocked.Increment(ref _socketCount),
                     request.Message,
                     request.Id);
                 return dealer;
@@ -842,7 +841,16 @@ namespace Libplanet.Net.Transports
             // Normal OperationCanceledException initiated from outside should bubble up.
             try
             {
-                cancellationToken.ThrowIfCancellationRequested();
+                // FIXME: This is a workaround for distinguishing cancellation between before and
+                // after socket allocation.
+                try
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                }
+                catch (OperationCanceledException)
+                {
+                    throw new TransportException("Cancelled before socket allocation.");
+                }
 
                 using var dealer = GetRequestDealerSocket(req);
 
@@ -883,6 +891,26 @@ namespace Libplanet.Net.Transports
 
                 channel.Writer.Complete();
             }
+            catch (NetMQException nme)
+            {
+                _logger.Error(
+                    nme,
+                    "No socket available to process {RequestId}; {e}",
+                    req.Id,
+                    nme
+                );
+                channel.Writer.TryComplete(nme);
+                return;
+            }
+            catch (TransportException te)
+            {
+                _logger.Debug(
+                    te,
+                    "Request {RequestId} cancelled before socket allocation.",
+                    req.Id);
+                channel.Writer.TryComplete(te);
+                return;
+            }
             catch (Exception e)
             {
                 _logger.Error(
@@ -893,28 +921,26 @@ namespace Libplanet.Net.Transports
                 );
                 channel.Writer.TryComplete(e);
             }
-            finally
+
+            if (req.ExpectedResponses == 0)
             {
-                if (req.ExpectedResponses == 0)
-                {
-                    // FIXME: Temporary fix to wait for a message to be sent.
-                    await Task.Delay(1000);
-                }
-
-                Interlocked.Decrement(ref _socketCount);
-
-                _logger
-                    .ForContext("Tag", "Metric")
-                    .ForContext("Subtag", "OutboundMessageReport")
-                    .Debug(
-                        "Request {RequestId} " +
-                        "processed in {DurationMs:F0}ms with {ReceivedCount} replies received " +
-                        "out of {ExpectedCount} expected replies.",
-                        req.Id,
-                        (DateTimeOffset.UtcNow - startedTime).TotalMilliseconds,
-                        receivedCount,
-                        req.ExpectedResponses);
+                // FIXME: Temporary fix to wait for a message to be sent.
+                await Task.Delay(1000);
             }
+
+            Interlocked.Decrement(ref _socketCount);
+
+            _logger
+                .ForContext("Tag", "Metric")
+                .ForContext("Subtag", "OutboundMessageReport")
+                .Debug(
+                    "Request {RequestId} " +
+                    "processed in {DurationMs:F0}ms with {ReceivedCount} replies received " +
+                    "out of {ExpectedCount} expected replies.",
+                    req.Id,
+                    (DateTimeOffset.UtcNow - startedTime).TotalMilliseconds,
+                    receivedCount,
+                    req.ExpectedResponses);
         }
 
         private async Task RunPoller(NetMQPoller poller)
