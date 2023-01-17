@@ -720,9 +720,10 @@ namespace Libplanet.Net.Transports
 
         private DealerSocket GetRequestDealerSocket(MessageRequest request)
         {
+            DealerSocket dealer = null;
             try
             {
-                var dealer = new DealerSocket();
+                dealer = new DealerSocket();
                 dealer.Options.DisableTimeWait = true;
                 _logger.Debug("Trying to connect {RequestId}.", request.Id);
                 dealer.Connect(request.Peer.ToNetMQAddress());
@@ -737,8 +738,14 @@ namespace Libplanet.Net.Transports
                     request.Id);
                 return dealer;
             }
-            catch (NetMQException nme)
+            catch (Exception e)
             {
+                // FIXME: NetMQ socket does not properly closed if the socket is allocated and
+                // exception is thrown while in Connect(). For example, Connect() with unreachable
+                // address throws DNS Resolve error exception and a socket is not properly
+                // closed even if the socket is disposed from outside.
+                dealer?.Close();
+
                 const string logMsg =
                     "{SocketCount} sockets open for processing requests; " +
                     "failed to create an additional socket for request {Message} {RequestId}.";
@@ -746,7 +753,7 @@ namespace Libplanet.Net.Transports
                     .ForContext("Tag", "Metric")
                     .ForContext("Subtag", "SocketCount")
                     .Debug(
-                    nme,
+                    e,
                     logMsg,
                     Interlocked.Read(ref _socketCount),
                     request.Message,
