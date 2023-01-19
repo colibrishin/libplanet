@@ -336,6 +336,43 @@ namespace Libplanet.Net.Tests.Transports
         }
 
         [SkippableFact(Timeout = Timeout)]
+        public async Task SendMessageAsyncReturnFlag()
+        {
+            ITransport transportA = CreateTransport();
+            ITransport transportB = CreateTransport();
+
+            try
+            {
+                await InitializeAsync(transportA);
+
+                Task throwType = transportA.SendMessageAsync(
+                    transportB.AsPeer,
+                    new PingMsg(),
+                    TimeSpan.FromSeconds(1),
+                    1,
+                    false,
+                    CancellationToken.None);
+
+                await Assert.ThrowsAsync<CommunicationFailException>(async () => await throwType);
+
+                Task<IEnumerable<Message>> returnType = transportA.SendMessageAsync(
+                    transportB.AsPeer,
+                    new PingMsg(),
+                    TimeSpan.FromSeconds(1),
+                    1,
+                    true,
+                    CancellationToken.None);
+
+                Assert.Empty(await returnType);
+            }
+            finally
+            {
+                transportA.Dispose();
+                transportB.Dispose();
+            }
+        }
+
+        [SkippableFact(Timeout = Timeout)]
         public async Task BroadcastMessage()
         {
             var address = new PrivateKey().ToAddress();
