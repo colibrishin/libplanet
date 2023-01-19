@@ -304,18 +304,9 @@ namespace Libplanet.Net.Transports
                 throw new ObjectDisposedException(nameof(NetMQTransport));
             }
 
-            using var timerCts = new CancellationTokenSource();
-            if (timeout is { } timeoutNotNull)
-            {
-                timerCts.CancelAfter(timeoutNotNull);
-            }
-
             using CancellationTokenSource linkedCts =
                 CancellationTokenSource.CreateLinkedTokenSource(
-                    _runtimeCancellationTokenSource.Token,
-                    cancellationToken,
-                    timerCts.Token
-                );
+                    _runtimeCancellationTokenSource.Token, cancellationToken);
             CancellationToken linkedCt = linkedCts.Token;
 
             Guid reqId = Guid.NewGuid();
@@ -325,6 +316,8 @@ namespace Libplanet.Net.Transports
 
             try
             {
+                linkedCt.ThrowIfCancellationRequested();
+
                 DateTimeOffset now = DateTimeOffset.UtcNow;
                 NetMQMessage rawMessage = _messageCodec.Encode(
                     message,
@@ -340,6 +333,7 @@ namespace Libplanet.Net.Transports
                     message
                 );
                 Interlocked.Increment(ref _requestCount);
+
                 var req = new MessageRequest(
                     reqId,
                     rawMessage,
@@ -347,12 +341,11 @@ namespace Libplanet.Net.Transports
                     now,
                     expectedResponses,
                     channel,
-                    linkedCt
+                    timeout ?? TimeSpan.FromSeconds(1),
+                    cancellationToken
                 );
-                await _requests.Writer.WriteAsync(
-                    req,
-                    linkedCt
-                ).ConfigureAwait(false);
+
+                await _requests.Writer.WriteAsync(req, linkedCt).ConfigureAwait(false);
                 _logger.Verbose(
                     "Enqueued a request {RequestId} to the peer {Peer}: {@Message}; " +
                     "{LeftRequests} left.",
@@ -420,36 +413,23 @@ namespace Libplanet.Net.Transports
 
                 return replies;
             }
-            catch (OperationCanceledException oce) when (timerCts.IsCancellationRequested)
-            {
-                if (returnWhenTimeout)
-                {
-                    return replies;
-                }
-
-                throw WrapCommunicationFailException(
-                    new TimeoutException(
-                        $"The operation was canceled due to timeout {timeout!.ToString()}.",
-                        oce
-                    ),
-                    peer,
-                    message,
-                    reqId
-                );
-            }
-            catch (OperationCanceledException oce2)
+            catch (OperationCanceledException oce)
             {
                 const string dbgMsg =
                     "{FName}() was cancelled while waiting for a reply to " +
                     "{Message} {RequestId} from {Peer}.";
                 _logger.Debug(
-                    oce2, dbgMsg, nameof(SendMessageAsync), message, reqId, peer);
+                    oce, dbgMsg, nameof(SendMessageAsync), message, reqId, peer);
 
-                // Wrapping to match the previous behavior of `SendMessageAsync()`.
-                throw new TaskCanceledException(dbgMsg, oce2);
+                throw new TaskCanceledException(oce.ToString());
             }
             catch (ChannelClosedException ce)
             {
+                if (ce.InnerException is TimeoutException && returnWhenTimeout)
+                {
+                    return replies;
+                }
+
                 throw WrapCommunicationFailException(ce.InnerException, peer, message, reqId);
             }
             catch (Exception e)
@@ -581,8 +561,7 @@ namespace Libplanet.Net.Transports
 
                     _logger.Verbose(
                         "A raw message [frame count: {0}] has received.",
-                        raw.FrameCount
-                    );
+                        raw.FrameCount);
 
                     if (_runtimeCancellationTokenSource.IsCancellationRequested)
                     {
@@ -708,9 +687,7 @@ namespace Libplanet.Net.Transports
                 long left = Interlocked.Decrement(ref _requestCount);
                 _logger.Debug("Request taken; {Count} requests left.", left);
 
-                _ = SynchronizationContext.Current.PostAsync(
-                    () => ProcessRequest(req, req.CancellationToken)
-                );
+                _ = SynchronizationContext.Current.PostAsync(() => ProcessRequest(req));
 
 #if NETCOREAPP3_0 || NETCOREAPP3_1 || NET
                 _logger.Verbose(waitMsg);
@@ -718,7 +695,7 @@ namespace Libplanet.Net.Transports
             }
         }
 
-        private async Task ProcessRequest(MessageRequest req, CancellationToken cancellationToken)
+        private async Task ProcessRequest(MessageRequest req)
         {
             DateTimeOffset startedTime = DateTimeOffset.UtcNow;
             _logger.Debug(
@@ -735,82 +712,139 @@ namespace Libplanet.Net.Transports
             );
             int receivedCount = 0;
             long? incrementedSocketCount = null;
+            CancellationTokenSource timeoutCts = new CancellationTokenSource();
 
             // Normal OperationCanceledException initiated from outside should bubble up.
             try
             {
-                cancellationToken.ThrowIfCancellationRequested();
+                req.CancellationToken.ThrowIfCancellationRequested();
 
                 using var dealer = new DealerSocket();
                 dealer.Options.DisableTimeWait = true;
-                try
-                {
-                    _logger.Debug("Trying to connect {RequestId}.", req.Id);
-                    dealer.Connect(req.Peer.ToNetMQAddress());
-                    incrementedSocketCount = Interlocked.Increment(ref _socketCount);
-                    _logger
-                        .ForContext("Tag", "Metric")
-                        .ForContext("Subtag", "SocketCount")
-                        .Debug(
+                _logger.Debug("Trying to connect {RequestId}.", req.Id);
+                dealer.Connect(req.Peer.ToNetMQAddress());
+
+                incrementedSocketCount = Interlocked.Increment(ref _socketCount);
+
+                _logger
+                    .ForContext("Tag", "Metric")
+                    .ForContext("Subtag", "SocketCount")
+                    .Debug(
                         "{SocketCount} sockets open for processing request {Message} {RequestId}.",
                         incrementedSocketCount,
                         req.Message,
                         req.Id);
-                }
-                catch (NetMQException nme)
+
+                // FIXME: This is a workaround for not using TrySendMultipartMessage() here.
+                // If timing isn't right (e.g., NetMQ disposed while routine was in
+                // TrySendMultipartMessage(), Peer disconnected while send and replying)
+                // the Try-method could hang for a while.
+                timeoutCts.CancelAfter(req.Timeout);
+
+                using (CancellationTokenSource linkedCts =
+                       CancellationTokenSource.CreateLinkedTokenSource(
+                           req.CancellationToken,
+                           timeoutCts.Token))
                 {
-                    const string logMsg =
-                        "{SocketCount} sockets open for processing requests; " +
-                        "failed to create an additional socket for request {Message} {RequestId}.";
-                    _logger
-                        .ForContext("Tag", "Metric")
-                        .ForContext("Subtag", "SocketCount")
-                        .Debug(
+                    await dealer.SendMultipartMessageAsync(
+                        req.Message,
+                        cancellationToken: linkedCts.Token);
+                }
+
+                _logger.Debug(
+                    "Request {RequestId} sent to {Peer}.",
+                    req.Id,
+                    req.Peer);
+
+                // If one is expecting no reply (e.g., broadcasting), then this condition will not
+                // triggered.
+                foreach (var i in Enumerable.Range(0, req.ExpectedResponses))
+                {
+                    // Stops the loop if the cancellation is requested.
+                    // (i.e., StopAsync(), CancellationToken from SendMessageAsync)
+                    req.CancellationToken.ThrowIfCancellationRequested();
+
+                    // FIXME: This is a workaround for not using TryReceiveMultipartMessage() here.
+                    // If timing isn't right (e.g., NetMQ disposed while routine was in
+                    // TrySendMultipartMessage(), Peer disconnected while send and replying)
+                    // the Try-method could hang for a while.
+                    timeoutCts = new CancellationTokenSource();
+                    timeoutCts.CancelAfter(req.Timeout);
+
+                    using var linkedCts =
+                        CancellationTokenSource.CreateLinkedTokenSource(
+                            req.CancellationToken,
+                            timeoutCts.Token);
+
+                    NetMQMessage receivedMsg = await dealer.ReceiveMultipartMessageAsync(
+                        cancellationToken: linkedCts.Token);
+
+                    _logger.Verbose(
+                        "Received a raw message with {FrameCount} frames as a reply to " +
+                        "request {RequestId} from {Peer}.",
+                        receivedMsg.FrameCount,
+                        req.Id,
+                        req.Peer);
+
+                    await channel.Writer.WriteAsync(receivedMsg, req.CancellationToken);
+                    receivedCount += 1;
+                }
+
+                // FIXME: This TryComplete() exists due to the race condition between
+                // SendMessageAsync() where the expected responses are set to 0.
+                channel.Writer.TryComplete();
+            }
+            catch (NetMQException nme)
+            {
+                const string logMsg =
+                    "{SocketCount} sockets open for processing requests; " +
+                    "Failed to create an additional socket for request {Message} {RequestId}.";
+                _logger
+                    .ForContext("Tag", "Metric")
+                    .ForContext("Subtag", "SocketCount")
+                    .Debug(
                         nme,
                         logMsg,
                         Interlocked.Read(ref _socketCount),
                         req.Message,
                         req.Id);
-                    throw;
-                }
 
-                if (dealer.TrySendMultipartMessage(req.Message))
+                channel.Writer.TryComplete(nme);
+            }
+            catch (OperationCanceledException oce) when (timeoutCts.IsCancellationRequested)
+            {
+                // INFO: This is for whether the message has been received from
+                // the peer fully. Also, this can be used for tracking the non-paired messages.
+                // Some of cases (e.g., Gossip) would not reply message much as expected.
+                if (receivedCount != req.ExpectedResponses)
                 {
-                    _logger.Debug(
-                        "Request {RequestId} sent to {Peer}.",
+                    const string logMsg =
+                        "Expected {ExpectedReplies} message as a reply of request {RequestId} " +
+                        "from {Peer}, timed out after {TimeSpan} however.";
+
+                    _logger.Warning(
+                        oce,
+                        logMsg,
+                        req.ExpectedResponses,
                         req.Id,
-                        req.Peer);
+                        req.Peer,
+                        req.Timeout);
+
+                    // Complete the channel and throw the timeout exception. The channel consumer
+                    // (i.e., SendMessageAsync()) will handle the exception.
+                    channel.Writer.TryComplete(
+                        new TimeoutException(
+                            $"Timed out while receiving message(s) from {req.Peer}", oce));
                 }
                 else
                 {
-                    _logger.Debug(
-                        "Failed to send {RequestId} to {Peer}.",
-                        req.Id,
-                        req.Peer);
-
-                    throw new SendMessageFailException(
-                        $"Failed to send {req.Message} to {req.Peer}.",
-                        req.Peer);
+                    channel.Writer.TryComplete(oce);
                 }
-
-                foreach (var i in Enumerable.Range(0, req.ExpectedResponses))
-                {
-                    NetMQMessage raw = await dealer.ReceiveMultipartMessageAsync(
-                        cancellationToken: cancellationToken
-                    );
-
-                    _logger.Verbose(
-                        "Received a raw message with {FrameCount} frames as a reply to " +
-                        "request {RequestId} from {Peer}.",
-                        raw.FrameCount,
-                        req.Id,
-                        req.Peer
-                    );
-                    await channel.Writer.WriteAsync(raw, cancellationToken);
-                    receivedCount += 1;
-                }
-
-                channel.Writer.Complete();
+            }
+            catch (OperationCanceledException oce)
+            {
+                _logger.Debug(oce, "Operation was cancelled.");
+                channel.Writer.TryComplete(oce);
             }
             catch (Exception e)
             {
@@ -824,12 +858,6 @@ namespace Libplanet.Net.Transports
             }
             finally
             {
-                if (req.ExpectedResponses == 0)
-                {
-                    // FIXME: Temporary fix to wait for a message to be sent.
-                    await Task.Delay(1000);
-                }
-
                 if (incrementedSocketCount is { })
                 {
                     Interlocked.Decrement(ref _socketCount);
@@ -913,6 +941,7 @@ namespace Libplanet.Net.Transports
                 DateTimeOffset requestedTime,
                 in int expectedResponses,
                 Channel<NetMQMessage> channel,
+                TimeSpan timeout,
                 CancellationToken cancellationToken)
             {
                 Id = id;
@@ -921,6 +950,7 @@ namespace Libplanet.Net.Transports
                 RequestedTime = requestedTime;
                 ExpectedResponses = expectedResponses;
                 Channel = channel;
+                Timeout = timeout;
                 CancellationToken = cancellationToken;
             }
 
@@ -935,6 +965,8 @@ namespace Libplanet.Net.Transports
             public int ExpectedResponses { get; }
 
             public Channel<NetMQMessage> Channel { get; }
+
+            public TimeSpan Timeout { get; }
 
             public CancellationToken CancellationToken { get; }
         }
