@@ -25,6 +25,12 @@ namespace Libplanet.Net.Transports
     /// </summary>
     public class NetMQTransport : ITransport
     {
+        // This ensures creating a task concurrently and scheduling ProcessRequest() to avoid
+        // allocating a socket more than MaxSocketSize. Due to the shared NetMQ backend,
+        // TaskScheduler is defined in static manner.
+        private static readonly LimitedConcurrencyLevelTaskScheduler RequestTaskScheduler =
+            new LimitedConcurrencyLevelTaskScheduler(NetMQConfig.MaxSockets);
+
         private readonly PrivateKey _privateKey;
         private readonly ILogger _logger;
         private readonly AppProtocolVersionOptions _appProtocolVersionOptions;
@@ -114,8 +120,7 @@ namespace Libplanet.Net.Transports
                 },
                 runtimeCt,
                 TaskCreationOptions.DenyChildAttach | TaskCreationOptions.LongRunning,
-                TaskScheduler.Default
-            );
+                TaskScheduler.Current);
 
             _runningEvent = new AsyncManualResetEvent();
             ProcessMessageHandler = new AsyncDelegate<Message>();
@@ -666,8 +671,8 @@ namespace Libplanet.Net.Transports
                             }
                         },
                         CancellationToken.None,
-                        TaskCreationOptions.HideScheduler | TaskCreationOptions.DenyChildAttach,
-                        TaskScheduler.Default
+                        TaskCreationOptions.DenyChildAttach,
+                        TaskScheduler.Current
                     ).Unwrap();
                 }
             }
@@ -721,9 +726,13 @@ namespace Libplanet.Net.Transports
                 long left = Interlocked.Decrement(ref _requestCount);
                 _logger.Debug("Request taken; {Count} requests left.", left);
 
-                _ = SynchronizationContext.Current.PostAsync(
-                    () => ProcessRequest(req, req.CancellationToken)
-                );
+                // Due to TaskScheduler.Current bottlenecks the processing some requests
+                // (Having 1 MaximumConcurrencyLevel), NetMQTransport has own task scheduler.
+                _ = Task.Factory.StartNew(
+                    () => ProcessRequest(req, req.CancellationToken),
+                    req.CancellationToken,
+                    TaskCreationOptions.DenyChildAttach,
+                    RequestTaskScheduler);
 
 #if NETCOREAPP3_0 || NETCOREAPP3_1 || NET
                 _logger.Verbose(waitMsg);
@@ -866,8 +875,7 @@ namespace Libplanet.Net.Transports
         {
             TaskCreationOptions taskCreationOptions =
                 TaskCreationOptions.DenyChildAttach |
-                TaskCreationOptions.LongRunning |
-                TaskCreationOptions.HideScheduler;
+                TaskCreationOptions.LongRunning;
             await Task.Factory.StartNew(
                 () =>
                 {
@@ -894,8 +902,7 @@ namespace Libplanet.Net.Transports
                 },
                 CancellationToken.None,
                 taskCreationOptions,
-                TaskScheduler.Default
-            );
+                TaskScheduler.Current);
         }
 
         private CommunicationFailException WrapCommunicationFailException(
