@@ -708,9 +708,14 @@ namespace Libplanet.Net.Transports
                 long left = Interlocked.Decrement(ref _requestCount);
                 _logger.Debug("Request taken; {Count} requests left.", left);
 
-                _ = SynchronizationContext.Current.PostAsync(
-                    () => ProcessRequest(req, req.CancellationToken)
-                );
+                // FIXME: TaskScheduler.Current bottlenecks the processing some requests.
+                // (Due to having 1 MaximumConcurrencyLevel) For now, we are using
+                // TaskScheduler.Default for process multiple tasks concurrently.
+                _ = Task.Factory.StartNew(
+                    () => ProcessRequest(req, req.CancellationToken),
+                    req.CancellationToken,
+                    TaskCreationOptions.DenyChildAttach | TaskCreationOptions.HideScheduler,
+                    TaskScheduler.Default);
 
 #if NETCOREAPP3_0 || NETCOREAPP3_1 || NET
                 _logger.Verbose(waitMsg);
