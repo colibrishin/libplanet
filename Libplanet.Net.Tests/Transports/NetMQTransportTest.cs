@@ -1,5 +1,6 @@
 #nullable disable
 using System;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -17,10 +18,12 @@ namespace Libplanet.Net.Tests.Transports
     [Collection("NetMQConfiguration")]
     public class NetMQTransportTest : TransportTest, IDisposable
     {
+        private readonly ITestOutputHelper _testOutputHelper;
         private bool _disposed;
 
         public NetMQTransportTest(ITestOutputHelper testOutputHelper)
         {
+            _testOutputHelper = testOutputHelper;
             TransportConstructor = (
                     privateKey,
                     appProtocolVersionOptions,
@@ -56,7 +59,7 @@ namespace Libplanet.Net.Tests.Transports
             try
             {
                 // An arbitrary number to fit one transport testing.
-                NetMQConfig.MaxSockets = 12;
+                NetMQConfig.MaxSockets = 100;
                 NetMQTransport transport = await NetMQTransport.Create(
                     new PrivateKey(),
                     new AppProtocolVersionOptions(),
@@ -98,6 +101,22 @@ namespace Libplanet.Net.Tests.Transports
                             default
                         )
                     );
+
+                var tasks = Enumerable.Range(0, 100)
+                    .Select(_ => transport.SendMessageAsync(
+                        invalidPeer,
+                        new PingMsg(),
+                        TimeSpan.FromSeconds(1),
+                        default
+                    )).ToArray();
+
+                try
+                {
+                    await Task.WhenAll(tasks);
+                }
+                catch
+                {
+                }
 
                 // Expecting SocketException about host resolving since `invalidPeer` has an
                 // invalid hostname
