@@ -817,7 +817,16 @@ namespace Libplanet.Net.Transports
                     receivedCount += 1;
                 }
 
-                channel.Writer.Complete();
+                if (req.ExpectedResponses == 0)
+                {
+                    _logger.Warning(
+                        "Expecting no response; completing channel for request {RequestId}.",
+                        req.Id);
+                }
+
+                // FIXME: If expectedResponse 0 is given, then completing channel in
+                // SendMessageAsync() competing with here.
+                channel.Writer.TryComplete();
             }
             catch (Exception e)
             {
@@ -831,12 +840,6 @@ namespace Libplanet.Net.Transports
             }
             finally
             {
-                if (req.ExpectedResponses == 0)
-                {
-                    // FIXME: Temporary fix to wait for a message to be sent.
-                    channel.Writer.TryComplete();
-                }
-
                 if (incrementedSocketCount is { })
                 {
                     Interlocked.Decrement(ref _socketCount);
