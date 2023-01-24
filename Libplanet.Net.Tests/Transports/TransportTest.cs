@@ -237,7 +237,7 @@ namespace Libplanet.Net.Tests.Transports
                 await InitializeAsync(transportA, default);
                 await InitializeAsync(transportB, default);
 
-                cts.CancelAfter(TimeSpan.FromSeconds(1));
+                cts.CancelAfter(TimeSpan.FromMilliseconds(500));
                 await Assert.ThrowsAsync<TaskCanceledException>(
                     async () => await transportA.SendMessageAsync(
                         transportB.AsPeer,
