@@ -415,11 +415,10 @@ namespace Libplanet.Net.Transports
             }
             catch (OperationCanceledException oce)
             {
-                const string dbgMsg =
-                    "{FName}() was cancelled while waiting for a reply to " +
-                    "{Message} {RequestId} from {Peer}.";
-                _logger.Debug(
-                    oce, dbgMsg, nameof(SendMessageAsync), message, reqId, peer);
+                string dbgMsg =
+                    $"{nameof(SendMessageAsync)} was cancelled while waiting for a reply to " +
+                    $"{message} {reqId} from {peer}.";
+                _logger.Debug(oce, dbgMsg);
 
                 // Wrapping to match the previous behavior of `SendMessageAsync()`.
                 throw new TaskCanceledException(dbgMsg, oce);
