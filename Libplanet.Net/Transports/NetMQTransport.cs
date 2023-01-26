@@ -28,6 +28,12 @@ namespace Libplanet.Net.Transports
     /// </summary>
     public class NetMQTransport : ITransport
     {
+        // This ensures creating a task concurrently and scheduling ProcessRequest() to avoid
+        // allocating a socket more than MaxSocketSize. Due to the shared NetMQ backend,
+        // TaskScheduler is defined in static manner.
+        private static readonly LimitedConcurrencyLevelTaskScheduler RequestTaskScheduler =
+            new LimitedConcurrencyLevelTaskScheduler(NetMQConfig.MaxSockets);
+
         private readonly PrivateKey _privateKey;
         private readonly ILogger _logger;
         private readonly AppProtocolVersionOptions _appProtocolVersionOptions;
@@ -38,10 +44,6 @@ namespace Libplanet.Net.Transports
         private readonly AsyncManualResetEvent _runningEvent;
         private readonly Task _consumerTask;
         private readonly CancellationTokenSource _consumerCancellationTokenSource;
-
-        // This ensures creating a task concurrently and scheduling ProcessRequest() to avoid
-        // allocating a socket more than MaxSocketSize.
-        private readonly LimitedConcurrencyLevelTaskScheduler _taskScheduler;
 
         private NetMQQueue<(AsyncManualResetEvent, NetMQMessage)> _replyQueue;
 
@@ -87,10 +89,6 @@ namespace Libplanet.Net.Transports
             _logger = Log
                 .ForContext<NetMQTransport>()
                 .ForContext("Source", nameof(NetMQTransport));
-
-            // ProcessRequest task + Poller task, This can be interpreted as the maximum number of
-            // requests that can be processed concurrently.
-            _taskScheduler = new LimitedConcurrencyLevelTaskScheduler(NetMQConfig.MaxSockets + 1);
 
             _socketCount = 0;
             _privateKey = privateKey;
@@ -247,7 +245,7 @@ namespace Libplanet.Net.Transports
                 _requestCancellationTokenSource.Dispose();
                 _turnCancellationTokenSource.Dispose();
 
-                if (_router is { } router && !router.IsDisposed)
+                if (_router is { IsDisposed: false })
                 {
                     // We omitted _router.Unbind() with intention due to hangs.
                     // See also: https://github.com/planetarium/libplanet/pull/2311
@@ -515,7 +513,7 @@ namespace Libplanet.Net.Transports
                 },
                 cancellationToken,
                 TaskCreationOptions.HideScheduler | TaskCreationOptions.DenyChildAttach,
-                TaskScheduler.Default);
+                TaskScheduler.Current);
 
         private static Task<NetMQMessage> ReceiveNetMQMessageAsync(
             IReceivingSocket socket,
@@ -536,7 +534,7 @@ namespace Libplanet.Net.Transports
                 },
                 cancellationToken,
                 TaskCreationOptions.HideScheduler | TaskCreationOptions.DenyChildAttach,
-                TaskScheduler.Default);
+                TaskScheduler.Current);
 
         /// <summary>
         /// Initializes a <see cref="NetMQTransport"/> as to make it ready to
@@ -612,7 +610,7 @@ namespace Libplanet.Net.Transports
                         () => PostProcessMessage(copied),
                         _requestCancellationTokenSource.Token,
                         TaskCreationOptions.DenyChildAttach,
-                        _taskScheduler);
+                        TaskScheduler.Current);
                 }
             }
             catch (Exception ex)
@@ -726,7 +724,7 @@ namespace Libplanet.Net.Transports
                     () => ProcessRequest(req, req.CancellationToken),
                     req.CancellationToken,
                     TaskCreationOptions.DenyChildAttach | TaskCreationOptions.PreferFairness,
-                    _taskScheduler);
+                    RequestTaskScheduler);
 
 #if NETCOREAPP3_0 || NETCOREAPP3_1 || NET
                 _logger.Verbose(waitMsg);
@@ -892,7 +890,7 @@ namespace Libplanet.Net.Transports
                 },
                 CancellationToken.None,
                 taskCreationOptions,
-                _taskScheduler);
+                TaskScheduler.Current);
         }
 
         private CommunicationFailException WrapCommunicationFailException(
