@@ -20,7 +20,11 @@ using Serilog;
 namespace Libplanet.Net.Transports
 {
     /// <summary>
-    /// Implementation of <see cref="ITransport"/> interface using NetMQ.
+    /// Implementation of <see cref="ITransport"/> interface using NetMQ. When the
+    /// <see cref="NetMQTransport"/> is created, it starts a ambient request processor. This will
+    /// allow to send a message to a peer without having to <see cref="StartAsync"/>
+    /// (e.g., Preload). The ambient request processor will be stopped only if when the
+    /// <see cref="NetMQTransport"/> is disposed.
     /// </summary>
     public class NetMQTransport : ITransport
     {
