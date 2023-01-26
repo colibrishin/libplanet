@@ -516,7 +516,7 @@ namespace Libplanet.Net.Transports
                     if (!socket.TrySendMultipartMessage(timeout, message))
                     {
                         throw new TimeoutException(
-                            $"Timeout occurred during receiving a message from {socket}.");
+                            $"Timeout occurred during sending a message in {timeout}.");
                     }
 
                     return Task.CompletedTask;
@@ -537,7 +537,7 @@ namespace Libplanet.Net.Transports
                     if (!socket.TryReceiveMultipartMessage(timeout, ref message))
                     {
                         throw new TimeoutException(
-                            $"Timeout occurred during receiving a message from {socket}.");
+                            $"Timeout occurred during receiving a message in {timeout}.");
                     }
 
                     return message;
@@ -674,10 +674,9 @@ namespace Libplanet.Net.Transports
                                     "Something went wrong during message processing.");
                             }
                         },
-                        CancellationToken.None,
+                        _requestCancellationTokenSource.Token,
                         TaskCreationOptions.DenyChildAttach,
-                        TaskScheduler.Current
-                    ).Unwrap();
+                        TaskScheduler.Current);
                 }
             }
             catch (Exception ex)
