@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using AsyncIO;
+using Dasync.Collections;
 using Libplanet.Crypto;
 using Libplanet.Net.Messages;
 using Libplanet.Stun;
@@ -374,7 +375,7 @@ namespace Libplanet.Net.Transports
                 NetMQMessage rawMessage = _messageCodec.Encode(
                     message,
                     _privateKey,
-                    _appProtocolVersionOptions.AppProtocolVersion,
+                    _appProtocolVersion,
                     AsPeer,
                     DateTimeOffset.UtcNow
                 );
@@ -547,7 +548,7 @@ namespace Libplanet.Net.Transports
                     _messageCodec.Encode(
                         message,
                         _privateKey,
-                        _appProtocolVersionOptions.AppProtocolVersion,
+                        _appProtocolVersion,
                         AsPeer,
                         DateTimeOffset.UtcNow
                     )
