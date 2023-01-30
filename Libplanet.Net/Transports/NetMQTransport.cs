@@ -462,7 +462,13 @@ namespace Libplanet.Net.Transports
                 async () =>
                 {
                     await boundPeers.ParallelForEachAsync(
-                        peer => SendMessageAsync(peer, message, TimeSpan.FromSeconds(1), ct),
+                        peer => SendMessageAsync(
+                            peer,
+                            message,
+                            TimeSpan.FromSeconds(1),
+                            0,
+                            true,
+                            ct),
                         ct
                     );
                 },
@@ -816,7 +822,20 @@ namespace Libplanet.Net.Transports
                     receivedCount += 1;
                 }
 
-                channel.Writer.Complete();
+                if (req.ExpectedResponses == 0)
+                {
+                    _logger.Warning(
+                        "Channel closed; Request {RequestId} {Message} expects no reply",
+                        req.Id,
+                        req.Message);
+
+                    while (!cancellationToken.IsCancellationRequested && dealer.HasOut)
+                    {
+                        await Task.Delay(50, cancellationToken).ConfigureAwait(false);
+                    }
+                }
+
+                channel.Writer.TryComplete();
             }
             catch (Exception e)
             {
@@ -830,12 +849,6 @@ namespace Libplanet.Net.Transports
             }
             finally
             {
-                if (req.ExpectedResponses == 0)
-                {
-                    // FIXME: Temporary fix to wait for a message to be sent.
-                    await Task.Delay(1000);
-                }
-
                 if (incrementedSocketCount is { })
                 {
                     Interlocked.Decrement(ref _socketCount);
