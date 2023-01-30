@@ -304,18 +304,10 @@ namespace Libplanet.Net.Transports
                 throw new ObjectDisposedException(nameof(NetMQTransport));
             }
 
-            using var timerCts = new CancellationTokenSource();
-            if (timeout is { } timeoutNotNull)
-            {
-                timerCts.CancelAfter(timeoutNotNull);
-            }
-
             using CancellationTokenSource linkedCts =
                 CancellationTokenSource.CreateLinkedTokenSource(
                     _runtimeCancellationTokenSource.Token,
-                    cancellationToken,
-                    timerCts.Token
-                );
+                    cancellationToken);
             CancellationToken linkedCt = linkedCts.Token;
 
             Guid reqId = Guid.NewGuid();
@@ -345,6 +337,7 @@ namespace Libplanet.Net.Transports
                     rawMessage,
                     peer,
                     now,
+                    timeout ?? Timeout.InfiniteTimeSpan,
                     expectedResponses,
                     channel,
                     linkedCt
@@ -420,36 +413,24 @@ namespace Libplanet.Net.Transports
 
                 return replies;
             }
-            catch (OperationCanceledException oce) when (timerCts.IsCancellationRequested)
+            catch (OperationCanceledException oce)
+            {
+                throw new TaskCanceledException("Task has been canceled.", oce.InnerException);
+            }
+            catch (ChannelClosedException ce)
             {
                 if (returnWhenTimeout)
                 {
                     return replies;
                 }
 
-                throw WrapCommunicationFailException(
-                    new TimeoutException(
-                        $"The operation was canceled due to timeout {timeout!.ToString()}.",
-                        oce
-                    ),
-                    peer,
-                    message,
-                    reqId
-                );
-            }
-            catch (OperationCanceledException oce2)
-            {
                 const string dbgMsg =
                     "{FName}() was cancelled while waiting for a reply to " +
                     "{Message} {RequestId} from {Peer}.";
                 _logger.Debug(
-                    oce2, dbgMsg, nameof(SendMessageAsync), message, reqId, peer);
+                    ce.InnerException, dbgMsg, nameof(SendMessageAsync), message, reqId, peer);
 
                 // Wrapping to match the previous behavior of `SendMessageAsync()`.
-                throw new TaskCanceledException(dbgMsg, oce2);
-            }
-            catch (ChannelClosedException ce)
-            {
                 throw WrapCommunicationFailException(ce.InnerException, peer, message, reqId);
             }
             catch (Exception e)
@@ -774,30 +755,55 @@ namespace Libplanet.Net.Transports
                     throw;
                 }
 
-                if (dealer.TrySendMultipartMessage(req.Message))
-                {
-                    _logger.Debug(
-                        "Request {RequestId} sent to {Peer}.",
-                        req.Id,
-                        req.Peer);
-                }
-                else
-                {
-                    _logger.Debug(
-                        "Failed to send {RequestId} to {Peer}.",
-                        req.Id,
-                        req.Peer);
+                using var sendCts = new CancellationTokenSource();
+                using var sendPairCts =
+                    CancellationTokenSource.CreateLinkedTokenSource(
+                        sendCts.Token, cancellationToken);
+                sendCts.CancelAfter(req.Timeout);
 
-                    throw new SendMessageFailException(
-                        $"Failed to send {req.Message} to {req.Peer}.",
-                        req.Peer);
-                }
+                await dealer.SendMultipartMessageAsync(
+                    req.Message,
+                    cancellationToken: sendPairCts.Token)
+                    .ContinueWith(
+                        t =>
+                        {
+                            if (t.IsCanceled && !cancellationToken.IsCancellationRequested)
+                            {
+                                _logger.Debug(
+                                    "Failed to send {RequestId} to {Peer}.",
+                                    req.Id,
+                                    req.Peer);
+
+                                throw new SendMessageFailException(
+                                    $"Failed to send {req.Message} to {req.Peer}.",
+                                    req.Peer);
+                            }
+                        }, cancellationToken);
+
+                _logger.Debug("Request {RequestId} sent to {Peer}.", req.Id, req.Peer);
 
                 foreach (var i in Enumerable.Range(0, req.ExpectedResponses))
                 {
+                    using var receivingCts = new CancellationTokenSource();
+                    using var receivingPairCts =
+                        CancellationTokenSource.CreateLinkedTokenSource(
+                            sendCts.Token, cancellationToken);
+                    sendCts.CancelAfter(req.Timeout);
+
                     NetMQMessage raw = await dealer.ReceiveMultipartMessageAsync(
-                        cancellationToken: cancellationToken
-                    );
+                        cancellationToken: receivingPairCts.Token)
+                        .ContinueWith(
+                            t =>
+                            {
+                                if (t.IsCanceled && !cancellationToken.IsCancellationRequested)
+                                {
+                                    throw new TimeoutException(
+                                        $"The operation was canceled due to timeout {req.Timeout}."
+                                        );
+                                }
+
+                                return t.Result;
+                            }, cancellationToken);
 
                     _logger.Verbose(
                         "Received a raw message with {FrameCount} frames as a reply to " +
@@ -911,6 +917,7 @@ namespace Libplanet.Net.Transports
                 NetMQMessage message,
                 BoundPeer peer,
                 DateTimeOffset requestedTime,
+                TimeSpan timeout,
                 in int expectedResponses,
                 Channel<NetMQMessage> channel,
                 CancellationToken cancellationToken)
@@ -919,6 +926,7 @@ namespace Libplanet.Net.Transports
                 Message = message;
                 Peer = peer;
                 RequestedTime = requestedTime;
+                Timeout = timeout;
                 ExpectedResponses = expectedResponses;
                 Channel = channel;
                 CancellationToken = cancellationToken;
@@ -931,6 +939,8 @@ namespace Libplanet.Net.Transports
             public BoundPeer Peer { get; }
 
             public DateTimeOffset RequestedTime { get; }
+
+            public TimeSpan Timeout { get; }
 
             public int ExpectedResponses { get; }
 
