@@ -185,45 +185,36 @@ namespace Libplanet.Net.Tests.Protocols
         [Fact(Timeout = Timeout)]
         public async Task BootstrapAsyncTest()
         {
-            var transportA = CreateTestTransport();
-            var transportB = CreateTestTransport();
-            var transportC = CreateTestTransport();
+            using var transportA = CreateTestTransport();
+            using var transportB = CreateTestTransport();
+            using var transportC = CreateTestTransport();
 
-            try
-            {
-                await StartTestTransportAsync(transportA);
-                await StartTestTransportAsync(transportB);
-                await StartTestTransportAsync(transportC);
+            await StartTestTransportAsync(transportA);
+            await StartTestTransportAsync(transportB);
+            await StartTestTransportAsync(transportC);
 
-                await transportB.BootstrapAsync(new[] { transportA.AsPeer });
-                await transportC.BootstrapAsync(new[] { transportA.AsPeer });
+            await transportB.BootstrapAsync(new[] { transportA.AsPeer });
+            await transportC.BootstrapAsync(new[] { transportA.AsPeer });
 
-                Assert.Contains(transportB.AsPeer, transportC.Peers);
-                Assert.Contains(transportC.AsPeer, transportB.Peers);
+            Assert.Contains(transportB.AsPeer, transportC.Peers);
+            Assert.Contains(transportC.AsPeer, transportB.Peers);
 
-                transportA.Table.Clear();
-                transportB.Table.Clear();
-                transportC.Table.Clear();
+            transportA.Table.Clear();
+            transportB.Table.Clear();
+            transportC.Table.Clear();
 
-                await transportB.AddPeersAsync(new[] { transportC.AsPeer }, null);
-                await transportC.StopAsync(TimeSpan.Zero);
-                await transportA.BootstrapAsync(new[] { transportB.AsPeer });
-                Assert.Contains(transportB.AsPeer, transportA.Peers);
-                Assert.DoesNotContain(transportC.AsPeer, transportA.Peers);
-            }
-            finally
-            {
-                transportA.Dispose();
-                transportB.Dispose();
-                transportC.Dispose();
-            }
+            await transportB.AddPeersAsync(new[] { transportC.AsPeer }, null);
+            await transportC.StopAsync(TimeSpan.Zero);
+            await transportA.BootstrapAsync(new[] { transportB.AsPeer });
+            Assert.Contains(transportB.AsPeer, transportA.Peers);
+            Assert.DoesNotContain(transportC.AsPeer, transportA.Peers);
         }
 
         [Fact(Timeout = Timeout)]
         public async Task RemoveStalePeers()
         {
-            var transportA = CreateTestTransport();
-            var transportB = CreateTestTransport();
+            using var transportA = CreateTestTransport();
+            using var transportB = CreateTestTransport();
 
             await StartTestTransportAsync(transportA);
             await StartTestTransportAsync(transportB);
@@ -235,18 +226,15 @@ namespace Libplanet.Net.Tests.Protocols
             await Task.Delay(100);
             await transportA.Protocol.RefreshTableAsync(TimeSpan.Zero, default);
             Assert.Empty(transportA.Peers);
-
-            transportA.Dispose();
-            transportB.Dispose();
         }
 
         [Fact(Timeout = Timeout)]
         public async Task RoutingTableFull()
         {
-            var transport = CreateTestTransport(tableSize: 1, bucketSize: 1);
-            var transportA = CreateTestTransport();
-            var transportB = CreateTestTransport();
-            var transportC = CreateTestTransport();
+            using var transport = CreateTestTransport(tableSize: 1, bucketSize: 1);
+            using var transportA = CreateTestTransport();
+            using var transportB = CreateTestTransport();
+            using var transportC = CreateTestTransport();
 
             await StartTestTransportAsync(transport);
             await StartTestTransportAsync(transportA);
@@ -261,20 +249,15 @@ namespace Libplanet.Net.Tests.Protocols
             Assert.Contains(transportA.AsPeer, transport.Peers);
             Assert.DoesNotContain(transportB.AsPeer, transport.Peers);
             Assert.DoesNotContain(transportC.AsPeer, transport.Peers);
-
-            transport.Dispose();
-            transportA.Dispose();
-            transportB.Dispose();
-            transportC.Dispose();
         }
 
         [Fact(Timeout = Timeout)]
         public async Task ReplacementCache()
         {
-            var transport = CreateTestTransport(tableSize: 1, bucketSize: 1);
-            var transportA = CreateTestTransport();
-            var transportB = CreateTestTransport();
-            var transportC = CreateTestTransport();
+            using var transport = CreateTestTransport(tableSize: 1, bucketSize: 1);
+            using var transportA = CreateTestTransport();
+            using var transportB = CreateTestTransport();
+            using var transportC = CreateTestTransport();
 
             await StartTestTransportAsync(transport);
             await StartTestTransportAsync(transportA);
@@ -299,20 +282,15 @@ namespace Libplanet.Net.Tests.Protocols
             Assert.DoesNotContain(transportA.AsPeer, transport.Peers);
             Assert.DoesNotContain(transportB.AsPeer, transport.Peers);
             Assert.Contains(transportC.AsPeer, transport.Peers);
-
-            transport.Dispose();
-            transportA.Dispose();
-            transportB.Dispose();
-            transportC.Dispose();
         }
 
         [Fact(Timeout = Timeout)]
         public async Task RemoveDeadReplacementCache()
         {
-            var transport = CreateTestTransport(tableSize: 1, bucketSize: 1);
-            var transportA = CreateTestTransport();
-            var transportB = CreateTestTransport();
-            var transportC = CreateTestTransport();
+            using var transport = CreateTestTransport(tableSize: 1, bucketSize: 1);
+            using var transportA = CreateTestTransport();
+            using var transportB = CreateTestTransport();
+            using var transportC = CreateTestTransport();
 
             await StartTestTransportAsync(transport);
             await StartTestTransportAsync(transportA);
@@ -337,11 +315,6 @@ namespace Libplanet.Net.Tests.Protocols
             Assert.DoesNotContain(transportA.AsPeer, transport.Peers);
             Assert.DoesNotContain(transportB.AsPeer, transport.Peers);
             Assert.Contains(transportC.AsPeer, transport.Peers);
-
-            transport.Dispose();
-            transportA.Dispose();
-            transportB.Dispose();
-            transportC.Dispose();
         }
 
         [Theory(Timeout = 2 * Timeout)]
@@ -411,101 +384,83 @@ namespace Libplanet.Net.Tests.Protocols
                 0x60, 0xed, 0xf3, 0xd7,
             });
 
-            var seed = CreateTestTransport(privateKey0);
-            var t1 = CreateTestTransport(privateKey1, true);
-            var t2 = CreateTestTransport(privateKey2);
+            using var seed = CreateTestTransport(privateKey0);
+            using var t1 = CreateTestTransport(privateKey1, true);
+            using var t2 = CreateTestTransport(privateKey2);
             await StartTestTransportAsync(seed);
             await StartTestTransportAsync(t1);
             await StartTestTransportAsync(t2);
 
-            try
-            {
-                await t1.BootstrapAsync(new[] { seed.AsPeer });
-                await t2.BootstrapAsync(new[] { seed.AsPeer });
+            await t1.BootstrapAsync(new[] { seed.AsPeer });
+            await t2.BootstrapAsync(new[] { seed.AsPeer });
 
-                Log.Debug("Bootstrap completed.");
+            Log.Debug("Bootstrap completed.");
 
-                var tcs = new CancellationTokenSource();
-                var task = t2.WaitForTestMessageWithData("foo", tcs.Token);
+            var tcs = new CancellationTokenSource();
+            var task = t2.WaitForTestMessageWithData("foo", tcs.Token);
 
-                seed.BroadcastTestMessage(null, "foo");
-                Log.Debug("Broadcast \"foo\" completed.");
+            seed.BroadcastTestMessage(null, "foo");
+            Log.Debug("Broadcast \"foo\" completed.");
 
-                tcs.CancelAfter(TimeSpan.FromSeconds(5));
-                await task;
+            tcs.CancelAfter(TimeSpan.FromSeconds(5));
+            await task;
 
-                Assert.True(t2.ReceivedTestMessageOfData("foo"));
+            Assert.True(t2.ReceivedTestMessageOfData("foo"));
 
-                tcs = new CancellationTokenSource();
-                task = t2.WaitForTestMessageWithData("bar", tcs.Token);
+            tcs = new CancellationTokenSource();
+            task = t2.WaitForTestMessageWithData("bar", tcs.Token);
 
-                seed.BroadcastTestMessage(null, "bar");
-                Log.Debug("Broadcast \"bar\" completed.");
+            seed.BroadcastTestMessage(null, "bar");
+            Log.Debug("Broadcast \"bar\" completed.");
 
-                tcs.CancelAfter(TimeSpan.FromSeconds(5));
-                await task;
+            tcs.CancelAfter(TimeSpan.FromSeconds(5));
+            await task;
 
-                Assert.True(t2.ReceivedTestMessageOfData("bar"));
+            Assert.True(t2.ReceivedTestMessageOfData("bar"));
 
-                tcs = new CancellationTokenSource();
-                task = t2.WaitForTestMessageWithData("baz", tcs.Token);
+            tcs = new CancellationTokenSource();
+            task = t2.WaitForTestMessageWithData("baz", tcs.Token);
 
-                seed.BroadcastTestMessage(null, "baz");
-                Log.Debug("Broadcast \"baz\" completed.");
+            seed.BroadcastTestMessage(null, "baz");
+            Log.Debug("Broadcast \"baz\" completed.");
 
-                tcs.CancelAfter(TimeSpan.FromSeconds(5));
-                await task;
+            tcs.CancelAfter(TimeSpan.FromSeconds(5));
+            await task;
 
-                Assert.True(t2.ReceivedTestMessageOfData("baz"));
+            Assert.True(t2.ReceivedTestMessageOfData("baz"));
 
-                tcs = new CancellationTokenSource();
-                task = t2.WaitForTestMessageWithData("qux", tcs.Token);
+            tcs = new CancellationTokenSource();
+            task = t2.WaitForTestMessageWithData("qux", tcs.Token);
 
-                seed.BroadcastTestMessage(null, "qux");
-                Log.Debug("Broadcast \"qux\" completed.");
+            seed.BroadcastTestMessage(null, "qux");
+            Log.Debug("Broadcast \"qux\" completed.");
 
-                tcs.CancelAfter(TimeSpan.FromSeconds(5));
-                await task;
+            tcs.CancelAfter(TimeSpan.FromSeconds(5));
+            await task;
 
-                Assert.True(t2.ReceivedTestMessageOfData("qux"));
-            }
-            finally
-            {
-                seed.Dispose();
-                t1.Dispose();
-                t2.Dispose();
-            }
+            Assert.True(t2.ReceivedTestMessageOfData("qux"));
         }
 
         [Fact(Timeout = Timeout)]
         public async Task DoNotBroadcastToSourcePeer()
         {
-            TestTransport transportA = CreateTestTransport(new PrivateKey());
-            TestTransport transportB = CreateTestTransport(new PrivateKey());
-            TestTransport transportC = CreateTestTransport(new PrivateKey());
+            using TestTransport transportA = CreateTestTransport(new PrivateKey());
+            using TestTransport transportB = CreateTestTransport(new PrivateKey());
+            using TestTransport transportC = CreateTestTransport(new PrivateKey());
 
             await StartTestTransportAsync(transportA);
             await StartTestTransportAsync(transportB);
             await StartTestTransportAsync(transportC);
 
-            try
-            {
-                await transportA.AddPeersAsync(new[] { transportB.AsPeer }, null);
-                await transportB.AddPeersAsync(new[] { transportC.AsPeer }, null);
+            await transportA.AddPeersAsync(new[] { transportB.AsPeer }, null);
+            await transportB.AddPeersAsync(new[] { transportC.AsPeer }, null);
 
-                transportA.BroadcastTestMessage(null, "foo");
-                await transportC.WaitForTestMessageWithData("foo");
-                await Task.Delay(100);
+            transportA.BroadcastTestMessage(null, "foo");
+            await transportC.WaitForTestMessageWithData("foo");
+            await Task.Delay(100);
 
-                Assert.True(transportC.ReceivedTestMessageOfData("foo"));
-                Assert.False(transportA.ReceivedTestMessageOfData("foo"));
-            }
-            finally
-            {
-                transportA.Dispose();
-                transportB.Dispose();
-                transportC.Dispose();
-            }
+            Assert.True(transportC.ReceivedTestMessageOfData("foo"));
+            Assert.False(transportA.ReceivedTestMessageOfData("foo"));
         }
 
         [Fact(Timeout = Timeout)]
@@ -515,7 +470,7 @@ namespace Libplanet.Net.Tests.Protocols
             var privateKey = new PrivateKey();
             var privateKeys = Enumerable.Range(0, peersCount).Select(
                 i => GeneratePrivateKeyOfBucketIndex(privateKey.ToAddress(), i / 2));
-            TestTransport transport = CreateTestTransport(privateKey);
+            using TestTransport transport = CreateTestTransport(privateKey);
             TestTransport[] transports =
                 privateKeys.Select(key => CreateTestTransport(key)).ToArray();
 
@@ -554,7 +509,6 @@ namespace Libplanet.Net.Tests.Protocols
             }
             finally
             {
-                transport.Dispose();
                 foreach (var t in transports)
                 {
                     t.Dispose();

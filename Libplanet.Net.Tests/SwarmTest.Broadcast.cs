@@ -170,8 +170,8 @@ namespace Libplanet.Net.Tests
         {
             var minerA = new PrivateKey();
             var minerB = new PrivateKey();
-            Swarm<DumbAction> a = await CreateSwarm(minerA).ConfigureAwait(false);
-            Swarm<DumbAction> b = await CreateSwarm(minerB).ConfigureAwait(false);
+            using Swarm<DumbAction> a = await CreateSwarm(minerA).ConfigureAwait(false);
+            using Swarm<DumbAction> b = await CreateSwarm(minerB).ConfigureAwait(false);
 
             BlockChain<DumbAction> chainA = a.BlockChain;
             BlockChain<DumbAction> chainB = b.BlockChain;
@@ -292,9 +292,9 @@ namespace Libplanet.Net.Tests
         [Fact(Timeout = Timeout)]
         public async Task BroadcastTxWhileMining()
         {
-            Swarm<DumbAction> swarmA = await CreateSwarm().ConfigureAwait(false);
+            using Swarm<DumbAction> swarmA = await CreateSwarm().ConfigureAwait(false);
             var minerC = new PrivateKey();
-            Swarm<DumbAction> swarmC = await CreateSwarm(minerC).ConfigureAwait(false);
+            using Swarm<DumbAction> swarmC = await CreateSwarm(minerC).ConfigureAwait(false);
 
             BlockChain<DumbAction> chainA = swarmA.BlockChain;
             BlockChain<DumbAction> chainC = swarmC.BlockChain;

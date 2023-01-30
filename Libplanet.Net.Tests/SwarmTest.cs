@@ -982,8 +982,8 @@ namespace Libplanet.Net.Tests
             var keyA = new PrivateKey();
             var keyB = new PrivateKey();
 
-            var minerA = await CreateSwarm(keyA).ConfigureAwait(false);
-            var minerB = await CreateSwarm(keyB).ConfigureAwait(false);
+            using var minerA = await CreateSwarm(keyA).ConfigureAwait(false);
+            using var minerB = await CreateSwarm(keyB).ConfigureAwait(false);
 
             var privateKeyA = new PrivateKey();
             var privateKeyB = new PrivateKey();
@@ -1047,9 +1047,6 @@ namespace Libplanet.Net.Tests
             {
                 await StopAsync(minerA);
                 await StopAsync(minerB);
-
-                minerA.Dispose();
-                minerB.Dispose();
             }
         }
 

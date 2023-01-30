@@ -122,27 +122,20 @@ namespace Libplanet.Net.Tests.Transports
         {
             var privateKey = new PrivateKey();
             string host = IPAddress.Loopback.ToString();
-            ITransport transport =
+            using ITransport transport =
                 await CreateTransportAsync(privateKey: privateKey).ConfigureAwait(false);
 
-            try
-            {
-                var peer = transport.AsPeer;
-                Assert.Equal(privateKey.ToAddress(), peer.Address);
-                Assert.Equal(host, peer.EndPoint.Host);
-            }
-            finally
-            {
-                transport.Dispose();
-            }
+            var peer = transport.AsPeer;
+            Assert.Equal(privateKey.ToAddress(), peer.Address);
+            Assert.Equal(host, peer.EndPoint.Host);
         }
 
         // This also tests ITransport.ReplyMessageAsync at the same time.
         [SkippableFact(Timeout = Timeout)]
         public async Task SendMessageAsync()
         {
-            ITransport transportA = await CreateTransportAsync().ConfigureAwait(false);
-            ITransport transportB = await CreateTransportAsync().ConfigureAwait(false);
+            using ITransport transportA = await CreateTransportAsync().ConfigureAwait(false);
+            using ITransport transportB = await CreateTransportAsync().ConfigureAwait(false);
 
             transportB.ProcessMessageHandler.Register(async message =>
             {
@@ -157,31 +150,23 @@ namespace Libplanet.Net.Tests.Transports
                 }
             });
 
-            try
-            {
-                await InitializeAsync(transportA);
-                await InitializeAsync(transportB);
+            await InitializeAsync(transportA);
+            await InitializeAsync(transportB);
 
-                Message reply = await transportA.SendMessageAsync(
-                    transportB.AsPeer,
-                    new PingMsg(),
-                    TimeSpan.FromSeconds(3),
-                    CancellationToken.None);
+            Message reply = await transportA.SendMessageAsync(
+                transportB.AsPeer,
+                new PingMsg(),
+                TimeSpan.FromSeconds(3),
+                CancellationToken.None);
 
-                Assert.IsType<PongMsg>(reply);
-            }
-            finally
-            {
-                transportA.Dispose();
-                transportB.Dispose();
-            }
+            Assert.IsType<PongMsg>(reply);
         }
 
         [SkippableFact(Timeout = Timeout)]
         public async Task SendMessageCancelAsync()
         {
-            ITransport transportA = await CreateTransportAsync().ConfigureAwait(false);
-            ITransport transportB = await CreateTransportAsync().ConfigureAwait(false);
+            using ITransport transportA = await CreateTransportAsync().ConfigureAwait(false);
+            using ITransport transportB = await CreateTransportAsync().ConfigureAwait(false);
             var cts = new CancellationTokenSource();
 
             try
@@ -199,8 +184,6 @@ namespace Libplanet.Net.Tests.Transports
             }
             finally
             {
-                transportA.Dispose();
-                transportB.Dispose();
                 cts.Dispose();
             }
         }
@@ -208,8 +191,8 @@ namespace Libplanet.Net.Tests.Transports
         [SkippableFact(Timeout = Timeout)]
         public async Task SendMessageMultipleRepliesAsync()
         {
-            ITransport transportA = await CreateTransportAsync().ConfigureAwait(false);
-            ITransport transportB = await CreateTransportAsync().ConfigureAwait(false);
+            using ITransport transportA = await CreateTransportAsync().ConfigureAwait(false);
+            using ITransport transportB = await CreateTransportAsync().ConfigureAwait(false);
 
             transportB.ProcessMessageHandler.Register(async message =>
             {
@@ -230,123 +213,91 @@ namespace Libplanet.Net.Tests.Transports
                 }
             });
 
-            try
-            {
-                await InitializeAsync(transportA);
-                await InitializeAsync(transportB);
+            await InitializeAsync(transportA);
+            await InitializeAsync(transportB);
 
-                var replies = (await transportA.SendMessageAsync(
-                    transportB.AsPeer,
-                    new PingMsg(),
-                    TimeSpan.FromSeconds(3),
-                    2,
-                    false,
-                    CancellationToken.None)).ToArray();
+            var replies = (await transportA.SendMessageAsync(
+                transportB.AsPeer,
+                new PingMsg(),
+                TimeSpan.FromSeconds(3),
+                2,
+                false,
+                CancellationToken.None)).ToArray();
 
-                Assert.Contains(replies, message => message is PingMsg);
-                Assert.Contains(replies, message => message is PongMsg);
-            }
-            finally
-            {
-                transportA.Dispose();
-                transportB.Dispose();
-            }
+            Assert.Contains(replies, message => message is PingMsg);
+            Assert.Contains(replies, message => message is PongMsg);
         }
 
         // This also tests ITransport.ReplyMessage at the same time.
         [SkippableFact(Timeout = Timeout)]
         public async Task SendMessageAsyncTimeout()
         {
-            ITransport transportA = await CreateTransportAsync().ConfigureAwait(false);
-            ITransport transportB = await CreateTransportAsync().ConfigureAwait(false);
+            using ITransport transportA = await CreateTransportAsync().ConfigureAwait(false);
+            using ITransport transportB = await CreateTransportAsync().ConfigureAwait(false);
 
-            try
-            {
-                await InitializeAsync(transportA);
-                await InitializeAsync(transportB);
+            await InitializeAsync(transportA);
+            await InitializeAsync(transportB);
 
-                var e = await Assert.ThrowsAsync<CommunicationFailException>(
-                    async () => await transportA.SendMessageAsync(
-                        transportB.AsPeer,
-                        new PingMsg(),
-                        TimeSpan.FromSeconds(3),
-                        CancellationToken.None));
-                Assert.True(e.InnerException is TimeoutException ie);
-            }
-            finally
-            {
-                transportA.Dispose();
-                transportB.Dispose();
-            }
+            var e = await Assert.ThrowsAsync<CommunicationFailException>(
+                async () => await transportA.SendMessageAsync(
+                    transportB.AsPeer,
+                    new PingMsg(),
+                    TimeSpan.FromSeconds(3),
+                    CancellationToken.None));
+            Assert.True(e.InnerException is TimeoutException ie);
         }
 
         [SkippableTheory(Timeout = Timeout)]
         [ClassData(typeof(TransportTestInvalidPeers))]
         public async Task SendMessageToInvalidPeerAsync(BoundPeer invalidPeer)
         {
-            ITransport transport = await CreateTransportAsync().ConfigureAwait(false);
+            using ITransport transport = await CreateTransportAsync().ConfigureAwait(false);
 
-            try
-            {
-                await InitializeAsync(transport);
-                Task task = transport.SendMessageAsync(
-                    invalidPeer,
-                    new PingMsg(),
-                    TimeSpan.FromSeconds(5),
-                    default);
+            await InitializeAsync(transport);
+            Task task = transport.SendMessageAsync(
+                invalidPeer,
+                new PingMsg(),
+                TimeSpan.FromSeconds(5),
+                default);
 
-                // TcpTransport and NetMQTransport fail for different reasons, i.e.
-                // a thrown exception for each case has a different inner exception.
-                await Assert.ThrowsAsync<CommunicationFailException>(async () => await task);
-            }
-            finally
-            {
-                transport.Dispose();
-            }
+            // TcpTransport and NetMQTransport fail for different reasons, i.e.
+            // a thrown exception for each case has a different inner exception.
+            await Assert.ThrowsAsync<CommunicationFailException>(async () => await task);
         }
 
         [SkippableFact(Timeout = Timeout)]
         public async Task SendMessageAsyncCancelWhenTransportStop()
         {
-            ITransport transportA = await CreateTransportAsync().ConfigureAwait(false);
-            ITransport transportB = await CreateTransportAsync().ConfigureAwait(false);
+            using ITransport transportA = await CreateTransportAsync().ConfigureAwait(false);
+            using ITransport transportB = await CreateTransportAsync().ConfigureAwait(false);
 
-            try
-            {
-                await InitializeAsync(transportA);
-                await InitializeAsync(transportB);
+            await InitializeAsync(transportA);
+            await InitializeAsync(transportB);
 
-                Task t = transportA.SendMessageAsync(
-                        transportB.AsPeer,
-                        new PingMsg(),
-                        null,
-                        CancellationToken.None);
+            Task t = transportA.SendMessageAsync(
+                    transportB.AsPeer,
+                    new PingMsg(),
+                    null,
+                    CancellationToken.None);
 
-                // For context change
-                await Task.Delay(100);
+            // For context change
+            await Task.Delay(100);
 
-                await transportA.StopAsync(TimeSpan.Zero);
-                Assert.False(transportA.Running);
-                await Assert.ThrowsAsync<TaskCanceledException>(async () => await t);
-                Assert.True(t.IsCanceled);
-            }
-            finally
-            {
-                transportA.Dispose();
-                transportB.Dispose();
-            }
+            await transportA.StopAsync(TimeSpan.Zero);
+            Assert.False(transportA.Running);
+            await Assert.ThrowsAsync<TaskCanceledException>(async () => await t);
+            Assert.True(t.IsCanceled);
         }
 
         [SkippableFact(Timeout = Timeout)]
         public async Task BroadcastMessage()
         {
             var address = new PrivateKey().ToAddress();
-            ITransport transportA = null;
-            ITransport transportB = await CreateTransportAsync(
+            using ITransport transportB = await CreateTransportAsync(
                 privateKey: GeneratePrivateKeyOfBucketIndex(address, 0));
-            ITransport transportC = await CreateTransportAsync(
+            using ITransport transportC = await CreateTransportAsync(
                 privateKey: GeneratePrivateKeyOfBucketIndex(address, 1));
-            ITransport transportD = await CreateTransportAsync(
+            using ITransport transportD = await CreateTransportAsync(
                 privateKey: GeneratePrivateKeyOfBucketIndex(address, 2));
 
             var tcsB = new TaskCompletionSource<Message>();
@@ -370,39 +321,29 @@ namespace Libplanet.Net.Tests.Transports
                 };
             }
 
-            try
-            {
-                await InitializeAsync(transportB);
-                await InitializeAsync(transportC);
-                await InitializeAsync(transportD);
+            await InitializeAsync(transportB);
+            await InitializeAsync(transportC);
+            await InitializeAsync(transportD);
 
-                var table = new RoutingTable(address, bucketSize: 1);
-                table.AddPeer(transportB.AsPeer);
-                table.AddPeer(transportC.AsPeer);
-                table.AddPeer(transportD.AsPeer);
+            var table = new RoutingTable(address, bucketSize: 1);
+            table.AddPeer(transportB.AsPeer);
+            table.AddPeer(transportC.AsPeer);
+            table.AddPeer(transportD.AsPeer);
 
-                transportA = await CreateTransportAsync().ConfigureAwait(false);
-                await InitializeAsync(transportA);
+            using ITransport transportA = await CreateTransportAsync().ConfigureAwait(false);
+            await InitializeAsync(transportA);
 
-                transportA.BroadcastMessage(
-                    table.PeersToBroadcast(transportD.AsPeer.Address),
-                    new PingMsg());
+            transportA.BroadcastMessage(
+                table.PeersToBroadcast(transportD.AsPeer.Address),
+                new PingMsg());
 
-                await Task.WhenAll(tcsB.Task, tcsC.Task);
+            await Task.WhenAll(tcsB.Task, tcsC.Task);
 
-                Assert.IsType<PingMsg>(tcsB.Task.Result);
-                Assert.IsType<PingMsg>(tcsC.Task.Result);
-                Assert.False(tcsD.Task.IsCompleted);
+            Assert.IsType<PingMsg>(tcsB.Task.Result);
+            Assert.IsType<PingMsg>(tcsC.Task.Result);
+            Assert.False(tcsD.Task.IsCompleted);
 
-                tcsD.SetCanceled();
-            }
-            finally
-            {
-                transportA?.Dispose();
-                transportB.Dispose();
-                transportC.Dispose();
-                transportD.Dispose();
-            }
+            tcsD.SetCanceled();
         }
 
         protected async Task InitializeAsync(

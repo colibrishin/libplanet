@@ -57,7 +57,7 @@ namespace Libplanet.Net.Tests.Transports
             {
                 // An arbitrary number to fit one transport testing.
                 NetMQConfig.MaxSockets = 12;
-                NetMQTransport transport = await NetMQTransport.Create(
+                using NetMQTransport transport = await NetMQTransport.Create(
                     new PrivateKey(),
                     new AppProtocolVersionOptions(),
                     new HostOptions(IPAddress.Loopback.ToString(), new IceServer[] { }, 0)
