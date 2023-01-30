@@ -17,6 +17,7 @@ namespace Libplanet.Net
             switch (message)
             {
                 case PingMsg _:
+                case PongMsg _:
                 case FindNeighborsMsg _:
                     return Task.CompletedTask;
 

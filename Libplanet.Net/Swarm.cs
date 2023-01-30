@@ -810,6 +810,11 @@ namespace Libplanet.Net
                 yield break;
             }
 
+            if (parsedMessage is PongMsg)
+            {
+                yield break;
+            }
+
             string errorMessage =
                 $"The response of {nameof(GetBlockHashes)} is expected to be " +
                 $"{nameof(BlockHashesMsg)}, not {parsedMessage.GetType().Name}: {parsedMessage}";
@@ -890,6 +895,10 @@ namespace Libplanet.Net
                         count++;
                     }
                 }
+                else if (message is PongMsg)
+                {
+                    continue;
+                }
                 else
                 {
                     string errorMessage =
@@ -944,6 +953,10 @@ namespace Libplanet.Net
                 {
                     Transaction<T> tx = Transaction<T>.Deserialize(parsed.Payload);
                     yield return tx;
+                }
+                else if (message is PongMsg)
+                {
+                    continue;
                 }
                 else
                 {
