@@ -313,7 +313,6 @@ namespace Libplanet.Net.Consensus
                 await _protocol.AddPeersAsync(new[] { peer }, TimeSpan.FromSeconds(1), ctx);
             }
 
-            await ReplyMessagePongAsync(msg, ctx);
             MessageId[] idsToGet = msg.Ids.Where(id => !_seen.TryGetValue(id, out _)).ToArray();
             _logger.Verbose(
                 "Handle HaveMessage. {Total}/{Count} messages to get.",
@@ -427,19 +426,6 @@ namespace Libplanet.Net.Consensus
                     _logger.Warning(e, msg, e);
                 }
             }
-        }
-
-        /// <summary>
-        /// Replies a <see cref="PongMsg"/> of received <paramref name="message"/>.
-        /// </summary>
-        /// <param name="message">A message to replies.</param>
-        /// <param name="ctx">A cancellation token used to propagate notification
-        /// that this operation should be canceled.</param>
-        /// <returns>An awaitable task without value.</returns>
-        private async Task ReplyMessagePongAsync(Message message, CancellationToken ctx)
-        {
-            var pong = new PongMsg { Identity = message.Identity };
-            await _transport.ReplyMessageAsync(pong, ctx);
         }
     }
 }
