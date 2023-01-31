@@ -253,6 +253,7 @@ namespace Libplanet.Net.Consensus
             switch (msg)
             {
                 case PingMsg _:
+                case PongMsg _:
                 case FindNeighborsMsg _:
                     // Ignore protocol related messages, Kadmelia Protocol will handle it.
                     break;
