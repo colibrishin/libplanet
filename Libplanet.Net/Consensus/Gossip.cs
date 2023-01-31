@@ -326,13 +326,16 @@ namespace Libplanet.Net.Consensus
 
             _logger.Verbose("Ids to receive: {Ids}", idsToGet);
             var want = new WantMessage(idsToGet);
+
+            // FIXME: If some of requested messages are not available, replies contain pongs.
+            // See also HandleWantAsync()
             Message[] replies = (await _transport.SendMessageAsync(
                 peer,
                 want,
                 TimeSpan.FromSeconds(1),
                 idsToGet.Length,
                 true,
-                ctx)).ToArray();
+                ctx)).Where(x => !(x is PongMsg)).ToArray();
             _logger.Verbose(
                 "Received {Expected}/{Count} messages. Messages: {@Messages}, Ids: {Ids}",
                 idsToGet.Length,
@@ -355,14 +358,30 @@ namespace Libplanet.Net.Consensus
             // FIXME: Message may have been discarded.
             // TODO: Message instance in cache itself is modified.
             // Should create new instance before modifying.
-            Message[] messages = msg.Ids.Select(id =>
+            List<Message> messages = msg.Ids.Select(id =>
             {
                 Message ret = _cache.Get(id);
                 ret.Remote = _transport.AsPeer;
                 ret.Identity = msg.Identity;
                 return ret;
-            }).ToArray();
+            }).ToList();
             MessageId[] ids = messages.Select(m => m.Id).ToArray();
+
+            // FIXME: There might some request messages that are not available due to window timing,
+            // fill remaining messages with pongs. This is an attempt to not blocking ITransport
+            // while waiting expected messages.
+            if (msg.Ids.Count() > ids.Length)
+            {
+                long msgDiff = msg.Ids.Count() - ids.Length;
+                for (long i = 0; i < msgDiff; ++i)
+                {
+                    messages.Add(new PongMsg()
+                    {
+                        Remote = _transport.AsPeer,
+                        Identity = msg.Identity,
+                    });
+                }
+            }
 
             _logger.Debug(
                 "WantMessage: Requests are: {Idr}, Ids are: {Id}, Messages are: {@Messages}",
