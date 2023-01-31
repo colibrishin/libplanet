@@ -77,10 +77,7 @@ namespace Libplanet.Net
 
                 case TxIdsMsg txIds:
                     ProcessTxIds(txIds);
-                    return Transport.ReplyMessageAsync(
-                        new PongMsg { Identity = txIds.Identity },
-                        default
-                    );
+                    return Task.CompletedTask;
 
                 case BlockHashesMsg _:
                     _logger.Error(
@@ -90,10 +87,7 @@ namespace Libplanet.Net
 
                 case BlockHeaderMsg blockHeader:
                     ProcessBlockHeader(blockHeader);
-                    return Transport.ReplyMessageAsync(
-                        new PongMsg { Identity = blockHeader.Identity },
-                        default
-                    );
+                    return Task.CompletedTask;
 
                 default:
                     throw new InvalidMessageException(
