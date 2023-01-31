@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using Libplanet.Crypto;
@@ -189,15 +190,15 @@ namespace Libplanet.Net.Tests.Consensus
                 await gossip.WaitForRunningAsync();
                 await transport2.WaitForRunningAsync();
 
-                await transport2.SendMessageAsync(
-                    gossip.AsPeer,
-                    new HaveMessage(Array.Empty<MessageId>()),
-                    TimeSpan.FromSeconds(1),
-                    default);
+                transport2.BroadcastMessage(
+                    new[] { gossip.AsPeer }, new HaveMessage(Array.Empty<MessageId>()));
 
                 await receivedEvent.WaitAsync();
                 Assert.True(received);
-                Assert.Contains(transport2.AsPeer, gossip.Peers);
+                await Libplanet.Tests.TestUtils.AssertThatEventually(
+                    () => gossip.Peers.Contains(transport2.AsPeer),
+                    1_000,
+                    conditionLabel: "Received message but gossip peer table is not updated.");
             }
             finally
             {
