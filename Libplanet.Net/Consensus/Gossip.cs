@@ -313,7 +313,6 @@ namespace Libplanet.Net.Consensus
                 await _protocol.AddPeersAsync(new[] { peer }, TimeSpan.FromSeconds(1), ctx);
             }
 
-            await ReplyMessagePongAsync(msg, ctx);
             MessageId[] idsToGet = msg.Ids.Where(id => !_seen.TryGetValue(id, out _)).ToArray();
             _logger.Verbose(
                 "Handle HaveMessage. {Total}/{Count} messages to get.",
