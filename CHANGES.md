@@ -100,6 +100,9 @@ Version PBFT
  -  `BlockChain<T>.Append()` method became to throw
     `InvalidBlockCommitException` when the given `BlockCommit` is invalid with
     given block.  [[#PBFT]]
+ -  (Libplanet.Net) `NetMQTransport.BroadcastMessage()` is now waiting no reply
+    for messages, and receiving `Message.BlockHeaderMsg` and `Message.TxIdsMsg`
+    will not trigger replying a `Message.PongMsg`.  [[#PBFT]]
 
 ### Bug fixes
 
