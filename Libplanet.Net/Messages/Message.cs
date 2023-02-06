@@ -224,5 +224,13 @@ namespace Libplanet.Net.Messages
                 return new MessageId(digest);
             }
         }
+
+        /// <summary>
+        /// Clones a <see cref="Message"/>. The data in returned value (e.g., <see cref="Identity"/>
+        /// , <see cref="Remote"/>, <see cref="Version"/>, <see cref="Timestamp"/>) is default
+        /// value.
+        /// </summary>
+        /// <returns>Returns a cloned <see cref="Message"/>.</returns>
+        public abstract Message Clone();
     }
 }
