@@ -34,6 +34,16 @@ namespace Libplanet.Net.Tests.Messages
                 codec.Encode(message, privateKey, apv, peer, dateTimeOffset);
             var parsed = codec.Decode(raw, true);
             Assert.Equal(peer, parsed.Remote);
+
+            var cloned = message.Clone();
+            Assert.NotEqual(message, cloned);
+            Assert.Null(cloned.Identity);
+            Assert.Null(cloned.Remote);
+            Assert.Equal(default, cloned.Version);
+            Assert.Equal(DateTimeOffset.MinValue, cloned.Timestamp);
+
+            Assert.Equal(message.Type, cloned.Type);
+            Assert.Equal(message.DataFrames, cloned.DataFrames);
         }
 
         [Fact]
