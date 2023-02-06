@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Libplanet.Consensus;
 
 namespace Libplanet.Net.Messages
@@ -67,5 +68,7 @@ namespace Libplanet.Net.Messages
         {
             return HashCode.Combine(Type, PreCommit);
         }
+
+        public override Message Clone() => new ConsensusPreCommitMsg(DataFrames.ToArray());
     }
 }

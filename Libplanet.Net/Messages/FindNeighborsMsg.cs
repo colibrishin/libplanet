@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Libplanet.Net.Messages
 {
@@ -27,5 +28,7 @@ namespace Libplanet.Net.Messages
         {
             Target.ToByteArray(),
         };
+
+        public override Message Clone() => new FindNeighborsMsg(DataFrames.ToArray());
     }
 }

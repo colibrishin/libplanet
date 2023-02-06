@@ -1,5 +1,6 @@
 #nullable disable
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using Libplanet.Net.Messages;
 
@@ -22,5 +23,7 @@ namespace Libplanet.Net.Tests.Protocols
         public override MessageType Type => MessageType.Ping;
 
         public override IEnumerable<byte[]> DataFrames => new[] { Encoding.UTF8.GetBytes(Data), };
+
+        public override Message Clone() => new TestMessage(DataFrames.ToArray());
     }
 }

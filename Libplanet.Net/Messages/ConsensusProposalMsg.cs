@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Bencodex;
 using Libplanet.Blocks;
 using Libplanet.Consensus;
@@ -61,5 +62,7 @@ namespace Libplanet.Net.Messages
         {
             return HashCode.Combine(Type, Proposal);
         }
+
+        public override Message Clone() => new ConsensusProposalMsg(DataFrames.ToArray());
     }
 }
