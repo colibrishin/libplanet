@@ -35,5 +35,7 @@ namespace Libplanet.Net.Messages
                 return frames;
             }
         }
+
+        public override Message Clone() => new TxIdsMsg(DataFrames.ToArray());
     }
 }

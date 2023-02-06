@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Libplanet.Net.Messages
 {
@@ -19,5 +20,7 @@ namespace Libplanet.Net.Messages
         public override MessageType Type => MessageType.Tx;
 
         public override IEnumerable<byte[]> DataFrames => new[] { Payload, };
+
+        public override Message Clone() => new TxMsg(DataFrames.ToArray());
     }
 }

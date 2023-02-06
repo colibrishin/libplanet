@@ -11,5 +11,7 @@ namespace Libplanet.Net.Messages
         public override MessageType Type => MessageType.Pong;
 
         public override IEnumerable<byte[]> DataFrames => new byte[][] { };
+
+        public override Message Clone() => new PongMsg();
     }
 }

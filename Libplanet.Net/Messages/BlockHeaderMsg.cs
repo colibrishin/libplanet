@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Bencodex;
 using Libplanet.Blocks;
 
@@ -40,5 +41,7 @@ namespace Libplanet.Net.Messages
         {
             return BlockMarshaler.UnmarshalBlockHeader(HeaderDictionary);
         }
+
+        public override Message Clone() => new BlockHeaderMsg(DataFrames.ToArray());
     }
 }

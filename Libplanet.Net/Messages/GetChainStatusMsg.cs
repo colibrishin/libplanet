@@ -7,5 +7,7 @@ namespace Libplanet.Net.Messages
         public override MessageType Type => MessageType.GetChainStatus;
 
         public override IEnumerable<byte[]> DataFrames => new byte[][] { };
+
+        public override Message Clone() => new GetChainStatusMsg();
     }
 }

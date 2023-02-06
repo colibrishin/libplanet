@@ -62,5 +62,7 @@ namespace Libplanet.Net.Messages
                 return frames;
             }
         }
+
+        public override Message Clone() => new BlocksMsg(DataFrames.ToArray());
     }
 }

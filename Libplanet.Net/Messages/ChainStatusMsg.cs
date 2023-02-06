@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Destructurama.Attributed;
 using Libplanet.Blocks;
 
@@ -51,5 +52,7 @@ namespace Libplanet.Net.Messages
             BitConverter.GetBytes(TipIndex),
             TipHash.ToByteArray(),
         };
+
+        public override Message Clone() => new ChainStatusMsg(DataFrames.ToArray());
     }
 }

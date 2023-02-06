@@ -12,5 +12,7 @@ namespace Libplanet.Net.Messages
         public override MessageType Type => MessageType.DifferentVersion;
 
         public override IEnumerable<byte[]> DataFrames => new byte[][] { };
+
+        public override Message Clone() => new DifferentVersionMsg();
     }
 }
