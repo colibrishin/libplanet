@@ -226,6 +226,38 @@ namespace Libplanet.Net.Messages
         }
 
         /// <summary>
+        /// Sets this <see cref="Message"/> with the given values as reply. This method will
+        /// overwrites the meta-data of this <see cref="Message"/>. if the <see cref="Message"/>
+        /// should be sent without overwriting existing message, use <see cref="Clone()"/> method
+        /// before to use.
+        /// </summary>
+        /// <param name="received">A message to reply.</param>
+        /// <param name="asPeer">A <see cref="BoundPeer"/> for sending this message as.</param>
+        /// <param name="version">A <see cref="AppProtocolVersion"/> of sending this message.
+        /// </param>
+        /// <param name="timestamp">A <see cref="DateTimeOffset"/> of when this message has been
+        /// sent.
+        /// </param>
+        /// <returns>Returns modified and identical this <see cref="Message"/>.</returns>
+        public Message AsReply(
+            in Message received,
+            BoundPeer asPeer,
+            AppProtocolVersion version,
+            DateTimeOffset timestamp)
+        {
+            if (received.Identity is { })
+            {
+                Identity = new byte[received.Identity.Length];
+                received.Identity.CopyTo(Identity, 0);
+            }
+
+            Remote = asPeer;
+            Version = version;
+            Timestamp = timestamp;
+            return this;
+        }
+
+        /// <summary>
         /// Clones a <see cref="Message"/>. The data in returned value (e.g., <see cref="Identity"/>
         /// , <see cref="Remote"/>, <see cref="Version"/>, <see cref="Timestamp"/>) is default
         /// value.
