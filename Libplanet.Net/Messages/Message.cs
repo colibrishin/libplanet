@@ -168,25 +168,25 @@ namespace Libplanet.Net.Messages
         /// The handling of the identity of a <see cref="Message"/> is implementation specific to
         /// <see cref="ITransport"/>.
         /// </remarks>
-        public byte[]? Identity { get; set; }
+        public byte[]? Identity { get; private set; }
 
         /// <summary>
         /// <see cref="AppProtocolVersion"/>-typed version of the
         /// <see cref="Remote"/>'s transport layer.
         /// </summary>
         [LogAsScalar]
-        public AppProtocolVersion Version { get; set; }
+        public AppProtocolVersion Version { get; private set; }
 
         /// <summary>
         /// The sender <see cref="BoundPeer"/> of the message.
         /// </summary>
         [LogAsScalar]
-        public BoundPeer? Remote { get; set; }
+        public BoundPeer? Remote { get; private set; }
 
         /// <summary>
         /// The timestamp of the message is created.
         /// </summary>
-        public DateTimeOffset Timestamp { get; set; }
+        public DateTimeOffset Timestamp { get; private set; }
 
         /// <summary>
         /// The type of the message.
