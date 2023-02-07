@@ -32,12 +32,9 @@ namespace Libplanet.Net
                         tip.ProtocolVersion,
                         BlockChain.Genesis.Hash,
                         tip.Index,
-                        tip.Hash)
-                    {
-                        Identity = getChainStatus.Identity,
-                    };
+                        tip.Hash);
 
-                    return Transport.ReplyMessageAsync(chainStatus, default);
+                    return Transport.ReplyMessageAsync(chainStatus, getChainStatus, default);
                 }
 
                 case GetBlockHashesMsg getBlockHashes:
@@ -61,12 +58,9 @@ namespace Libplanet.Net
                         offset,
                         getBlockHashes.Locator.FirstOrDefault(),
                         getBlockHashes.Stop);
-                    var reply = new BlockHashesMsg(offset, hashes)
-                    {
-                        Identity = getBlockHashes.Identity,
-                    };
+                    var reply = new BlockHashesMsg(offset, hashes);
 
-                    return Transport.ReplyMessageAsync(reply, default);
+                    return Transport.ReplyMessageAsync(reply, getBlockHashes, default);
                 }
 
                 case GetBlocksMsg getBlocks:
@@ -78,7 +72,8 @@ namespace Libplanet.Net
                 case TxIdsMsg txIds:
                     ProcessTxIds(txIds);
                     return Transport.ReplyMessageAsync(
-                        new PongMsg { Identity = txIds.Identity },
+                        new PongMsg(),
+                        txIds,
                         default
                     );
 
@@ -91,7 +86,8 @@ namespace Libplanet.Net
                 case BlockHeaderMsg blockHeader:
                     ProcessBlockHeader(blockHeader);
                     return Transport.ReplyMessageAsync(
-                        new PongMsg { Identity = blockHeader.Identity },
+                        new PongMsg(),
+                        blockHeader,
                         default
                     );
 
@@ -213,11 +209,8 @@ namespace Libplanet.Net
                         continue;
                     }
 
-                    Message response = new TxMsg(tx.Serialize(true))
-                    {
-                        Identity = getTxs.Identity,
-                    };
-                    await Transport.ReplyMessageAsync(response, default);
+                    Message response = new TxMsg(tx.Serialize(true));
+                    await Transport.ReplyMessageAsync(response, getTxs, default);
                 }
                 catch (KeyNotFoundException)
                 {
@@ -280,16 +273,13 @@ namespace Libplanet.Net
 
                 if (payloads.Count / 2 == getData.ChunkSize)
                 {
-                    var response = new Messages.BlocksMsg(payloads)
-                    {
-                        Identity = getData.Identity,
-                    };
+                    var response = new Messages.BlocksMsg(payloads);
                     _logger.Verbose(
                         "Enqueuing a blocks reply (...{Index}/{Total})...",
                         i,
                         total
                     );
-                    await Transport.ReplyMessageAsync(response, default);
+                    await Transport.ReplyMessageAsync(response, getData, default);
                     payloads.Clear();
                 }
 
@@ -298,17 +288,14 @@ namespace Libplanet.Net
 
             if (payloads.Any())
             {
-                var response = new Messages.BlocksMsg(payloads)
-                {
-                    Identity = getData.Identity,
-                };
+                var response = new Messages.BlocksMsg(payloads);
                 _logger.Verbose(
                     "Enqueuing a blocks reply (...{Index}/{Total}) to {Identity}...",
                     total,
                     total,
                     identityHex
                 );
-                await Transport.ReplyMessageAsync(response, default);
+                await Transport.ReplyMessageAsync(response, getData, default);
             }
 
             _logger.Debug("Blocks were transferred to {Identity}.", identityHex);

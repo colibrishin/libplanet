@@ -640,12 +640,9 @@ namespace Libplanet.Net.Protocols
                 throw new InvalidMessageException("Cannot receive ping from self.", ping);
             }
 
-            var pong = new PongMsg
-            {
-                Identity = ping.Identity,
-            };
+            var pong = new PongMsg();
 
-            await _transport.ReplyMessageAsync(pong, default).ConfigureAwait(false);
+            await _transport.ReplyMessageAsync(pong, ping, default).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -773,12 +770,10 @@ namespace Libplanet.Net.Protocols
             IEnumerable<BoundPeer> found =
                 _table.Neighbors(findNeighbors.Target, _table.BucketSize, true);
 
-            Messages.NeighborsMsg neighbors = new Messages.NeighborsMsg(found)
-            {
-                Identity = findNeighbors.Identity,
-            };
+            Messages.NeighborsMsg neighbors = new Messages.NeighborsMsg(found);
 
-            await _transport.ReplyMessageAsync(neighbors, default).ConfigureAwait(false);
+            await _transport.ReplyMessageAsync(neighbors, findNeighbors, default)
+                .ConfigureAwait(false);
         }
     }
 }

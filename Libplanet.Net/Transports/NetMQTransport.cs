@@ -651,10 +651,7 @@ namespace Libplanet.Net.Transports
                                         reqId,
                                         message,
                                         message.Remote);
-                                    var diffVersion = new DifferentVersionMsg()
-                                    {
-                                        Identity = message.Identity,
-                                    };
+                                    var diffVersion = new DifferentVersionMsg();
                                     _logger.Debug(
                                         "Replying to Request {RequestId} {Peer} with {Reply}.",
                                         reqId,
@@ -662,6 +659,7 @@ namespace Libplanet.Net.Transports
                                         diffVersion);
                                     await ReplyMessageAsync(
                                         diffVersion,
+                                        message,
                                         _runtimeCancellationTokenSource.Token
                                     );
                                 }
