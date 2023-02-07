@@ -102,9 +102,7 @@ namespace Libplanet.Net.Consensus
             {
                 if (_messages.TryGetValue(id, out Message? msg))
                 {
-                    // FIXME: This is a workaround for preventing any message modification in
-                    // message dictionary.
-                    return NetMQMessageCodec.CreateMessage(msg.Type, msg.DataFrames.ToArray());
+                    return msg.Clone();
                 }
 
                 throw new KeyNotFoundException($"A message of id {id} does not exist.");

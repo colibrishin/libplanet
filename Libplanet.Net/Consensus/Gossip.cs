@@ -353,19 +353,7 @@ namespace Libplanet.Net.Consensus
         private async Task HandleWantAsync(WantMessage msg, CancellationToken ctx)
         {
             // FIXME: Message may have been discarded.
-            // TODO: Message instance in cache itself is modified.
-            // Should create new instance before modifying.
-            Message[] messages = msg.Ids.Select(id =>
-            {
-                Message ret = _cache.Get(id);
-                ret.Remote = _transport.AsPeer;
-                ret.Identity = msg.Identity;
-                ret.Timestamp = DateTimeOffset.UtcNow;
-
-                // FIXME: This assumes if we receives a message, then version would match.
-                ret.Version = msg.Version;
-                return ret;
-            }).ToArray();
+            Message[] messages = msg.Ids.Select(id => _cache.Get(id)).ToArray();
             MessageId[] ids = messages.Select(m => m.Id).ToArray();
 
             _logger.Debug(
@@ -373,7 +361,8 @@ namespace Libplanet.Net.Consensus
                 msg.Ids,
                 ids,
                 messages);
-            IEnumerable<Task> tasks = messages.Select(m => _transport.ReplyMessageAsync(m, ctx));
+            IEnumerable<Task> tasks =
+                messages.Select(m => _transport.ReplyMessageAsync(m, msg, ctx));
             await Task.WhenAll(tasks);
             _logger.Debug("Finished replying WantMessage.");
         }
@@ -442,8 +431,8 @@ namespace Libplanet.Net.Consensus
         /// <returns>An awaitable task without value.</returns>
         private async Task ReplyMessagePongAsync(Message message, CancellationToken ctx)
         {
-            var pong = new PongMsg { Identity = message.Identity };
-            await _transport.ReplyMessageAsync(pong, ctx);
+            var pong = new PongMsg();
+            await _transport.ReplyMessageAsync(pong, message, ctx);
         }
     }
 }
