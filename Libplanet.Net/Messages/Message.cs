@@ -264,5 +264,67 @@ namespace Libplanet.Net.Messages
         /// </summary>
         /// <returns>Returns a cloned <see cref="Message"/>.</returns>
         public abstract Message Clone();
+
+        /// <summary>
+        /// Instantiates a derived <see cref="Message"/> with the given fields of message. This
+        /// should be used in <see cref="ITransport"/> implementation. At the lower-level, this
+        /// method with <see cref="ITransport"/> should implement a way to create a message from the
+        /// raw message to concrete <see cref="Message"/>. For any other use-cases,
+        /// for example, creating a message to send, use derived <see cref="Message"/> class is
+        /// enough to creates a message for reply or request.
+        /// </summary>
+        /// <param name="type">A <see cref="MessageType"/> of the derived <see cref="Message"/>
+        /// type.
+        /// </param>
+        /// <param name="identity">A byte-array for handling the message in
+        /// <see cref="ITransport"/>.</param>
+        /// <param name="remote">A <see cref="BoundPeer"/> of the message.</param>
+        /// <param name="version">A <see cref="AppProtocolVersion"/> of the message.</param>
+        /// <param name="timestamp">A <see cref="DateTimeOffset"/> of the message.</param>
+        /// <param name="dataframes">A <see cref="DataFrames"/> of the message.</param>
+        /// <returns>Returns a derived given <see cref="MessageType"/> in <see cref="Message"/>.
+        /// </returns>
+        /// <exception cref="InvalidCastException">Thrown if the given <see cref="MessageType"/>
+        /// is unknown.</exception>
+        internal static Message UnsafeCreateMessage(
+            MessageType type,
+            byte[]? identity,
+            BoundPeer? remote,
+            AppProtocolVersion version,
+            DateTimeOffset timestamp,
+            byte[][] dataframes)
+        {
+            Message message = type switch
+            {
+                MessageType.Ping => new PingMsg(),
+                MessageType.Pong => new PongMsg(),
+                MessageType.GetBlockHashes => new GetBlockHashesMsg(dataframes),
+                MessageType.TxIds => new TxIdsMsg(dataframes),
+                MessageType.GetBlocks => new GetBlocksMsg(dataframes),
+                MessageType.GetTxs => new GetTxsMsg(dataframes),
+                MessageType.Blocks => new BlocksMsg(dataframes),
+                MessageType.Tx => new TxMsg(dataframes),
+                MessageType.FindNeighbors => new FindNeighborsMsg(dataframes),
+                MessageType.Neighbors => new NeighborsMsg(dataframes),
+                MessageType.BlockHeaderMessage => new BlockHeaderMsg(dataframes),
+                MessageType.BlockHashes => new BlockHashesMsg(dataframes),
+                MessageType.GetChainStatus => new GetChainStatusMsg(),
+                MessageType.ChainStatus => new ChainStatusMsg(dataframes),
+                MessageType.DifferentVersion => new DifferentVersionMsg(),
+                MessageType.ConsensusProposal => new ConsensusProposalMsg(dataframes),
+                MessageType.ConsensusVote => new ConsensusPreVoteMsg(dataframes),
+                MessageType.ConsensusCommit => new ConsensusPreCommitMsg(dataframes),
+                MessageType.HaveMessage => new HaveMessage(dataframes),
+                MessageType.WantMessage => new WantMessage(dataframes),
+                _ => throw new InvalidCastException($"Given type {type} is not a valid message."),
+            };
+
+            message.Identity = identity;
+            message.Remote = remote;
+            message.Version = version;
+            message.Timestamp = timestamp;
+
+            return message;
+        }
     }
 }
