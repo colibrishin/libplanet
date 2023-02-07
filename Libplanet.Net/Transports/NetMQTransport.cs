@@ -497,24 +497,33 @@ namespace Libplanet.Net.Transports
         }
 
         /// <inheritdoc/>
-        public async Task ReplyMessageAsync(Message message, CancellationToken cancellationToken)
+        public async Task ReplyMessageAsync(
+            Message reply,
+            Message received,
+            CancellationToken cancellationToken)
         {
             if (_disposed)
             {
                 throw new ObjectDisposedException(nameof(NetMQTransport));
             }
 
-            string reqId = !(message.Identity is null) && message.Identity.Length == 16 ?
-                new Guid(message.Identity).ToString() : "unknown";
+            reply.AsReply(
+                received,
+                AsPeer,
+                _appProtocolVersionOptions.AppProtocolVersion,
+                DateTimeOffset.UtcNow);
 
-            _logger.Debug("Reply {Message} to {Identity}...", message, reqId);
+            string reqId = !(reply.Identity is null) && reply.Identity.Length == 16 ?
+                new Guid(reply.Identity).ToString() : "unknown";
+
+            _logger.Debug("Reply {Message} to {Identity}...", reply, reqId);
 
             var ev = new AsyncManualResetEvent();
             _replyQueue.Enqueue(
                 (
                     ev,
                     _messageCodec.Encode(
-                        message,
+                        reply,
                         _privateKey,
                         _appProtocolVersionOptions.AppProtocolVersion,
                         AsPeer,
