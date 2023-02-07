@@ -147,17 +147,21 @@ namespace Libplanet.Net.Transports
         /// Sends a <see cref="Message"/> as a reply.
         /// </summary>
         /// <remarks>
-        /// The <see cref="Message.Identity"/> of given <paramref name="message"/> must
+        /// The <see cref="Message.Identity"/> of given <paramref name="reply"/> must
         /// match the <see cref="Message.Identity"/> of the request <see cref="Message"/>
-        /// corresponding to <paramref name="message"/>.
+        /// corresponding to <paramref name="reply"/>.
         /// </remarks>
-        /// <param name="message">The <see cref="Message"/> to send as a reply.</param>
+        /// <param name="reply">The <see cref="Message"/> to send as a reply.</param>
+        /// <param name="received">The received <see cref="Message"/> from remote.</param>
         /// <param name="cancellationToken">
         /// A cancellation token used to propagate notification that this
         /// operation should be canceled.</param>
         /// <returns>An awaitable task without value.</returns>
         /// <exception cref="ObjectDisposedException">
         /// Thrown when <see cref="ITransport"/> instance is already disposed.</exception>
-        Task ReplyMessageAsync(Message message, CancellationToken cancellationToken);
+        Task ReplyMessageAsync(
+            Message reply,
+            Message received,
+            CancellationToken cancellationToken);
     }
 }
