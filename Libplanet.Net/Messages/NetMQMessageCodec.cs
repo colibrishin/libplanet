@@ -116,13 +116,6 @@ namespace Libplanet.Net.Messages
             NetMQFrame[] body = remains.Skip(Message.CommonFrames)
                 .ToArray();
 
-            Message message = CreateMessage(
-                type,
-                body.Select(frame => frame.ToByteArray()).ToArray());
-            message.Version = remoteVersion;
-            message.Remote = remotePeer;
-            message.Timestamp = timestamp;
-
             var headerWithoutSign = new[]
             {
                 remains[(int)Message.MessageFrame.Version],
@@ -142,61 +135,15 @@ namespace Libplanet.Net.Messages
                     signature);
             }
 
-            if (!reply)
-            {
-                message.Identity = encoded[0].Buffer.ToArray();
-            }
+            Message message = Message.UnsafeCreateMessage(
+                type,
+                !reply ? encoded[0].Buffer.ToArray() : null,
+                remotePeer,
+                remoteVersion,
+                timestamp,
+                body.Select(frame => frame.ToByteArray()).ToArray());
 
             return message;
-        }
-
-        internal static Message CreateMessage(Message.MessageType type, byte[][] dataframes)
-        {
-            switch (type)
-            {
-                case Message.MessageType.Ping:
-                    return new PingMsg();
-                case Message.MessageType.Pong:
-                    return new PongMsg();
-                case Message.MessageType.GetBlockHashes:
-                    return new GetBlockHashesMsg(dataframes);
-                case Message.MessageType.TxIds:
-                    return new TxIdsMsg(dataframes);
-                case Message.MessageType.GetBlocks:
-                    return new GetBlocksMsg(dataframes);
-                case Message.MessageType.GetTxs:
-                    return new GetTxsMsg(dataframes);
-                case Message.MessageType.Blocks:
-                    return new BlocksMsg(dataframes);
-                case Message.MessageType.Tx:
-                    return new TxMsg(dataframes);
-                case Message.MessageType.FindNeighbors:
-                    return new FindNeighborsMsg(dataframes);
-                case Message.MessageType.Neighbors:
-                    return new NeighborsMsg(dataframes);
-                case Message.MessageType.BlockHeaderMessage:
-                    return new BlockHeaderMsg(dataframes);
-                case Message.MessageType.BlockHashes:
-                    return new BlockHashesMsg(dataframes);
-                case Message.MessageType.GetChainStatus:
-                    return new GetChainStatusMsg();
-                case Message.MessageType.ChainStatus:
-                    return new ChainStatusMsg(dataframes);
-                case Message.MessageType.DifferentVersion:
-                    return new DifferentVersionMsg();
-                case Message.MessageType.ConsensusProposal:
-                    return new ConsensusProposalMsg(dataframes);
-                case Message.MessageType.ConsensusVote:
-                    return new ConsensusPreVoteMsg(dataframes);
-                case Message.MessageType.ConsensusCommit:
-                    return new ConsensusPreCommitMsg(dataframes);
-                case Message.MessageType.HaveMessage:
-                    return new HaveMessage(dataframes);
-                case Message.MessageType.WantMessage:
-                    return new WantMessage(dataframes);
-                default:
-                    throw new InvalidCastException($"Given type {type} is not a valid message.");
-            }
         }
     }
 }
