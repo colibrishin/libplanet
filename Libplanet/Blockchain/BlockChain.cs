@@ -1663,7 +1663,9 @@ namespace Libplanet.Blockchain
                         string.Empty, (s, key) => s + key.ValidatorPublicKey + ", \n"));
             }
 
-            BigInteger commitPower = blockCommit.Votes.Aggregate(
+            var validVotes = blockCommit.Votes.Where(x => x.Verify());
+
+            BigInteger commitPower = validVotes.Aggregate(
                 BigInteger.Zero,
                 (power, vote) => power + (vote.Flag == VoteFlag.PreCommit
                     ? validators.GetValidator(vote.ValidatorPublicKey).Power
