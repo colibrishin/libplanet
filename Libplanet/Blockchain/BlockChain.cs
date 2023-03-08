@@ -1333,6 +1333,7 @@ namespace Libplanet.Blockchain
             StateCompleterSet<T>? stateCompleters = null
         )
         {
+            Thread.Sleep(2000);
             if (Count == 0)
             {
                 throw new ArgumentException(
