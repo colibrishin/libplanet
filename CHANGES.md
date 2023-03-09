@@ -28,6 +28,15 @@ To be released.
 
  -  Added `BlockChain<T>.Create()` factory method for creating a `BlockChain<T>`
     with an empty `IStore`.  [[#2863]]
+ -  (@planetarium/account) Added key store abstractions.  [[#TBD]]
+     -  Added `AccountDeletion` type.
+     -  Added `AccountGeneration` type.
+     -  Added `AccountImportation` type.
+     -  Added `AccountMetadata` type.
+     -  Added `AccountRetrieval` type.
+     -  Added `ImportableKeyStore` interface.
+     -  Added `KeyStore` interface.
+     -  Added `MutableKeyStore` interface.
 
 ### Behavioral changes
 
@@ -41,6 +50,7 @@ To be released.
 [#2585]: https://github.com/planetarium/libplanet/issues/2585
 [#2863]: https://github.com/planetarium/libplanet/pull/2863
 [#2889]: https://github.com/planetarium/libplanet/pull/2889
+[#TBD]: https://github.com/planetarium/libplanet/pull/TBD
 
 
 Version 0.51.0
