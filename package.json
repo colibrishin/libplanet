@@ -3,6 +3,7 @@
   "private": true,
   "workspaces": [
     "@planetarium/account",
+    "@planetarium/account-aws-kms",
     "@planetarium/tx",
     "Libplanet.Tools"
   ],
