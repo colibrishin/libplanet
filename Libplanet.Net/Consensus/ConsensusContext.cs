@@ -26,10 +26,11 @@ namespace Libplanet.Net.Consensus
 
         private readonly BlockChain<T> _blockChain;
         private readonly PrivateKey _privateKey;
-        private readonly TimeSpan _newHeightDelay;
+        private readonly CommitTimer _commitTimer;
         private readonly ILogger _logger;
         private readonly Dictionary<long, Context<T>> _contexts;
 
+        private TimeSpan _newHeightDelay;
         private CancellationTokenSource? _newHeightCts;
         private bool _bootstrapping;
 
@@ -61,6 +62,7 @@ namespace Libplanet.Net.Consensus
             _privateKey = privateKey;
             Height = -1;
             _newHeightDelay = newHeightDelay;
+            _commitTimer = new CommitTimer(TimeSpan.FromSeconds(5));
 
             _contextTimeoutOption = contextTimeoutOption;
 
@@ -204,6 +206,13 @@ namespace Libplanet.Net.Consensus
                                 lastCommit.Round);
                         }
                     }
+                }
+
+                if (lastCommit is { })
+                {
+                    _commitTimer.AddCommitTime(lastCommit, DateTimeOffset.UtcNow);
+                    _newHeightDelay = _commitTimer.GetCommitTime();
+                    _logger.Debug("Updating commit delay to {Delay}.", _newHeightDelay);
                 }
 
                 RemoveOldContexts(height);
