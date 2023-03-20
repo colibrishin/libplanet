@@ -185,6 +185,35 @@ namespace Libplanet.Tests.Blocks
         }
 
         [Fact]
+        public void MakeCandidateDataPv4()
+        {
+            Bencodex.Types.Dictionary expected = Bencodex.Types.Dictionary.Empty
+                .Add("index", 2L)
+                .Add("timestamp", "2021-09-06T09:01:09.045000Z")
+                .Add(
+                    "last_commit",
+                    ParseHex("19de1146c2d0851d311694e0bc1c739c6d2ac65e0458504d53aa135741646129")
+                )
+                .Add("nonce", default(Nonce).ToByteArray())
+                .Add(
+                    "public_key",
+                    ParseHex("0215ba27a461a986f4ce7bcda1fd73dc708da767d0405729edaacaad7b7ff60eed")
+                )
+                .Add(
+                    "previous_hash",
+                    ParseHex("01ba315acefad8bab3db3118191c5ba27101092ed87a054de39c55bebc26f7c7")
+                )
+                .Add(
+                    "transaction_fingerprint",
+                    ParseHex("284a0a8d59cef1a8cae4f9b5681930d9a8fe76d06b010a2133e776a9a414a200")
+                )
+                .Add("protocol_version", 4);
+            AssertBencodexEqual(
+                expected,
+                Block2MetadataPv4.MakeCandidateData(default));
+        }
+
+        [Fact]
         public void MakeCandidateDataPv1()
         {
             Bencodex.Types.Dictionary expected = Bencodex.Types.Dictionary.Empty

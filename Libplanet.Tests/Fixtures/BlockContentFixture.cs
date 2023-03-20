@@ -5,6 +5,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using Libplanet.Action.Sys;
 using Libplanet.Blocks;
+using Libplanet.Consensus;
 using Libplanet.Crypto;
 using Libplanet.Tx;
 using Xunit;
@@ -19,6 +20,7 @@ namespace Libplanet.Tests.Fixtures
         public readonly BlockMetadata GenesisMetadata;
 
         public readonly PrivateKey Block1Key;
+        public readonly BlockHash Block1Hash;
         public readonly PrivateKey Block1Tx0Key;
         public readonly PrivateKey Block1Tx1Key;
         public readonly Transaction<Arithmetic> Block1Tx0;
@@ -27,10 +29,22 @@ namespace Libplanet.Tests.Fixtures
         public readonly HashDigest<SHA256> Block1TxHash;
         public readonly BlockMetadata Block1Metadata;
 
+        public readonly PrivateKey Block2Key;
+        public readonly PrivateKey Block2Tx0Key;
+        public readonly PrivateKey Block2Tx1Key;
+        public readonly Transaction<Arithmetic> Block2Tx0;
+        public readonly Transaction<Arithmetic> Block2Tx1;
+        public readonly BlockContent<Arithmetic> Block2Content;
+        public readonly HashDigest<SHA256> Block2TxHash;
+        public readonly BlockMetadata Block2Metadata;
+        public readonly HashDigest<SHA256> Block2LastCommitHash;
+
         public readonly BlockContent<Arithmetic> GenesisContentPv0;
         public readonly BlockMetadata GenesisMetadataPv0;
         public readonly BlockContent<Arithmetic> Block1ContentPv1;
         public readonly BlockMetadata Block1MetadataPv1;
+        public readonly BlockContent<Arithmetic> Block2ContentPv4;
+        public readonly BlockMetadata Block2MetadataPv4;
 
         public BlockContentFixture()
         {
@@ -114,6 +128,69 @@ namespace Libplanet.Tests.Fixtures
                 "654698d34b6d9a55b0c93e4ffb2639278324868c91965bc5f96cb3071d6903a0");
             Block1Metadata = new BlockMetadata(Block1Content);
 
+            Block2Key = Block1Key;
+            Block2Tx0Key = Block1Tx0Key;
+            Block2Tx0 = new Transaction<Arithmetic>(
+                metadata: new TxMetadata(Block2Tx0Key.PublicKey)
+                {
+                    Nonce = 1L,
+                    GenesisHash = GenesisHash,
+                    UpdatedAddresses = ImmutableHashSet.Create(Block2Tx0Key.ToAddress()),
+                    Timestamp = new DateTimeOffset(2021, 9, 6, 18, 0, 1, 1, default),
+                },
+                customActions: new[]
+                {
+                    Arithmetic.Add(10), Arithmetic.Add(50), Arithmetic.Sub(25),
+                },
+                signature: ByteUtil.ParseHex(
+                    "3044022015e4e60608bf14799c6f1678ba54634a3fb06291b28dc3e30d3404f807a1032" +
+                    "e0220478fdade1af3bfb600fe4d2026366f11c1f8d11731f461f5a3fbdf519841267f"
+                )
+            );
+            Block2Tx1Key = Block1Tx1Key;
+            Block2Tx1 = new Transaction<Arithmetic>(
+                metadata: new TxMetadata(Block2Tx1Key.PublicKey)
+                {
+                    Nonce = 2L,
+                    GenesisHash = GenesisHash,
+                    UpdatedAddresses = ImmutableHashSet.Create(Block2Tx1Key.ToAddress()),
+                    Timestamp = new DateTimeOffset(2021, 9, 6, 17, 1, 1, 1, default),
+                },
+                customActions: new[] { Arithmetic.Add(30) },
+                signature: ByteUtil.ParseHex(
+                    "3045022100a1880767037c9131ddab9259396df31389c8079199d9db8fe8ca366344898" +
+                    "f720220062f81ede6b35911975281b34baa181ce20fee1e0373a0fbcb99125d75029430"
+                )
+            );
+
+            Block1Hash = BlockHash.FromString(
+                    "01ba315acefad8bab3db3118191c5ba27101092ed87a054de39c55bebc26f7c7");
+
+            var block2Transactions = new List<Transaction<Arithmetic>>() { Block2Tx0, Block2Tx1 }
+                .OrderBy(tx => tx.Id).ToList();
+            var block2LastCommit = new BlockCommit(
+                1, 0, Block1Hash, TestUtils.ValidatorPrivateKeys.Select(key => new VoteMetadata(
+                    1,
+                    0,
+                    Block1Hash,
+                    new DateTimeOffset(2021, 9, 6, 17, 1, 0, 1, default),
+                    key.PublicKey,
+                    VoteFlag.PreCommit).Sign(key)).ToImmutableArray());
+            Block2LastCommitHash = HashDigest<SHA256>.FromString(
+                    "19de1146c2d0851d311694e0bc1c739c6d2ac65e0458504d53aa135741646129");
+            Block2Content = new BlockContent<Arithmetic>(
+                new BlockMetadata(
+                    index: 2,
+                    timestamp: new DateTimeOffset(2021, 9, 6, 18, 1, 9, 45, kst),
+                    publicKey: Block2Key.PublicKey,
+                    previousHash: Block1Hash,
+                    txHash: BlockContent<Arithmetic>.DeriveTxHash(block2Transactions),
+                    lastCommit: block2LastCommit),
+                transactions: block2Transactions);
+            Block2TxHash = HashDigest<SHA256>.FromString(
+                "284a0a8d59cef1a8cae4f9b5681930d9a8fe76d06b010a2133e776a9a414a200");
+            Block2Metadata = new BlockMetadata(Block2Content);
+
             GenesisContentPv0 = new BlockContent<Arithmetic>(
                 new BlockMetadata(
                     protocolVersion: 0,
@@ -138,6 +215,18 @@ namespace Libplanet.Tests.Fixtures
                     lastCommit: null),
                 transactions: block1Transactions); // Tweaked Block1Content
             Block1MetadataPv1 = new BlockMetadata(Block1ContentPv1);
+            Block2ContentPv4 = new BlockContent<Arithmetic>(
+                new BlockMetadata(
+                    protocolVersion: 4,
+                    index: 2,
+                    timestamp: new DateTimeOffset(2021, 9, 6, 18, 1, 9, 45, kst),
+                    miner: Block2Key.ToAddress(),
+                    publicKey: Block2Key.PublicKey,
+                    previousHash: Block1Hash,
+                    txHash: BlockContent<Arithmetic>.DeriveTxHash(block2Transactions),
+                    lastCommit: block2LastCommit),
+                transactions: block2Transactions);
+            Block2MetadataPv4 = new BlockMetadata(Block2ContentPv4); // Tweaked Block2Content
         }
 
         [Fact]
@@ -145,8 +234,12 @@ namespace Libplanet.Tests.Fixtures
         {
             Block1Tx0.Validate(Block1Tx0Key);
             Block1Tx1.Validate(Block1Tx1Key);
+            Block2Tx0.Validate(Block2Tx0Key);
+            Block2Tx1.Validate(Block2Tx1Key);
             Assert.Equal(Block1TxHash, Block1Content.TxHash);
             Assert.Equal(Block1TxHash, Block1ContentPv1.TxHash);
+            Assert.Equal(Block2TxHash, Block2Content.TxHash);
+            Assert.Equal(Block2TxHash, Block2ContentPv4.TxHash);
         }
     }
 }

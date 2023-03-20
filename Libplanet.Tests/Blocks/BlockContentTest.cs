@@ -33,6 +33,11 @@ namespace Libplanet.Tests.Blocks
             Assert.Throws<InvalidBlockTxHashException>(
                 () => new BlockContent<Arithmetic>(Block1Metadata, new[] { Block1Tx0 })
             );
+
+            // Checks whether LastCommit also copied with.
+            var block2 = new BlockContent<Arithmetic>(Block2Metadata, Block2Content.Transactions);
+            AssertBlockContentsEqual(Block2Content, block2);
+            Assert.Equal(Block2Content.LastCommit, block2.LastCommit);
         }
 
         [Fact]

@@ -109,6 +109,38 @@ namespace Libplanet.Tests.Blocks
                 expectedBlock1.SetItem("state_root_hash", stateRootHash.ByteArray),
                 block1.MakeCandidateData(stateRootHash)
             );
+
+            Bencodex.Types.Dictionary expectedBlock2 = Bencodex.Types.Dictionary.Empty
+                .Add("index", 2L)
+                .Add("timestamp", "2021-09-06T09:01:09.045000Z")
+                .Add(
+                    "last_commit",
+                    ParseHex("19de1146c2d0851d311694e0bc1c739c6d2ac65e0458504d53aa135741646129")
+                )
+                .Add("nonce", default(Nonce).ByteArray)
+                .Add(
+                    "public_key",
+                    ParseHex("0215ba27a461a986f4ce7bcda1fd73dc708da767d0405729edaacaad7b7ff60eed")
+                )
+                .Add(
+                    "previous_hash",
+                    ParseHex("01ba315acefad8bab3db3118191c5ba27101092ed87a054de39c55bebc26f7c7")
+                )
+                .Add(
+                    "transaction_fingerprint",
+                    ParseHex("284a0a8d59cef1a8cae4f9b5681930d9a8fe76d06b010a2133e776a9a414a200")
+                )
+                .Add("protocol_version", 4)
+                .Add("state_root_hash", default(HashDigest<SHA256>).ByteArray);
+            var block2 = new PreEvaluationBlockHeader(
+                _contents.Block2Metadata,
+                _contents.Block2Metadata.DerivePreEvaluationHash(default));
+            AssertBencodexEqual(expectedBlock2, block2.MakeCandidateData(default));
+            stateRootHash = random.NextHashDigest<SHA256>();
+            AssertBencodexEqual(
+                expectedBlock2.SetItem("state_root_hash", stateRootHash.ByteArray),
+                block2.MakeCandidateData(stateRootHash)
+            );
         }
 
         [Fact]
@@ -245,6 +277,27 @@ namespace Libplanet.Tests.Blocks
                 block1.DeriveBlockHash(
                     arbitraryHash, block1.MakeSignature(_contents.Block1Key, arbitraryHash)
                 )
+            );
+
+            var block2 = new PreEvaluationBlockHeader(
+                _contents.Block2Metadata,
+                _contents.Block2Metadata.DerivePreEvaluationHash(default));
+            AssertBytesEqual(
+                fromHex("172891a4e968479d8ddbc154fa77c3f77ba7c4bea83da83c64d631e8422c3969"),
+                block2.DeriveBlockHash(default, null)
+            );
+            AssertBytesEqual(
+                fromHex("e9ae5183953eed317c9be10c6c96d6c8d3ae90d325b6ea9c445f12135d86d562"),
+                block2.DeriveBlockHash(default, block2.MakeSignature(_contents.Block2Key, default))
+            );
+            AssertBytesEqual(
+                fromHex("c6aeba18aeaa991c40c348aa642b8cc67087d6818cb2ed5c3423e4a368fd49fb"),
+                block2.DeriveBlockHash(arbitraryHash, null)
+            );
+            AssertBytesEqual(
+                fromHex("66a3d2cb13db92dd79f3294be5067da43bc9e09bbacc7e4e1406bec6322da2a0"),
+                block2.DeriveBlockHash(
+                    arbitraryHash, block2.MakeSignature(_contents.Block2Key, arbitraryHash))
             );
         }
     }
